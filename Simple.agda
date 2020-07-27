@@ -150,14 +150,6 @@ lemma10 st s (k , v) ((k₁ , v₁) ∷ ls) (Cons k₁ v₁ ls x p1) (here (k≡
 ... | .true because ofʸ p = ⊥-elim (¬p (trans (PropEq.sym k≡k₁) p))
 lemma10 st s (k , v) ((k₁ , v₁) ∷ ls) (Cons k₁ v₁ ls x p1) (there p2) p3 | .false because ofⁿ ¬p = lemma10 st s (k , v) ls p1 p2 p3
 
-{-
-lemma10 st s (k , v) .[] Empty () p3
-lemma10 st s (k , v) ((k1 , v1) ∷ ls1) (Cons .k1 .v1 .ls1 x2 x3) p2 p3 with (PropStr._≟_ k1 s) | (PropStr._≟_ k s)
-... | .true because ofʸ p | .true because ofʸ p₁ with trans p (PropEq.sym p₁)
-lemma10 st s (k , v) ((k1 , v1) ∷ ls1) (Cons .k1 .v1 .ls1 x2 x3) (here (proj₃ , proj₄)) p3 | .true because ofʸ p | .true because ofʸ p₁ | b = PropEq.cong just (PropEq.sym proj₄)
-lemma10 st s (k , v) ((k1 , v1) ∷ ls1) (Cons .k1 .v1 .ls1 x2 x3) (there p2) p3 | .true because ofʸ p | .true because ofʸ p₁ | b = ⊥-elim (x2 {!!}) -- lemma says p2 implies that goal.
-lemma10 st s (k , v) ls (Cons k1 v1 ls1 x2 x3) p2 p3 | .false because ofⁿ ¬p | .true because ofʸ p = lemma10 st s (k , v) ls1 x3 {!!} {!!}
--}
 
 lemma9 : (st : State) -> (s : String) -> (ls : List (String × String)) -> s StrListMem_.∈ (files ls) -> (foldr extend st ls) s ≡ (foldr extend (foldr extend st ls) ls) s
 lemma9 st s ls p with foldr extend st ls
