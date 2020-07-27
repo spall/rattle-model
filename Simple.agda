@@ -57,7 +57,7 @@ files = Data.List.Base.map Data.Product.proj₁
 -- k does not appear in ls. so elements of k :: ls are distinct
 data UniqueFiles : List (String × String) -> Set where
   Empty : UniqueFiles []
-  Cons : ((k , v) : String × String) -> (ls : List (String × String)) -> k StrListMem_.∉ (files ls) -> UniqueFiles ls -> UniqueFiles ((k , v) ∷ ls)
+  Cons : (k : String) -> (v : String) -> (ls : List (String × String)) -> k StrListMem_.∉ (files ls) -> UniqueFiles ls -> UniqueFiles ((k , v) ∷ ls)
 
 outputFiles : Cmd -> List String
 outputFiles cmd = files (Cmd.outputs cmd)
@@ -90,6 +90,7 @@ exec st (x :: xs) = exec (run x st) xs
 
 -- if s is not in the files (x :: xs) then s is not in the files of xs
 lemma3 : (s : String) -> (x : (String × String)) (xs : List (String × String)) -> s StrListMem_.∉ (files (x ∷ xs)) -> s StrListMem_.∉ (files xs)
+
 lemma3 s x [] p = λ ()
 lemma3 s x (b ∷ ls) p = λ x₁ → p (there x₁)
 
@@ -133,10 +134,30 @@ lemma8 s (k , v) (here px) with (PropStr._≟_ k s)
 ... | ofʸ p₁ = refl
 ... | ofⁿ ¬p = ⊥-elim (¬p (PropEq.sym px))
 
-lemma_ : (st : State) -> (s : String) -> ((k , v) : String × String) -> (ls : List (String × String)) -> s StrListMem_.∈ (files ls) -> (k , v) PairListMem_.∈ ls -> (k == s) ≡ true -> (foldr extend st ls) s ≡ just v
-lemma_ st s (k , v) ls p1 p2 p3 with foldr extend st ls
-... | st2 = {!!}
 
+lemma11 : (k : String) -> ((s , v) : String × String) -> (ls : List (String × String)) -> k ≡ s -> (s , v) PairListMem_.∈ ls -> k StrListMem_.∈ (files ls)
+lemma11 k (s , v) ((s1 , v1) ∷ ls) p1 (here (fst , snd)) = here (trans p1 fst)
+lemma11 k (s , v) ((s1 , v1) ∷ ls) p1 (there p2) = there (lemma11 k (s , v) ls p1 p2)
+
+lemma10 : (st : State) -> (s : String) -> ((k , v) : String × String) -> (ls : List (String × String))
+  -> UniqueFiles ls -> (k , v) PairListMem_.∈ ls -> (k == s) ≡ true -> (foldr extend st ls) s ≡ just v
+lemma10 st s (k , v) .((k₁ , v₁) ∷ ls) (Cons k₁ v₁ ls x p1) p2 p3 with (k₁ PropStr.≟ s) -- hmm using k here instead of s doesnt reduce problem as much, wonder why
+... | .true because ofʸ p with (k PropStr.≟ s) | p2  
+... | .true because ofʸ p₁ | here (_ , v≡v1) = PropEq.cong just (PropEq.sym v≡v1)
+... | .true because ofʸ p₁ | there b = ⊥-elim (x (lemma11 k₁ (k , v) ls (trans p (PropEq.sym p₁)) b))
+
+lemma10 st s (k , v) ((k₁ , v₁) ∷ ls) (Cons k₁ v₁ ls x p1) (here (k≡k₁ , proj₄)) p3 | .false because ofⁿ ¬p with (k PropStr.≟ s)
+... | .true because ofʸ p = ⊥-elim (¬p (trans (PropEq.sym k≡k₁) p))
+lemma10 st s (k , v) ((k₁ , v₁) ∷ ls) (Cons k₁ v₁ ls x p1) (there p2) p3 | .false because ofⁿ ¬p = lemma10 st s (k , v) ls p1 p2 p3
+
+{-
+lemma10 st s (k , v) .[] Empty () p3
+lemma10 st s (k , v) ((k1 , v1) ∷ ls1) (Cons .k1 .v1 .ls1 x2 x3) p2 p3 with (PropStr._≟_ k1 s) | (PropStr._≟_ k s)
+... | .true because ofʸ p | .true because ofʸ p₁ with trans p (PropEq.sym p₁)
+lemma10 st s (k , v) ((k1 , v1) ∷ ls1) (Cons .k1 .v1 .ls1 x2 x3) (here (proj₃ , proj₄)) p3 | .true because ofʸ p | .true because ofʸ p₁ | b = PropEq.cong just (PropEq.sym proj₄)
+lemma10 st s (k , v) ((k1 , v1) ∷ ls1) (Cons .k1 .v1 .ls1 x2 x3) (there p2) p3 | .true because ofʸ p | .true because ofʸ p₁ | b = ⊥-elim (x2 {!!}) -- lemma says p2 implies that goal.
+lemma10 st s (k , v) ls (Cons k1 v1 ls1 x2 x3) p2 p3 | .false because ofⁿ ¬p | .true because ofʸ p = lemma10 st s (k , v) ls1 x3 {!!} {!!}
+-}
 
 lemma9 : (st : State) -> (s : String) -> (ls : List (String × String)) -> s StrListMem_.∈ (files ls) -> (foldr extend st ls) s ≡ (foldr extend (foldr extend st ls) ls) s
 lemma9 st s ls p with foldr extend st ls
