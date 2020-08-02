@@ -16,6 +16,10 @@ open import Data.List.Relation.Unary.All.Properties
 open import Data.Empty
 open import Relation.Nullary.Decidable.Core
 
+open import Data.List.Relation.Binary.Sublist.Propositional as C hiding (Disjoint)
+-- open import Data.List.Relation.Binary.Sublist.Setoid hiding (Disjoint)
+open import Data.List.Relation.Binary.Sublist.Heterogeneous.Properties hiding (refl ; trans)
+
 open import Relation.Nullary
 open import Relation.Nullary.Negation
 
@@ -94,8 +98,6 @@ lemma3 : (s : String) -> (x : (String × String)) (xs : List (String × String))
 lemma3 s x [] p = λ ()
 lemma3 s x (b ∷ ls) p = λ x₁ → p (there x₁)
 
--- lemma10 : (s : String) -> ((k , v) : (String × String)) -> (ls : List (String × String)) -> s StrListMem_.∈ (
-
 -- if s is not k then st s ≡ extend (k , v) st s
 lemma4 : (s : String) -> ((k , v) : String × String) -> (k == s) ≡ false -> (st : State) -> st s ≡ (extend (k , v) st) s
 lemma4 s (k , v) p st with (k == s)
@@ -139,6 +141,9 @@ lemma11 : (k : String) -> ((s , v) : String × String) -> (ls : List (String × 
 lemma11 k (s , v) ((s1 , v1) ∷ ls) p1 (here (fst , snd)) = here (trans p1 fst)
 lemma11 k (s , v) ((s1 , v1) ∷ ls) p1 (there p2) = there (lemma11 k (s , v) ls p1 p2)
 
+
+
+-- would be nice to say there exists a (k, v) in ls s.t. k == s instead of explicitely being forced to specify it
 lemma10 : (st : State) -> (s : String) -> ((k , v) : String × String) -> (ls : List (String × String))
   -> UniqueFiles ls -> (k , v) PairListMem_.∈ ls -> (k == s) ≡ true -> (foldr extend st ls) s ≡ just v
 lemma10 st s (k , v) .((k₁ , v₁) ∷ ls) (Cons k₁ v₁ ls x p1) p2 p3 with (k₁ PropStr.≟ s) -- hmm using k here instead of s doesnt reduce problem as much, wonder why
@@ -150,25 +155,29 @@ lemma10 st s (k , v) ((k₁ , v₁) ∷ ls) (Cons k₁ v₁ ls x p1) (here (k≡
 ... | .true because ofʸ p = ⊥-elim (¬p (trans (PropEq.sym k≡k₁) p))
 lemma10 st s (k , v) ((k₁ , v₁) ∷ ls) (Cons k₁ v₁ ls x p1) (there p2) p3 | .false because ofⁿ ¬p = lemma10 st s (k , v) ls p1 p2 p3
 
+{- 1. find (k , v) s.t k == s
+   2. call lemma10 twice.
+   3. use trans
+-}
 
-lemma9 : (st : State) -> (s : String) -> (ls : List (String × String)) -> s StrListMem_.∈ (files ls) -> (foldr extend st ls) s ≡ (foldr extend (foldr extend st ls) ls) s
-lemma9 st s ls p with foldr extend st ls
-... | st2 = {!!}
+lemma13 : {k : String} -> {s : String} -> k ≡ s -> (k == s) ≡ true
+lemma13 {k} {s} p with (k PropStr.≟ s)
+... | .true because ofʸ p₁ = refl
+... | .false because ofⁿ ¬p = ⊥-elim (¬p p)
 
--- step 1. since s is in ls....... that means there exists a (k , v) s.t k == s and
--- therefore, just v ≡ (foldr extend st ls) s
+lemma9 : (st : State) -> (s : String) -> (ls : List (String × String)) -> s StrListMem_.∈ (files ls) -> UniqueFiles ls -> (ls2 : List (String × String)) -> s StrListMem_.∈ (files ls2) -> UniqueFiles ls2 ->  ls2 ⊆ ls ->  (foldr extend st ls) s ≡ (foldr extend (foldr extend st ls) ls) s
+lemma9 st s ls1 p1 p2 ((k , v) ∷ ls3) p3 p4 p5 with (k PropStr.≟ s)
+... | .true because ofʸ p with lemma10 st s (k , v) ls1 p2 (C.lookup p5 (here (refl , refl)))  (lemma13 p)
+... | x with lemma10 (foldr extend st ls1) s (k , v) ls1 p2 (C.lookup p5 (here (refl , refl))) (lemma13 p)
+... | y = trans x (PropEq.sym y)
 
--- step 2. since s is in ls......... that means there exists a (k , v) s.t. k == s and
--- therefore, just v ≡ (foldr extend (foldr extend st ls) ls) s
+lemma9 st s ls1 p1 p2 ((k , v) ∷ ls2) (here s≡k) p4 p5 | .false because ofⁿ ¬p = ⊥-elim (¬p (PropEq.sym s≡k))
+lemma9 st s ls1 p1 p2 ((k , v) ∷ ls2) (there p3) (Cons .k .v .ls2 x p4) p5 | .false because ofⁿ ¬p = lemma9 st s ls1 p1 p2 ls2 p3 p4 (∷ˡ⁻ p5)
 
 
+lemma6 : (cmd : Cmd) -> (st : State) -> (s : String) -> s StrListMem_.∈ (outputFiles cmd) -> UniqueFiles (Cmd.outputs cmd) -> (run cmd st) s ≡ (run cmd (run cmd st)) s
+lemma6 cmd st s p p2 = lemma9 st s (Cmd.outputs cmd) p p2 (Cmd.outputs cmd) p p2 (⊆-reflexive refl)
 
-
--- we know that s is an output file, an we know (but no proof yet) that s only appears once in
--- output files.  
-
-lemma6 : (cmd : Cmd) -> (st : State) -> (s : String) -> s StrListMem_.∈ (outputFiles cmd) -> (run cmd st) s ≡ (run cmd (run cmd st)) s
-lemma6 cmd st s p = lemma9 st s (Cmd.outputs cmd) p
 
 {-with (Cmd.outputs cmd)
 ... | (k , v) ∷ [] with extend (k , v) st | lemma8 s (k , v) p
@@ -187,12 +196,12 @@ lemma6 cmd st s p | (k , v) ∷ x₁ ∷ ls with (k == s)
      -- 1. no y; z is not in outputs, therefore lemma2, where st = (run cmd st)
      -- 2. yes y; z is in outputs, therefore need to show same value is written to state both times
 -}
-cmd-idempotent-helper : {cmd : Cmd} -> {st : State} -> Disjoint (inputFiles cmd) (outputFiles cmd) -> (z : String) -> (run cmd st) z ≡ (run cmd (run cmd st)) z
-cmd-idempotent-helper {cmd} {st} p z with z StrListMem.∈? (inputFiles cmd)
+cmd-idempotent-helper : {cmd : Cmd} -> {st : State} -> Disjoint (inputFiles cmd) (outputFiles cmd) -> UniqueFiles (Cmd.outputs cmd) -> (z : String) -> (run cmd st) z ≡ (run cmd (run cmd st)) z
+cmd-idempotent-helper {cmd} {st} p p2 z with z StrListMem.∈? (inputFiles cmd)
 ... | yes x = lemma2 cmd (run cmd st) z (lemma1 {cmd} z x p) -- z is not in outputs because it is in inputs
 ... | no x with z StrListMem.∈? (outputFiles cmd) -- z is not in inputs
 ... | no y = lemma2 cmd (run cmd st) z y -- z is not in outputs
-... | yes y = lemma6 cmd st z y -- z is in outputs
+... | yes y = lemma6 cmd st z y p2 -- z is in outputs
 
 
 
@@ -210,6 +219,6 @@ cmd-idempotent-helper {cmd} {st} p z with z StrListMem.∈? (inputFiles cmd)
 -- if any element of outputs = z then bottom.
 cmd-idempotent-helper {cmd} {st} p z | no x = {!!}
 -}
-cmd-idempotent : {cmd : Cmd} -> {st : State} -> Disjoint (inputFiles cmd) (outputFiles cmd) -> ∀ x -> ((run cmd st) x) ≡ (run cmd (run cmd st)) x
-cmd-idempotent {cmd} {st} p = λ z -> cmd-idempotent-helper {cmd} {st} p z
+cmd-idempotent : {cmd : Cmd} -> {st : State} -> Disjoint (inputFiles cmd) (outputFiles cmd) -> UniqueFiles (Cmd.outputs cmd) -> ∀ x -> ((run cmd st) x) ≡ (run cmd (run cmd st)) x
+cmd-idempotent {cmd} {st} p p2 = λ z -> cmd-idempotent-helper {cmd} {st} p p2 z
 
