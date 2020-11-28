@@ -52,20 +52,14 @@ lemma2 cmd s = helper (Cmd.outputs cmd)
         ... | no ¬k≡s = helper ls λ x → p2 (there x)
 
 
-lemma1-2 : {st : State} {st2 : State} (s : FileName) (ls : Files) -> s A.∈ fileNames ls -> ∃[ v ](foldr extend st ls s ≡ just v × foldr extend st2 ls s ≡ just v)
-lemma1-2 s ((s₁ , v₁) ∷ ls) p with s₁ ≟ s | inspect (_==_ s₁) s
+lemma1-1 : {st : State} {st2 : State} (s : FileName) (ls : Files) -> s A.∈ fileNames ls -> ∃[ v ](foldr extend st ls s ≡ just v × foldr extend st2 ls s ≡ just v)
+lemma1-1 s ((s₁ , v₁) ∷ ls) p with s₁ ≟ s | inspect (_==_ s₁) s
 ... | yes p₁ | b = v₁ , (refl , refl)
-... | no ¬p₁ | b = lemma1-2 s ls (tail (λ x → ¬p₁ (sym x)) p)
-
-
-lemma1-1 : {st : State} (s : FileName) (ls : Files) -> s A.∈ fileNames ls -> ∃[ v ] (foldr extend st ls s ≡ just v × foldr extend (foldr extend st ls) ls s ≡ just v)
-lemma1-1 {st} s ((s₁ , v₁) ∷ ls) p with s₁ ≟ s | inspect (_==_ s₁) s
-... | yes s₁≡s | b = v₁ , refl , refl
-... | no ¬s₁≡s | b = lemma1-2 {st} {foldr extend st ((s₁ , v₁) ∷ ls)} s ls (tail (λ x → ¬s₁≡s (sym x)) p)
+... | no ¬p₁ | b = lemma1-1 s ls (tail (λ x → ¬p₁ (sym x)) p)
 
 
 lemma1 : {st : State} (s : FileName) -> (ls : Files) -> s A.∈ fileNames ls -> (foldr extend st ls) s ≡ (foldr extend (foldr extend st ls) ls) s
-lemma1 {st} s ls p with lemma1-1 {st} s ls p
+lemma1 {st} s ls p with lemma1-1 {st} {foldr extend st ls} s ls p
 ... | v , fst , snd = trans fst (sym snd)
 
 
