@@ -6,6 +6,7 @@ open import Agda.Builtin.List
 open import Data.List using (foldr)
 open import Data.List.Membership.DecSetoid as ListMemDS hiding (_∈_ ; _∈?_ ; _∉_)
 open import Data.List.Membership.Setoid as ListMemS hiding (_∈_ ; _∉_)
+open import Data.List.Relation.Binary.Disjoint.Propositional using (Disjoint)
 open import Data.List.Relation.Unary.Any using (here ; there ; tail)
 open import Data.Maybe using (just)
 open import Data.Product using (_,_ ; proj₁; ∃-syntax ; _×_)
@@ -35,6 +36,9 @@ outputFileNames cmd = fileNames (Cmd.outputs cmd)
 
 inputFileNames : Cmd  -> List FileName
 inputFileNames cmd = fileNames (Cmd.inputs cmd)
+
+DisjointFiles : Cmd -> Set
+DisjointFiles cmd = Disjoint (inputFileNames cmd) (outputFileNames cmd)
 
 run : Cmd -> State -> State
 run cmd st = foldr extend st (Cmd.outputs cmd)

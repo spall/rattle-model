@@ -15,6 +15,3 @@ empty x = nothing
 
 extend : File -> State -> State
 extend (k , v) st = \ k2 -> if (k == k2) then just v else st k2
-
-extendL : State -> File -> State
-extendL st (k , v) = \ k2 -> if (k == k2) then just v else st k2
