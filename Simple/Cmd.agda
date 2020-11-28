@@ -6,19 +6,15 @@ open import Agda.Builtin.List
 open import Data.List using (foldr)
 open import Data.List.Membership.DecSetoid as ListMemDS hiding (_∈_ ; _∈?_ ; _∉_)
 open import Data.List.Membership.Setoid as ListMemS hiding (_∈_ ; _∉_)
-open import Data.List.Membership.Setoid.Properties using (∈-map⁺)
-open import Data.List.Relation.Binary.Disjoint.Propositional using (Disjoint)
-open import Data.List.Relation.Binary.Sublist.Heterogeneous.Properties using (∷ˡ⁻)
-open import Data.List.Relation.Binary.Sublist.Propositional using (_⊆_ ; lookup ; ⊆-reflexive)
-open import Data.List.Relation.Unary.Any using (here ; there)
+open import Data.List.Relation.Unary.Any using (here ; there ; tail)
 open import Data.Maybe using (just)
-open import Data.Product using (_,_ ; proj₁)
+open import Data.Product using (_,_ ; proj₁; ∃-syntax ; _×_)
 open import Data.Product.Relation.Binary.Pointwise.NonDependent using (_×ₛ_)
 open import Data.String using (String)
 open import Data.String.Properties using (_≟_ ; ≡-setoid ; _==_)
 open import File using (File ; Files ; FileName ; fileNames ; UniqueFiles ; Empty ; Cons)
-open import Relation.Binary.PropositionalEquality using (trans ; sym ; decSetoid ; cong ; subst ; inspect ; [_])
-open import Relation.Nullary using (yes ; no)
+open import Relation.Binary.PropositionalEquality using (trans ; sym ; decSetoid ; cong ; subst ; inspect)
+open import Relation.Nullary using (yes ; no ; ¬_)
 open import Relation.Nullary.Negation using (contradiction)
 open import State using (State ; extend)
 
@@ -40,9 +36,6 @@ outputFileNames cmd = fileNames (Cmd.outputs cmd)
 inputFileNames : Cmd  -> List FileName
 inputFileNames cmd = fileNames (Cmd.inputs cmd)
 
-DisjointFiles : Cmd -> Set
-DisjointFiles cmd = Disjoint (inputFileNames cmd) (outputFileNames cmd)
-
 run : Cmd -> State -> State
 run cmd st = foldr extend st (Cmd.outputs cmd)
 
@@ -59,45 +52,27 @@ lemma2 cmd s = helper (Cmd.outputs cmd)
         ... | no ¬k≡s = helper ls λ x → p2 (there x)
 
 
-{- (s,v) ∈ ls implies extending the state with ls then looking up s will give the value of just v -}
-lemma1-1 : {st : State} -> ((s , v) : File) -> (ls : Files) -> UniqueFiles (fileNames ls) -> (s , v) B.∈ ls -> (foldr extend st ls) s ≡ just v
-lemma1-1 (s , v) ((k₁ , v₁) ∷ ls) p1 p2 with (k₁ ≟ s)
-lemma1-1 (s , v) ((k₁ , v₁) ∷ ls) p1 (here (_ , v≡v₁)) | yes x
-  = cong just (sym v≡v₁)
-lemma1-1 (s , v) ((k₁ , v₁) ∷ ls) p1 (here (s≡k₁ , _)) | no ¬k₁≡s
-  = contradiction (sym s≡k₁) ¬k₁≡s
-lemma1-1 (s , v) ((k₁ , v₁) ∷ ls) (Cons .k₁ _ k₁∉ls _) (there p2) | yes k₁≡s
-  = contradiction (subst (λ x₂ → x₂ A.∈ (fileNames ls)) (sym k₁≡s) (l0 p2)) k₁∉ls
-  where l0 : (s , v) ∈ ls -> s A.∈ (fileNames ls)
-        l0 = ∈-map⁺ (≡-setoid ×ₛ ≡-setoid) ≡-setoid proj₁
-lemma1-1 (s , v) ((k₁ , v₁) ∷ ls) (Cons .k₁ _ x₁ p1) (there p2) | no ¬k₁≡s
-  = lemma1-1 (s , v) ls p1 p2
-  
-
-{- I think we might not need the evidence of uniqueness since we use foldr; but we do use it... -}
-{- s ∈ outputs of cmd aka ls; loop over ls via ls2 until we find (s , v) ∈ ls2 -}
-{- I feel like there should be a nicer way of doing this -}
-lemma1 : (st : State) -> (s : FileName) -> (ls : Files) -> UniqueFiles (fileNames ls) -> (ls2 : Files) -> s A.∈ (fileNames ls2)
-  -> UniqueFiles (fileNames ls2) ->  ls2 ⊆ ls -> (foldr extend st ls) s ≡ (foldr extend (foldr extend st ls) ls) s
-lemma1 st s ls1 p2 ((k , v) ∷ ls3) p3 p4 p5 with (k ≟ s) | inspect (_==_ k) s
-... | yes p | [ b ]
-  = subst (λ x → foldr extend st ls1 x ≡ foldr extend (foldr extend st ls1) ls1 x) p
-          (trans (lemma1-1 (k , v) ls1 p2 (lookup p5 (here (refl , refl))))
-                 (sym (lemma1-1 {foldr extend st ls1} (k , v) ls1 p2 (lookup p5 (here (refl , refl))))))
-lemma1 _ s _ _  ((k , v) ∷ ls3) (here s≡k) _ _ | no ¬s≡k | [ b ]
-  = contradiction (sym s≡k) ¬s≡k
-lemma1 st s ls1 p2 ((k , v) ∷ ls3) (there p3) (Cons .k .(Data.List.map proj₁ ls3) x p4) p5 | no ¬p | [ b ]
-  = lemma1 st s ls1 p2 ls3 p3 p4 (∷ˡ⁻ p5)
+lemma1-2 : {st : State} {st2 : State} (s : FileName) (ls : Files) -> s A.∈ fileNames ls -> ∃[ v ](foldr extend st ls s ≡ just v × foldr extend st2 ls s ≡ just v)
+lemma1-2 s ((s₁ , v₁) ∷ ls) p with s₁ ≟ s | inspect (_==_ s₁) s
+... | yes p₁ | b = v₁ , (refl , refl)
+... | no ¬p₁ | b = lemma1-2 s ls (tail (λ x → ¬p₁ (sym x)) p)
 
 
-{- Proof a command is idempotent when run in a given state; if its output files are unique 
-   (aka a set) TODO: would be nice to replace this self defined 
-   claim of uniqueness with one already implemented in Agda
--}
-cmd-idempotent : {st : State} -> (cmd : Cmd) -> UniqueFiles (outputFileNames cmd) -> ∀ x -> ((run cmd st) x) ≡ (run cmd (run cmd st)) x
-cmd-idempotent {st} cmd p = λ z -> helper z
+lemma1-1 : {st : State} (s : FileName) (ls : Files) -> s A.∈ fileNames ls -> ∃[ v ] (foldr extend st ls s ≡ just v × foldr extend (foldr extend st ls) ls s ≡ just v)
+lemma1-1 {st} s ((s₁ , v₁) ∷ ls) p with s₁ ≟ s | inspect (_==_ s₁) s
+... | yes s₁≡s | b = v₁ , refl , refl
+... | no ¬s₁≡s | b = lemma1-2 {st} {foldr extend st ((s₁ , v₁) ∷ ls)} s ls (tail (λ x → ¬s₁≡s (sym x)) p)
+
+
+lemma1 : {st : State} (s : FileName) -> (ls : Files) -> s A.∈ fileNames ls -> (foldr extend st ls) s ≡ (foldr extend (foldr extend st ls) ls) s
+lemma1 {st} s ls p with lemma1-1 {st} s ls p
+... | v , fst , snd = trans fst (sym snd)
+
+
+{- Proof a command is idempotent when run in a given state -}
+cmd-idempotent : {st : State} -> (cmd : Cmd) -> ∀ x -> ((run cmd st) x) ≡ (run cmd (run cmd st)) x
+cmd-idempotent {st} cmd = λ z -> helper z
   where helper : {st : State} -> (z : String) -> (run cmd st) z  ≡ (run cmd (run cmd st)) z
         helper {st} z with z ∈? (outputFileNames cmd)
         ... | no x = lemma2 {(run cmd st)} cmd z x
-        ... | yes x = lemma1 st z (Cmd.outputs cmd) p (Cmd.outputs cmd) x p (⊆-reflexive refl)
-
+        ... | yes x = lemma1 z (Cmd.outputs cmd) x
