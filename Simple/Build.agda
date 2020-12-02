@@ -2,8 +2,8 @@
 module Build where
 
 open import Agda.Builtin.Equality
-open import Cmd using (Cmd ; DisjointFiles ; outputFileNames ; inputFileNames ; run ; lemma2)
-open import Data.List using (List ; _++_ ; foldr ; [] ; _∷_)
+open import Cmd using (Cmd ; DisjointFiles ; outputFileNames ; inputFileNames ; run) renaming (lemma2 to Cmd-lemma2)
+open import Data.List using (List ; _++_ ; foldr ; [] ; _∷_ ; foldl)
 open import Data.List.Membership.DecSetoid as ListMemDS
 open import Data.List.Membership.Propositional.Properties using (∈-++⁺ˡ ; ∈-++⁺ʳ)
 open import Data.List.Membership.Setoid.Properties using (∈-++⁻)
@@ -16,12 +16,14 @@ open import Data.String using (String ; _≟_ ; _==_)
 open import Data.String.Properties using (≡-decSetoid ; ≡-setoid)
 open import Data.Sum.Base using (inj₁ ; inj₂)
 open import File using (FileName ; Files ; fileNames)
-open import Relation.Binary.PropositionalEquality using (trans ; inspect ; sym)
+open import Relation.Binary.PropositionalEquality using (trans ; inspect ; sym ; subst ; subst₂)
 open import Relation.Nullary using (yes ; no)
 open import Relation.Nullary.Negation using (contradiction)
 open import State using (State ; extend)
 
-open import Data.List.Relation.Binary.Permutation.Homogeneous using (Permutation)
+open import Data.List.Relation.Binary.Permutation.Propositional using (_↭_ ; ↭-trans ; ↭-sym )
+open import Data.List.Relation.Binary.Permutation.Propositional.Properties using (++⁺ˡ ; shifts ; ∈-resp-↭)
+open import Data.List.Relation.Binary.Pointwise using (_∷_ ; Pointwise-≡⇒≡)
 
 module D = ListMemDS (×-decSetoid ≡-decSetoid ≡-decSetoid)
 open D using (_∈?_)
@@ -43,25 +45,25 @@ writes : Build -> List FileName
 writes [] = []
 writes (x ∷ b) = (outputFileNames x) ++ writes b
 
+writes2 : Build -> List FileName
+writes2 = foldl (λ ls x₁ -> ls ++ (outputFileNames x₁)) []
+
 writesP : Build -> Files
 writesP [] = []
 writesP (x ∷ b) = (Cmd.outputs x) ++ writesP b
 
-{- 
-  st s ≡ run x st s
--}
-buildLemma1 : (st : State) -> (s : FileName) -> (b : Build) -> s Cmd.A.∉ (writes b) -> st s ≡ (exec st b) s
-buildLemma1 st s [] p = refl
-buildLemma1 st s (x ∷ b) p
-  = trans (lemma2 x s (λ a -> p (∈-++⁺ˡ a)))
-          (buildLemma1 (run x st) s b (λ a -> p (∈-++⁺ʳ (outputFileNames x) a)))
+
+lemma1 : (s : FileName) -> (b : Build) -> s Cmd.A.∉ writes b -> ∀ st -> st s ≡ exec st b s
+lemma1 s [] p = λ st → refl
+lemma1 s (x ∷ b) p with lemma1 s b (λ x₁ -> p (∈-++⁺ʳ (outputFileNames x) x₁)) | Cmd-lemma2 x s λ x₁ -> p (∈-++⁺ˡ x₁)
+... | f | f₂ = λ st → trans (f₂ st) (f (run x st))
           
 
-buildLemma2-4 : {ls : List String} -> (s : FileName) -> (b : Build) -> s Cmd.A.∈ ls -> HazardFree b ls -> s Cmd.A.∉ writes b
-buildLemma2-4 s .[] p2 Null = λ ()
-buildLemma2-4 s .(c ∷ b) p2 (Cons c b ls _ x₁ p) with s Cmd.A.∈? outputFileNames c
+lemma2-3 : {ls : List String} -> (s : FileName) -> (b : Build) -> s Cmd.A.∈ ls -> HazardFree b ls -> s Cmd.A.∉ writes b
+lemma2-3 s .[] p2 Null = λ ()
+lemma2-3 s .(c ∷ b) p2 (Cons c b ls _ x₁ p) with s Cmd.A.∈? outputFileNames c
 ... | yes p1 = λ x₂ → x₁ (p1 , p2)
-... | no ¬p1 with buildLemma2-4 s b (∈-++⁺ʳ (outputFileNames c) (∈-++⁺ʳ (inputFileNames c) p2)) p
+... | no ¬p1 with lemma2-3 s b (∈-++⁺ʳ (outputFileNames c) (∈-++⁺ʳ (inputFileNames c) p2)) p
 ... | a = λ x₂ → a (f c b x₂ ¬p1)
   where f : (c : Cmd) -> (b : Build) -> s Cmd.A.∈ outputFileNames c ++ writes b -> s Cmd.A.∉ outputFileNames c -> s Cmd.A.∈ writes b
         f c b p p2 with ∈-++⁻ ≡-setoid (outputFileNames c) p
@@ -69,40 +71,34 @@ buildLemma2-4 s .(c ∷ b) p2 (Cons c b ls _ x₁ p) with s Cmd.A.∈? outputFil
         ... | inj₂ i₂ = i₂
 
 
-buildLemma2-2 : {st : State} {st2 : State} -> (s : FileName) -> (x : Cmd) -> s Cmd.A.∈ outputFileNames x -> ∃[ v ](run x st s ≡ just v × run x st2 s ≡ just v)
-buildLemma2-2 s x p = f (Cmd.outputs x) p
-  where f : {st : State} {st2 : State} (ls : Files) -> s Cmd.A.∈ fileNames ls -> ∃[ v ](foldr extend st ls s ≡ just v × foldr extend st2 ls s ≡ just v)
+lemma2-2 : (s : FileName) -> (x : Cmd) -> s Cmd.A.∈ outputFileNames x -> ∃[ v ](∀ st -> run x st s ≡ just v)
+lemma2-2 s x p = f (Cmd.outputs x) p
+  where f : (ls : Files) -> s Cmd.A.∈ fileNames ls -> ∃[ v ](∀ st -> foldr extend st ls s ≡ just v)
         f ((s₁ , v₁) ∷ ls) p with s₁ ≟ s | inspect (_==_ s₁) s
-        ... | yes s₁≡s | b = v₁ , (refl , refl)
+        ... | yes s₁≡s | b = v₁ , λ st → refl
         ... | no ¬s₁≡s | b = f ls (tail (λ s≡s₁ → ¬s₁≡s (sym s≡s₁)) p)
 
 
-buildLemma2-3 : {st : State} (s : FileName) -> (b : Build) -> s Cmd.A.∉ writes b -> exec st b s ≡ st s
-buildLemma2-3 s [] p = refl
-buildLemma2-3 {st} s (x ∷ b) p = trans (buildLemma2-3 {run x st} s b λ x₁ → p (∈-++⁺ʳ (outputFileNames x) x₁))
-                                        (sym (lemma2 x s λ x₁ → p (∈-++⁺ˡ x₁)))
+lemma2-1 : {ls : List String} (s : FileName) -> (b : Build) -> HazardFree b ls -> s Cmd.A.∈ writes b -> ∃[ v ](∀ st -> exec st b s ≡ just v)
+lemma2-1 s (x ∷ b) (Cons .x .b _ x₁ x₂ p₁) p₂ with s Cmd.A.∈? outputFileNames x
+... | yes p with lemma2-2 s x p
+... | v , f with lemma1 s b (lemma2-3 s b (∈-++⁺ˡ p) p₁)
+... | f₁ = v , λ st → trans (sym (f₁ (run x st))) (f st)
+lemma2-1 s (x ∷ b) (Cons .x .b _ x₁ x₂ p₁) p₂ | no ¬p with ∈-++⁻ ≡-setoid (outputFileNames x) p₂
+... | inj₁ y = contradiction y ¬p
+... | inj₂ y with lemma2-1 s b p₁ y
+... | v , f = v , λ st → f (run x st)
 
 
-buildLemma2-1 : {st : State} {st2 : State} {ls : List String} (s : FileName) -> (b : Build) -> HazardFree b ls -> s Cmd.A.∈ writes b -> ∃[ v ](exec st b s ≡ just v × exec st2 b s ≡ just v)
-buildLemma2-1 {st} {st2} s (x ∷ b) p1 p2 with s Cmd.A.∈? outputFileNames x
-... | yes p₁ with buildLemma2-2 {st} {st2} s x p₁  
-buildLemma2-1 {st} {st2} s (x ∷ b) (Cons .x .b ls x₁ x₂ p1) p2 | yes p₁ | v , fst , snd
-  = v , (trans (buildLemma2-3 {run x st} s b (buildLemma2-4 s b (∈-++⁺ˡ p₁) p1)) fst
-        , trans (buildLemma2-3 {run x st2} s b (buildLemma2-4 s b (∈-++⁺ˡ p₁) p1)) snd) 
-buildLemma2-1 {st} {st2} s (x ∷ b) (Cons .x .b ls x₁ x₂ p1) p2 | no ¬p₁ with ∈-++⁻ ≡-setoid (outputFileNames x) p2
-... | inj₁ x₃ = contradiction x₃ ¬p₁
-... | inj₂ y = buildLemma2-1 {run x st} {run x st2} s b p1 y
-
-
-buildLemma2 : {st : State} -> (s : FileName) -> (b : Build) -> HazardFree b [] -> s Cmd.A.∈ (writes b) -> (exec st b) s ≡ (exec (exec st b) b) s
-buildLemma2 {st} s b p1 p2 with buildLemma2-1 {st} {exec st b} s b p1 p2
-... | v , fst , snd = trans fst (sym snd)
+lemma2 : (s : FileName) -> (b : Build) -> HazardFree b [] -> s Cmd.A.∈ writes b -> ∀ st -> exec st b s ≡ exec (exec st b) b s
+lemma2 s b p₁ p₂ with lemma2-1 s b p₁ p₂
+... | v , f = λ st → trans (f st) (sym (f (exec st b)))
 
 
 {- build is idempotent -}
-build-idempotent : {st : State} -> (b : Build) -> HazardFree b [] -> ∀ x -> (exec st b) x ≡ (exec (exec st b) b) x
+build-idempotent : (b : Build) -> HazardFree b [] -> ∀ x st -> (exec st b) x ≡ (exec (exec st b) b) x
 build-idempotent b p = λ x -> helper x
-  where helper : {st : State} (s : FileName) -> (exec st b) s ≡ (exec (exec st b) b) s
-        helper {st} s with s Cmd.A.∈? writes b
-        ... | yes x = buildLemma2 s b p x
-        ... | no x = buildLemma1 (exec st b) s b x
+  where helper : (s : FileName) -> ∀ st -> (exec st b) s ≡ (exec (exec st b) b) s
+        helper s with s Cmd.A.∈? writes b
+        ... | yes x = lemma2 s b p x
+        ... | no x = λ st → lemma1 s b x (exec st b)

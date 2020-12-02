@@ -9,12 +9,12 @@ open import Data.List.Membership.Setoid as ListMemS hiding (_∈_ ; _∉_)
 open import Data.List.Relation.Binary.Disjoint.Propositional using (Disjoint)
 open import Data.List.Relation.Unary.Any using (here ; there ; tail)
 open import Data.Maybe using (just)
-open import Data.Product using (_,_ ; proj₁; ∃-syntax ; _×_)
+open import Data.Product using (_,_ ; ∃-syntax)
 open import Data.Product.Relation.Binary.Pointwise.NonDependent using (_×ₛ_)
 open import Data.String using (String)
-open import Data.String.Properties using (_≟_ ; ≡-setoid ; _==_)
-open import File using (File ; Files ; FileName ; fileNames ; UniqueFiles ; Empty ; Cons)
-open import Relation.Binary.PropositionalEquality using (trans ; sym ; decSetoid ; cong ; subst ; inspect)
+open import Data.String.Properties using (_≟_ ; ≡-setoid)
+open import File using (Files ; FileName ; fileNames)
+open import Relation.Binary.PropositionalEquality using (trans ; sym ; decSetoid)
 open import Relation.Nullary using (yes ; no ; ¬_)
 open import Relation.Nullary.Negation using (contradiction)
 open import State using (State ; extend)
@@ -45,32 +45,31 @@ run cmd st = foldr extend st (Cmd.outputs cmd)
 
 -- proofs about commands
 
-
 {- If s ∉ outputs of cmd then the value of s in the state is the same before and after the command is run -}
-lemma2 : {st : State} -> (cmd : Cmd) -> (s : FileName) -> s ∉ (outputFileNames cmd) -> st s ≡ (run cmd st) s
-lemma2 cmd s = helper (Cmd.outputs cmd)
-  where helper : {st : State} (ls : Files) -> s ∉ (fileNames ls) -> st s ≡ (foldr extend st ls) s
-        helper [] p2 = refl
-        helper {st} ((k , v) ∷ ls) p2 with k ≟ s -- need evidence k is not s
-        ... | yes k≡s = contradiction (here (sym k≡s)) p2 -- impossible
-        ... | no ¬k≡s = helper ls λ x → p2 (there x)
+lemma2 : (cmd : Cmd) -> (s : FileName) -> s ∉ (outputFileNames cmd) -> ∀ st -> st s ≡ run cmd st s
+lemma2 cmd s = f (Cmd.outputs cmd)
+  where f : (ls : Files) -> s ∉ fileNames ls -> ∀ st -> st s ≡ foldr extend st ls s
+        f [] p = λ st → refl
+        f ((s₁ , v₁) ∷ ls) p with s₁ ≟ s
+        ... | yes s₁≡s = contradiction (here (sym s₁≡s)) p
+        ... | no ¬s₁≡s = f ls λ x → p (there x)
 
 
-lemma1-1 : {st : State} {st2 : State} (s : FileName) (ls : Files) -> s A.∈ fileNames ls -> ∃[ v ](foldr extend st ls s ≡ just v × foldr extend st2 ls s ≡ just v)
-lemma1-1 s ((s₁ , v₁) ∷ ls) p with s₁ ≟ s | inspect (_==_ s₁) s
-... | yes p₁ | b = v₁ , (refl , refl)
-... | no ¬p₁ | b = lemma1-1 s ls (tail (λ x → ¬p₁ (sym x)) p)
+lemma1-1 : (s : FileName) -> (ls : Files) -> s A.∈ fileNames ls -> ∃[ v ](∀ st -> foldr extend st ls s ≡ just v)
+lemma1-1 s ((s₁ , v₁) ∷ ls) p with s₁ ≟ s
+... | yes p₁ = v₁ , λ st → refl
+... | no ¬p₁ = lemma1-1 s ls (tail (λ x → ¬p₁ (sym x)) p)
 
 
-lemma1 : {st : State} (s : FileName) -> (ls : Files) -> s A.∈ fileNames ls -> (foldr extend st ls) s ≡ (foldr extend (foldr extend st ls) ls) s
-lemma1 {st} s ls p with lemma1-1 {st} {foldr extend st ls} s ls p
-... | v , fst , snd = trans fst (sym snd)
+lemma1 : (s : FileName) -> (x : Cmd) -> s A.∈ outputFileNames x -> ∀ st -> run x st s ≡ run x (run x st) s
+lemma1 s x p with lemma1-1 s (Cmd.outputs x) p
+... | v , f = λ st → trans (f st) (sym (f (run x st)))
 
 
-{- Proof a command is idempotent when run in a given state -}
-cmd-idempotent : {st : State} -> (cmd : Cmd) -> ∀ x -> ((run cmd st) x) ≡ (run cmd (run cmd st)) x
-cmd-idempotent {st} cmd = λ z -> helper z
-  where helper : {st : State} -> (z : String) -> (run cmd st) z  ≡ (run cmd (run cmd st)) z
-        helper {st} z with z ∈? (outputFileNames cmd)
-        ... | no x = lemma2 {(run cmd st)} cmd z x
-        ... | yes x = lemma1 z (Cmd.outputs cmd) x
+{- Proof a command is idempotent when run in any state -}
+cmd-idempotent : (cmd : Cmd) -> ∀ s st -> (run cmd st) s ≡ run cmd (run cmd st) s
+cmd-idempotent cmd = λ s -> helper s
+  where helper : (s : String) -> ∀ st -> run cmd st s  ≡ run cmd (run cmd st) s
+        helper s with s ∈? (outputFileNames cmd)
+        ... | no x = λ st → (lemma2 cmd s x) (run cmd st)
+        ... | yes x = lemma1 s cmd x
