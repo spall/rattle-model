@@ -45,13 +45,6 @@ writes : Build -> List FileName
 writes [] = []
 writes (x ∷ b) = (outputFileNames x) ++ writes b
 
-writes2 : Build -> List FileName
-writes2 = foldl (λ ls x₁ -> ls ++ (outputFileNames x₁)) []
-
-writesP : Build -> Files
-writesP [] = []
-writesP (x ∷ b) = (Cmd.outputs x) ++ writesP b
-
 
 lemma1 : (s : FileName) -> (b : Build) -> s Cmd.A.∉ writes b -> ∀ st -> st s ≡ exec st b s
 lemma1 s [] p = λ st → refl
