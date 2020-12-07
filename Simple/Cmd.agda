@@ -7,15 +7,19 @@ open import Data.List using (foldr)
 open import Data.List.Membership.DecSetoid as ListMemDS hiding (_∈_ ; _∈?_ ; _∉_)
 open import Data.List.Membership.Setoid as ListMemS hiding (_∈_ ; _∉_)
 open import Data.List.Relation.Binary.Disjoint.Propositional using (Disjoint)
+open import Data.List.Relation.Binary.Equality.DecPropositional as ListEqDp hiding (_≡?_)
 open import Data.List.Relation.Unary.Any using (here ; there ; tail)
 open import Data.Maybe using (just)
-open import Data.Product using (_,_ ; ∃-syntax)
-open import Data.Product.Relation.Binary.Pointwise.NonDependent using (_×ₛ_)
+open import Data.Product using (_,_ ; ∃-syntax ; _×_ ; proj₁ ; proj₂)
+open import Data.Product.Relation.Binary.Pointwise.NonDependent using (_×ₛ_ ; ×-decidable ; ≡×≡⇒≡ ; ≡⇒≡×≡)
 open import Data.String using (String)
 open import Data.String.Properties using (_≟_ ; ≡-setoid)
 open import File using (Files ; FileName ; fileNames)
+open import Function using (_∘₂_)
+open import Relation.Binary.Definitions using (Decidable)
 open import Relation.Binary.PropositionalEquality using (trans ; sym ; decSetoid)
 open import Relation.Nullary using (yes ; no ; ¬_)
+open import Relation.Nullary.Decidable.Core using (map′)
 open import Relation.Nullary.Negation using (contradiction)
 open import State using (State ; extend)
 
@@ -25,29 +29,40 @@ open A using (_∈?_ ; _∉_)
 module B = ListMemS (≡-setoid ×ₛ ≡-setoid)
 open B using (_∈_)
 
+{- decidable list of (string × string) -}
+module C = ListEqDp ((map′ ≡×≡⇒≡ ≡⇒≡×≡) ∘₂ (×-decidable _≟_ _≟_))
+open C using (_≡?_)
 
-record Cmd : Set where
-  field
-    inputs : Files
-    outputs : Files
+{- first is inputs; 2nd is outputs -}
+Cmd : Set
+Cmd = (Files × Files)
+
+_Cmd-≟_ : Decidable _≡_
+_Cmd-≟_ = (map′ ≡×≡⇒≡ ≡⇒≡×≡) ∘₂ (×-decidable _≡?_ _≡?_)
+
+inputs : Cmd -> Files
+inputs = proj₁
+
+outputs : Cmd -> Files
+outputs = proj₂
 
 outputFileNames : Cmd -> List FileName
-outputFileNames cmd = fileNames (Cmd.outputs cmd)
+outputFileNames cmd = fileNames (outputs cmd)
 
 inputFileNames : Cmd  -> List FileName
-inputFileNames cmd = fileNames (Cmd.inputs cmd)
+inputFileNames cmd = fileNames (inputs cmd)
 
 DisjointFiles : Cmd -> Set
 DisjointFiles cmd = Disjoint (inputFileNames cmd) (outputFileNames cmd)
 
 run : Cmd -> State -> State
-run cmd st = foldr extend st (Cmd.outputs cmd)
+run cmd st = foldr extend st (outputs cmd)
 
 -- proofs about commands
 
 {- If s ∉ outputs of cmd then the value of s in the state is the same before and after the command is run -}
 lemma2 : (cmd : Cmd) -> (s : FileName) -> s ∉ (outputFileNames cmd) -> ∀ st -> st s ≡ run cmd st s
-lemma2 cmd s = f (Cmd.outputs cmd)
+lemma2 cmd s = f (outputs cmd)
   where f : (ls : Files) -> s ∉ fileNames ls -> ∀ st -> st s ≡ foldr extend st ls s
         f [] p = λ st → refl
         f ((s₁ , v₁) ∷ ls) p with s₁ ≟ s
@@ -62,7 +77,7 @@ lemma1-1 s ((s₁ , v₁) ∷ ls) p with s₁ ≟ s
 
 
 lemma1 : (s : FileName) -> (x : Cmd) -> s A.∈ outputFileNames x -> ∀ st -> run x st s ≡ run x (run x st) s
-lemma1 s x p with lemma1-1 s (Cmd.outputs x) p
+lemma1 s x p with lemma1-1 s (outputs x) p
 ... | v , f = λ st → trans (f st) (sym (f (run x st)))
 
 
