@@ -3,6 +3,7 @@ module Cmd where
 
 open import Agda.Builtin.Equality
 open import Agda.Builtin.List
+open import Data.Bool.Base using (Bool)
 open import Data.List using (foldr)
 open import Data.List.Membership.DecSetoid as ListMemDS hiding (_∈_ ; _∈?_ ; _∉_)
 open import Data.List.Membership.Setoid as ListMemS hiding (_∈_ ; _∉_)
@@ -19,7 +20,7 @@ open import Function using (_∘₂_)
 open import Relation.Binary.Definitions using (Decidable)
 open import Relation.Binary.PropositionalEquality using (trans ; sym ; decSetoid)
 open import Relation.Nullary using (yes ; no ; ¬_)
-open import Relation.Nullary.Decidable.Core using (map′)
+open import Relation.Nullary.Decidable.Core using (map′ ; isYes)
 open import Relation.Nullary.Negation using (contradiction)
 open import State using (State ; extend)
 
@@ -33,14 +34,20 @@ open B using (_∈_)
 module C = ListEqDp ((map′ ≡×≡⇒≡ ≡⇒≡×≡) ∘₂ (×-decidable _≟_ _≟_))
 open C using (_≡?_)
 
+module D = ListEqDp _≟_
+open D using (_≡?_)
+
 {- first is inputs; 2nd is outputs -}
 Cmd : Set
-Cmd = (Files × Files)
+Cmd = (List FileName × Files)
 
 _Cmd-≟_ : Decidable _≡_
-_Cmd-≟_ = (map′ ≡×≡⇒≡ ≡⇒≡×≡) ∘₂ (×-decidable _≡?_ _≡?_)
+_Cmd-≟_ = (map′ ≡×≡⇒≡ ≡⇒≡×≡) ∘₂ (×-decidable D._≡?_ C._≡?_)
 
-inputs : Cmd -> Files
+_==_ : Cmd -> Cmd -> Bool
+c₁ == c₂ = isYes (c₁ Cmd-≟ c₂)
+
+inputs : Cmd -> List FileName
 inputs = proj₁
 
 outputs : Cmd -> Files
@@ -50,7 +57,7 @@ outputFileNames : Cmd -> List FileName
 outputFileNames cmd = fileNames (outputs cmd)
 
 inputFileNames : Cmd  -> List FileName
-inputFileNames cmd = fileNames (inputs cmd)
+inputFileNames = inputs
 
 DisjointFiles : Cmd -> Set
 DisjointFiles cmd = Disjoint (inputFileNames cmd) (outputFileNames cmd)
