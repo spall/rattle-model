@@ -21,11 +21,13 @@ Cmd : Set
 Cmd = String
 
 F : Set
-F = Cmd -> Σ[ f ∈ (System -> Files × Files) ](∀ s s₁ i o → f s ≡ (i , o) -> ∀ f₁ → f₁ ∈ map proj₁ i -> s f₁ ≡ s₁ f₁ -> f s₁ ≡ (i , o))
+F = Cmd -> Σ[ f ∈ (System -> Files × Files) ](∀ s s₁ → (∀ f₁ → f₁ ∈ map proj₁ (proj₁ (f s)) -> s f₁ ≡ s₁ f₁) -> f s ≡ f s₁)
 
 read : List FileName -> System -> List (FileName × Maybe FileContent)
 read fs sys = map (\ x -> (x , sys x)) fs
 
+inputs : F -> System -> Cmd -> List FileName
+inputs f sys cmd = map proj₁ (proj₁ (proj₁ (f cmd) sys))
 
 trace : F -> System -> Cmd -> (List FileName × List FileName)
 trace f sys cmd = let (rs , ws) = proj₁ (f cmd) sys in
@@ -48,3 +50,11 @@ save cmd files sys mm = \cmd₂ -> if (cmd == cmd₂)
 
 State : Set
 State = (System × Memory) {- can add more later if needed -}
+
+
+
+{-
+data SysProp : System -> Build -> System -> Set where
+  [] : {sys : System} SysProp sys [] sys
+  A  : {f} {sys : System} (x : Cmd) -> (b : Build) 
+-}
