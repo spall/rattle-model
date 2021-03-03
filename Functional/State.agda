@@ -96,6 +96,11 @@ lemma1 [] x all₁ all₂ = All.[]
 lemma1 {f} {s} {s₁} (f₁ ∷ ls) x all₁ (px All.∷ all₂) with proj₂ (f x) s s₁ (λ f₁ x₂ → lookup all₁ x₂)
 ... | result≡ = (lemma2 {f} {s} {s₁} x f₁ result≡ px) All.∷ (lemma1 {f} {s} {s₁} ls x all₁ all₂)
 
+lemma1-sym : {f : F} {s s₁ : System} (ls : List FileName) -> (x : Cmd) -> All (λ f₁ → s f₁ ≡ s₁ f₁) (proj₁ (trace f s₁ x)) -> All (λ f₁ → s f₁ ≡ s₁ f₁) ls -> All (λ f₁ → run f x s f₁ ≡ run f x s₁ f₁) ls
+lemma1-sym [] x all₁ all₂ = All.[]
+lemma1-sym {f} {s} {s₁} (x₁ ∷ ls) x all₁ (px All.∷ all₂) with proj₂ (f x) s₁ s λ f₁ x₂ → sym (lookup all₁ x₂)
+... | result≡ = (lemma2 {f} {s} {s₁} x x₁ (sym result≡) px) All.∷ (lemma1-sym {f} {s} {s₁} ls x all₁ all₂)
+
 
 lemma5 : {s : System} (ls : List FileName) (ls₁ : Files) -> Disjoint (map proj₁ ls₁) ls -> All (λ f₁ → s f₁ ≡ foldr extend s ls₁ f₁) ls
 lemma5 [] ls₁ dsj = All.[]
