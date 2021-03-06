@@ -7,7 +7,7 @@ open import Agda.Builtin.Equality
 open import Agda.Builtin.Bool
 
 open import Common.List.Properties as CLP
-open import Functional.Script.Properties (oracle) as FSP
+open import Functional.Script.Properties (oracle) as FSP hiding (++⁻ʳ)
 
 open import Relation.Binary.Definitions using (Decidable)
 open import Data.Sum using (_⊎_)
@@ -39,7 +39,7 @@ open import Data.List.Membership.Propositional.Properties using (∈-++⁺ˡ ; �
 open import Relation.Nullary.Negation using (contradiction)
 open import Relation.Nullary using (¬_)
 open import Data.List.Relation.Unary.All using (All ; lookup ; all?)
-open import Data.List.Relation.Unary.All.Properties using (¬All⇒Any¬)
+open import Data.List.Relation.Unary.All.Properties using (¬All⇒Any¬ ; ++⁻ˡ ; ++⁻ʳ)
 open import Data.List.Relation.Unary.Any using (Any)
 open import Data.Maybe using (just)
 open import Data.Maybe.Properties using (≡-dec)
@@ -142,30 +142,43 @@ g {sys} {sys₁} x f₁ ≡₁ ≡₂ with f₁ ∈? proj₂ (trace oracle sys x
 g₂ : {v : String} {sys sys₁ : System} -> (x : Cmd) -> proj₁ (oracle x) sys₁ ≡ proj₁ (oracle x) sys -> v ∈ proj₂ (trace oracle sys₁ x) -> v ∈ proj₂ (trace oracle sys x)
 g₂ {v} x ≡₁ v∈ = subst (λ x₁ → v ∈ map proj₁ (proj₂ x₁)) ≡₁ v∈
 
-{- -}
-lemmaX4 : {sys sys₁ : System} {ls₀ ls : List String} (b : Build) -> HazardFree sys b (ls₀ ++ ls) -> All (λ f₁ → sys f₁ ≡ sys₁ f₁) (build-reads sys b) -> HazardFree sys₁ b ls
-lemmaX4 [] hf all = HazardFree.Null
-lemmaX4 {sys} {sys₁} {ls₀} {ls} (x ∷ b) (Cons .x .b ls₁ x₁ hf) all with proj₂ (oracle x) sys sys₁ λ f₁ x₂ → lookup (All-resp-⊇ (λ x₃ → ∈-++⁺ʳ (build-reads (run oracle x sys) b) x₃) all) x₂
-... | a = Cons x b ls (λ x₂ → x₁ (g₂ x (sym a) (proj₁ x₂), (∈-++⁺ʳ ls₀ (proj₂ x₂)))) (lemmaX4 b hf (St.lemma1 (build-reads (run oracle x sys) b) x (All-resp-⊇ (λ x₂ → ∈-++⁺ʳ (build-reads (run oracle x sys) b) x₂) all) (All-resp-⊇ (λ x₂ → ∈-++⁺ˡ x₂) all)))
+
+{- i think i can use this to simplify lemmaA4 -}
+lemmaX4 : {sys sys₁ : System} {ls₀ ls₁ ls : List String} -> ls₁ ≡ ls₀ -> (b : Build) -> HazardFree sys b (ls₀ ++ ls) -> All (λ f₁ → sys f₁ ≡ sys₁ f₁) (S.reads sys b) -> HazardFree sys₁ b (ls₁ ++ ls)
+lemmaX4 ls₁≡ls₀ [] hf all = HazardFree.Null
+lemmaX4 {sys} {sys₁} {ls₀} {ls₁} {ls} ls₁≡ls₀ (x ∷ b) (Cons .x .b ls₂ dsj hf) all with proj₂ (oracle x) sys sys₁ (λ f₁ x₂ → lookup (++⁻ˡ (S.Creads sys x) all) x₂)
+... | a = Cons x b (ls₁ ++ ls) (λ x₁ → dsj (g₂ x (sym a) (proj₁ x₁) , subst (λ x₂ → _ ∈ x₂ ++ ls) ls₁≡ls₀ (proj₂ x₁))) (lemmaX4 {run oracle x sys} {run oracle x sys₁} {S.read-writes sys x} {S.read-writes sys₁ x} {ls₁ ++ ls} ≡₁ b (subst (λ x₁ → HazardFree (run oracle x sys) b (S.read-writes sys x ++ x₁ ++ ls)) (sym ls₁≡ls₀) hf) (St.lemma1 {oracle} (S.reads (run oracle x sys) b) x (++⁻ˡ (S.Creads sys x) all) (++⁻ʳ (S.Creads sys x) all)))
+  where ≡₁ : S.read-writes sys₁ x ≡ S.read-writes sys x
+        ≡₁ = subst (λ x₁ → S.read-writes sys₁ x ≡ (map proj₁ (proj₁ x₁)) ++ (map proj₁ (proj₂ x₁))) (sym a) refl
+          
 
 {- if we remove x from the middle of the build, it is still hazardfree if we know that x doesn't write to anything read by b₁ -}
 -- need more evidenc epassed to this function.......
-lemmaA4 : {sys : System} {ls : List String} (x : Cmd) (b b₁ : Build) -> Disjoint (proj₂ (trace oracle (S.exec sys b) x)) (build-reads (run oracle x (S.exec sys b)) b₁) -> HazardFree sys (b ∷ʳ x ++ b₁) ls -> HazardFree sys (b ++ b₁) ls
-lemmaA4 {sys} {ls} x b [] ds hf = subst (λ x₁ → HazardFree sys x₁ ls) (sym (++-identityʳ b)) (FSP.∷ʳ⁻ sys x b (subst (λ x₁ → HazardFree sys x₁ ls) (++-identityʳ (b ∷ʳ x)) hf))
+lemmaA4 : {sys : System} {ls : List String} (x : Cmd) (b b₁ : Build) -> Disjoint (S.Cwrites (S.exec sys b) x) (S.reads (run oracle x (S.exec sys b)) b₁) -> HazardFree sys (b ++ x ∷ b₁) ls -> HazardFree sys (b ++ b₁) ls
+lemmaA4 {sys} {ls} x b [] ds hf = subst (λ x₁ → HazardFree sys x₁ _) (sym (++-identityʳ b)) (FSP.∷ʳ⁻ sys x b hf)
 lemmaA4 {sys} {ls} x b (x₁ ∷ b₁) ds hf with CLP.∃-last x₁ b₁ -- last x₁ b₁
 ... | x₂ , b₂ , b₂∷ᴿx₂≡x₁∷b₁ with trans (trans (unfold-reverse x₂ (reverse b₂)) (cong (_∷ʳ x₂) (reverse-involutive b₂))) b₂∷ᴿx₂≡x₁∷b₁
-... | a with FSP.hf-++⁻ˡ sys ls x₂ (b ++ [ x ]) (reverse b₂) (subst (λ x₃ → HazardFree sys ((b ++ x ∷ []) ++ x₃) ls) (sym a) hf)
-... | hf₁ with FSP.∷ʳ⁻ sys x b hf₁ | FSP.++⁻ʳ sys ls b (x ∷ x₁ ∷ b₁) (subst (λ x₃ → HazardFree sys x₃ ls) (CLP.l4 x b) hf) -- (helper6 x x₁ b b₁) hf)
-... | hf₂ | Cons .x .(x₁ ∷ b₁) .(S.build-rws sys b ls) x₃ hf₃ = FSP.++⁺ sys ls b (x₁ ∷ b₁) hf₂ (lemmaX4 {run oracle x (S.exec sys b)} {S.exec sys b} (x₁ ∷ b₁) hf₃ (g₁ {S.exec sys b} x (build-reads (run oracle x (S.exec sys b)) (x₁ ∷ b₁)) ds))
-  where g₁ : {sys₁ : System} (x : Cmd) -> (ls : List FileName) -> Disjoint (proj₂ (trace oracle sys₁ x)) ls -> All (λ f₁ → run oracle x sys₁ f₁ ≡ sys₁ f₁) ls
+... | a with FSP.hf-++⁻ˡ sys ls x₂ (b ++ [ x ]) (reverse b₂) (subst (λ x₃ → HazardFree sys ((b ++ x ∷ []) ++ x₃) ls) (sym a) (subst (λ x₃ → HazardFree sys x₃ ls) (sym (CLP.l4 x b)) hf))
+... | hf₁ with FSP.∷ʳ⁻ sys x b hf₁ | FSP.++⁻ʳ sys ls b (x ∷ x₁ ∷ b₁) hf
+... | hf₂ | Cons .x .(x₁ ∷ b₁) _ x₃ (Cons .x₁ .b₁ _ x₄ hf₃) = {!!}
+-- FSP.++⁺ sys ls b (x₁ ∷ b₁) hf₂ hf₄
+  where hf₄ : HazardFree (S.exec sys b) (x₁ ∷ b₁) (S.build-rws sys b ls)
+        hf₄ = Cons x₁ b₁ (S.build-rws sys b ls) {!!} {!!}
+
+-- (lemmaX4 {run oracle x₁ (run oracle x (S.exec sys b))} {run oracle x₁ (S.exec sys b)} {!!} (x₁ ∷ b₁) hf₃ (g₁ {S.exec sys b} x (S.reads (run oracle x (S.exec sys b)) (x₁ ∷ b₁)) ds))
+        g₁ : {sys₁ : System} (x : Cmd) -> (ls : List FileName) -> Disjoint (proj₂ (trace oracle sys₁ x)) ls -> All (λ f₁ → run oracle x sys₁ f₁ ≡ sys₁ f₁) ls
         g₁ x [] ds = All.[]
         g₁ {sys₁} x (x₁ ∷ ls) ds with x₁ ∈? proj₂ (trace oracle sys₁ x)
         ... | yes x₁∈ = contradiction (x₁∈ , here refl) ds
         ... | no x₁∉ = (sym (lemma10 {sys₁} x x₁ x₁∉)) All.∷ (g₁ x ls λ x₆ → ds ((proj₁ x₆) , there (proj₂ x₆)))
 
+
+
 -- for helper10 just call l7 ; ys is (ls₁ ++ ls₂)
 
-lemmaB2 : {sys : System} (x : Cmd) (b b₁ b₂ : Build) -> HazardFreeReordering sys (b ∷ʳ x) (b₁ ∷ʳ x ++ b₂) -> Disjoint (proj₂ (trace oracle (S.exec sys b₁) x)) (build-reads (S.exec sys (b₁ ∷ʳ x)) b₂)
+-- replace with hfr->dsj in script/properties which uses reads instead of build-reads
+{-
+lemmaB2 : {sys : System} (x : Cmd) (b b₁ b₂ : Build) -> HazardFreeReordering sys (b ∷ʳ x) (b₁ ++ x ∷ b₂) -> Disjoint (proj₂ (trace oracle (S.exec sys b₁) x)) (build-reads (S.exec sys (b₁ ∷ʳ x)) b₂)
 lemmaB2 {sys} x b b₁ b₂ (HFR .(b ++ x ∷ []) .((b₁ ++ x ∷ []) ++ b₂) x₁ x₂ x₃ x₄) = λ x₅ → x₄ (g₁ {sys} x₁ (proj₁ x₅) (proj₂ x₅))
 
   where g₃ : {sys : System} (v : String) -> (b₂ : Build) -> v ∈ build-reads sys b₂ -> ∃[ x₁ ](∃[ ls₁ ](∃[ ls₂ ](b₂ ≡ ls₁ ++ x₁ ∷ ls₂ × v ∈ proj₁ (trace oracle (S.exec sys ls₁) x₁))))
@@ -179,98 +192,61 @@ lemmaB2 {sys} x b b₁ b₂ (HFR .(b ++ x ∷ []) .((b₁ ++ x ∷ []) ++ b₂) 
         g₄ [] ls₁ = refl
         g₄ {sys} (x ∷ b₁) ls₁ = g₄ {run oracle x sys} b₁ ls₁
         
-        g₁ : {sys : System} {v : String} -> b ∷ʳ x ↭ b₁ ∷ʳ x ++ b₂ -> v ∈ proj₂ (trace oracle (S.exec sys b₁) x) -> v ∈ build-reads (S.exec sys (b₁ ∷ʳ x)) b₂ -> S.speculative-wr-hazard sys (b ∷ʳ x) (b₁ ∷ʳ x ++ b₂)
+        g₁ : {sys : System} {v : String} -> b ∷ʳ x ↭ b₁ ++ x ∷ b₂ -> v ∈ proj₂ (trace oracle (S.exec sys b₁) x) -> v ∈ build-reads (S.exec sys (b₁ ∷ʳ x)) b₂ -> S.speculative-wr-hazard sys (b ∷ʳ x) (b₁ ++ x ∷ b₂)
         g₁ {sys} {v} ↭₁ v∈₁ v∈₂ with g₃ {S.exec sys (b₁ ∷ʳ x)} v b₂ v∈₂
         ... | x₁ , ls₁ , ls₂ , b₂≡ls₁++x₁∷ls₂ , v∈reads-x₁
           = x₁ , x , (v , b₁ , ls₁ , ls₂ , (CLP.l7 x b₁ b₂≡ls₁++x₁∷ls₂) , v∈₁ , subst (λ x₅ → v ∈ proj₁ (trace oracle x₅ x₁)) (g₄ b₁ ls₁) v∈reads-x₁)
             , S.lemma6 x₁ x b (∈-resp-↭ (↭-sym (CLP.l2 b b₁ b₂ ↭₁))
                                  (∈-++⁺ʳ b₁
                                   (subst (λ x₅ → x₁ ∈ x₅) (sym b₂≡ls₁++x₁∷ls₂) (∈-insert ls₁))))
-
+-}
 
 -- (g₁ b₃↭b₄)
 
-lemmaA2 : {sys : System} (x : Cmd) (b b₁ b₂ : Build) -> HazardFreeReordering sys (b ∷ʳ x) (b₁ ∷ʳ x ++ b₂) -> HazardFreeReordering sys b (b₁ ++ b₂)
-lemmaA2 {sys} x b b₁ b₂ hfr@(HFR b₃ b₄  b₃↭b₄ hf hf₁ ¬sp-wr-haz) = HFR b (b₁ ++ b₂) (CLP.l2 b b₁ b₂ b₃↭b₄) (FSP.∷ʳ⁻ sys x b hf) (lemmaA4 x b₁ b₂ (g₃ hfr) hf₁) (S.swrh-∷ʳ⁻ sys x b b₁ b₂ ¬sp-wr-haz (g₃ hfr))
+
+lemmaA2 : {sys : System} (x : Cmd) (b b₁ b₂ : Build) -> HazardFreeReordering sys (b ∷ʳ x) (b₁ ++ x ∷ b₂) -> HazardFreeReordering sys b (b₁ ++ b₂)
+lemmaA2 {sys} x b b₁ b₂ hfr@(HFR b₃ b₄  b₃↭b₄ hf hf₁ ¬sp-wr-haz) = HFR b (b₁ ++ b₂) (CLP.l9 x b b₁ b₂ b₃↭b₄) (FSP.∷ʳ⁻ sys x b hf) (lemmaA4 x b₁ b₂ (hfr→dsj sys x b b₁ b₂ hfr) hf₁) (S.swrh-∷ʳ⁻ sys x b b₁ b₂ ¬sp-wr-haz (hfr→dsj sys x b b₁ b₂ hfr))
   where g₄ : {sys : System} (x : Cmd) (b₁ b₂ : Build) -> build-reads (S.exec sys (b₁ ++ x ∷ [])) b₂ ≡ build-reads (run oracle x (S.exec sys b₁)) b₂
         g₄ x [] b₂ = refl
         g₄ {sys} x (x₁ ∷ b₁) b₂ = g₄ {run oracle x₁ sys} x b₁ b₂
-        -- TODO: move this lemma so it can be used elsewhere too
-        g₃ : HazardFreeReordering sys (b ∷ʳ x) (b₁ ∷ʳ x ++ b₂) -> Disjoint (proj₂ (trace oracle (S.exec sys b₁) x)) (build-reads (run oracle x (S.exec sys b₁)) b₂)
-        g₃ hfr with lemmaB2 x b b₁ b₂ hfr
-        ... | a = subst (λ x₁ → Disjoint (proj₂ (trace oracle (S.exec sys b₁) x)) x₁) (g₄ x b₁ b₂) a
-
-
--- CwriteP≡ : -> S.CwritesP s x ≡ S.CwritesP s₁ x
 
 -- All (λ f₁ → exec s (reverse b) f₁ ≡ exec s ls₁ f₁) (Creads (exec s ls₁ x))
 
 -- we dont want to prove the writes are equivalent; they might not be the same order, we want to prove theyre the same sets. where order isnt important
 lemmaA1 : {sys : System} (b b₁ : Build) -> length b ≡ length b₁ -> HazardFreeReordering sys (reverse b) (reverse b₁) -> ∀ f₁ → S.exec sys (reverse b) f₁ ≡ S.exec sys (reverse b₁) f₁
 lemmaA1 {s} [] [] ≡₁ (HFR .[] .[] ↭₁ Null Null ¬swrh) = λ f₁ → refl
-lemmaA1 {s} (x ∷ b) (x₁ ∷ b₁) ≡₁ hfr@(HFR _ _ ↭₁ hf₁ hf₂ ¬swrh) with ∈-∃++ (∈-resp-↭ ↭₁ (reverse⁺ (here refl))) 
-... | ls₁ , ls₂ , reverse-b₁≡ls₁++x∷ls₂ with subst (λ x₆ → HazardFreeReordering s x₆ (reverse (x₁ ∷ b₁))) (unfold-reverse x b) hfr
-... | hfr₂ with subst (λ x₆ → HazardFreeReordering s (reverse b ∷ʳ x) x₆) (trans reverse-b₁≡ls₁++x∷ls₂ (sym (CLP.l7 x ls₁ refl))) hfr₂
-... | hfr₃ with subst (λ x₆ → HazardFreeReordering s (reverse b) x₆) (sym (reverse-involutive (ls₁ ++ ls₂))) (lemmaA2 {s} x (reverse b) ls₁ ls₂ hfr₃)
-... | hfr₄@(HFR b₂ b₃ x₆ x₇ x₈ x₉) with trans (sym (length-reverse b)) (trans (↭-length x₆) (length-reverse (reverse (ls₁ ++ ls₂))))
-... | len with lemmaA1 b (reverse (ls₁ ++ ls₂)) len hfr₄
-... | ∀₁ with subst (λ x₂ → ∀ f₁ → _ ≡ S.exec s x₂ f₁) (reverse-involutive (ls₁ ++ ls₂)) ∀₁ | still-disjoint (S.exec s ls₁) x ls₂ {!!} {!!}
-... | no-reverse-∀₁ | dsj₂ with S.h₄ (S.exec s (reverse b)) (S.exec s ls₁) x (all≡ s (S.Creads (S.exec s ls₁) x) (reverse b) ls₁ ls₂ dsj₂ no-reverse-∀₁)
-... | ≡₃ = λ f₁ → (g₁ f₁)
+lemmaA1 {s} (x ∷ b) b₁ ≡₁ hfr@(HFR _ _ ↭₁ hf₁ hf₂ ¬swrh) with ∈-∃++ (∈-resp-↭ ↭₁ (reverse⁺ (here refl))) 
+... | ls₁ , ls₂ , reverse-b₁≡ls₁++x∷ls₂ with subst₂ (λ x₁ x₂ → HazardFreeReordering s x₁ x₂) (unfold-reverse x b) reverse-b₁≡ls₁++x∷ls₂ hfr
+... | hfr₁ with subst (λ x₁ → HazardFreeReordering _ _ x₁) (sym (reverse-involutive (ls₁ ++ ls₂))) (lemmaA2 {s} x (reverse b) ls₁ ls₂ hfr₁)
+... | hfr₂@(HFR _ _ ↭₂ _ _ _) with lemmaA1 b (reverse (ls₁ ++ ls₂))
+                                              (trans (sym (length-reverse b)) (trans (↭-length ↭₂) (length-reverse (reverse (ls₁ ++ ls₂)))))
+                                              hfr₂
+... | ∀₁ = λ f₁ → g₁ f₁
+  where g₁ : (f₁ : FileName) -> S.exec s (reverse (x ∷ b)) f₁ ≡ S.exec s (reverse b₁) f₁
+        g₁ f₁ = subst₂ (λ x₄ x₅ → S.exec s x₄ f₁ ≡ S.exec s x₅ f₁)
+                       (sym (unfold-reverse x b)) (sym reverse-b₁≡ls₁++x∷ls₂)
+                       (exec-f₁≡ s f₁ x (reverse b) ls₁ ls₂ ∀₂ ≡₂ all₁ dsj)
+                       
+          where ∀₂ : (∀ f₂ → S.exec s (reverse b) f₂ ≡ S.exec s (ls₁ ++ ls₂) f₂)
+                ∀₂ = subst (λ x₁ → ∀ f₂ → _ ≡ S.exec s x₁ f₂) (reverse-involutive (ls₁ ++ ls₂)) ∀₁
+                hf₃ : {xs : List String} (s : System) (x : Cmd) (ls₁ ls₂ : Build) -> HazardFree s (ls₁ ++ x ∷ ls₂) xs -> HazardFree (S.exec s ls₁) (x ∷ ls₂) (S.build-rws s ls₁ xs)
+                hf₃ s x [] ls₂ hf = hf
+                hf₃ s x (x₁ ∷ ls₁) ls₂ (Cons .x₁ .(ls₁ ++ x ∷ ls₂) _ x₂ hf)
+                  = hf₃ (run oracle x₁ s) x ls₁ ls₂ hf
+                dsj : Disjoint (S.Cwrites (S.exec s ls₁) x) (writes (run oracle x (S.exec s ls₁)) ls₂)
+                dsj = hf→dsj (S.exec s ls₁) x ls₂ (hf₃ s x ls₁ ls₂ (subst (λ x₄ → HazardFree s x₄ _) reverse-b₁≡ls₁++x∷ls₂ hf₂))
+                dsj₁ : Disjoint (S.Creads (S.exec s ls₁) x) (writes (S.exec s ls₁) ls₂)
+                dsj₁ = still-disjoint (S.exec s ls₁) x ls₂
+                       (hfr→dsj s x (reverse b) ls₁ ls₂ hfr₁)
+                       (hf→dsj-reads (S.exec s ls₁) x ls₂ (hf₃ s x ls₁ ls₂ (subst (λ x₄ → HazardFree s x₄ _) reverse-b₁≡ls₁++x∷ls₂ hf₂)))
+                ≡₂ : proj₁ (oracle x) (S.exec s (reverse b)) ≡ proj₁ (oracle x) (S.exec s ls₁)
+                ≡₂ = S.h₄ (S.exec s (reverse b)) (S.exec s ls₁) x (all≡ s (S.Creads (S.exec s ls₁) x) (reverse b) ls₁ ls₂ dsj₁ ∀₂)
+                all₁ : All (λ f₂ → S.exec s ls₁ f₂ ≡ run oracle x (S.exec s ls₁) f₂) (S.reads (run oracle x (S.exec s ls₁)) ls₂)
+                all₁ = St.lemma5 {S.exec s ls₁} (S.reads (run oracle x (S.exec s ls₁)) ls₂) (proj₂ (proj₁ (oracle x) (S.exec s ls₁))) (hfr→dsj s x (reverse b) ls₁ ls₂ hfr₁)
 
--- ∀ f₁ -> f₁ ∈ reads x -> exec s xs f₁ ≡ exec s zs f₁ => result of running x in the two systems
-
-  where g₁ : (f₁ : FileName) -> S.exec s (reverse (x ∷ b)) f₁ ≡ S.exec s (reverse (x₁ ∷ b₁)) f₁
-        g₁ f₁ with f₁ ∈? proj₂ (trace oracle (S.exec s (reverse b)) x)
-        ... | yes f₁∈ = {!!}
-
-
-{- exec s (xs ++ ys) f₁ ≡ exec s (xs ++ x ∷ ys) f₁  if x doesnt write to f₁ 
-   exec s xs f₁ ≡ exec s (zs ∷ x) f₁ 
-
-   exec s (zs ∷ x) f₁ ≡ value x writes
-   exec s (xs ++ x ∷ ys) ≡ value x writes 
-
--}
-        g₁ f₁ | no f₁∉  with St.lemma3 {sys₁} f₁ (proj₂ (proj₁ (oracle x) sys₁)) f₁∉ | exec-∷≡ f₁ sys₂ (run oracle x sys₂) ls₂ (St.lemma5 {sys₂} (S.build-rws2 (run oracle x sys₂) ls₂) (proj₂ (proj₁ (oracle x) sys₂)) {!!}) (St.lemma3 {sys₂} f₁ (proj₂ (proj₁ (oracle x) sys₂)) (subst (λ x₂ → f₁ ∉ x₂) {!!} f₁∉)) 
-          where sys₁ : System
-                sys₁ = S.exec s (reverse b)
-                sys₂ : System
-                sys₂ = S.exec s ls₁
-                dsj₃ : Disjoint (proj₂ (trace oracle sys₂ x)) (S.build-rws2 (run oracle x sys₂) ls₂)
-                dsj₃ = {!!}
-        ... | sys₁f₁≡ | sys₂f₁≡ with trans sys₁f₁≡ (cong-app (S.exec≡₃ x (reverse b)) f₁)
-        ... | a with cong-app (subst (λ x₁ → S.exec s x₁ ≡ S.exec (S.exec s ls₁) ls₂) (sym (reverse-involutive (ls₁ ++ ls₂))) (S.exec≡₄ {s} ls₁ ls₂)) f₁
-        ... | a₃ with trans (sym a) (trans (∀₁ f₁) (trans a₃ sys₂f₁≡))
-        ... | a₂ with subst (λ x₁ → S.exec s x₁ f₁ ≡ _) (sym (unfold-reverse x b)) a₂
-        ... | a₄ with subst (λ x₁ → _ ≡ S.exec s x₁) (sym reverse-b₁≡ls₁++x∷ls₂) (S.exec≡₅ {s} x ls₁ ls₂)
-        ... | a₅  = trans a₄ (cong-app a₅ f₁)
-        
-        
-{- todo for no case
-1. f₁ ∉ writes x  => S.exec s b ≡ S.exec s (b ∷r x) 
--}
-
-
--- writes↭writes ≡ writes (reverse b) ↭ writes (reverse (reverse (ls₁ ++ ls₂)))  ≡ writes (reverse b) ↭ writes (ls₁ ++ ls₂)
-{-
-1. find where x is in (x₁ ∷ b₁) -- done
-2. show that the length of (x₁ ∷ b₁) after it has had x removed is the same length as b -- done
-3. get the hazard free re-ordering after x has been removed.  -- done
-need to get the writes of x... and show its the same 
-4. add writes of x into both sides of the permutation...
--}
-
--- if last elements are not the same drop x from both; prove resulting builds are still hazardfree and recur. 
-
+  
 script-reordered : {sys : System} (b b₂ : Build) -> HazardFreeReordering sys b b₂ -> ∀ f₁ → S.exec sys b f₁ ≡ S.exec sys b₂ f₁
 script-reordered {sys} b b₂ hfr = λ f₁ → {!!}
-{-
-  where g₁ : (f₁ : FileName) -> S.exec sys b f₁ ≡ S.exec sys b₂ f₁
-        g₁ f₁ with f₁ ∈? writes sys b | subst₂ (λ x x₁ → S.writesP sys x ↭ S.writesP sys x₁) (reverse-involutive b) (reverse-involutive b₂) (lemmaA1 (reverse b) (reverse b₂) {!!} {!!})
-        ... | no ¬p | writes-b↭writes-b₂ = {!!} -- trans (lemma9 {sys} f₁ b ¬p) (sym (lemma9 {sys} f₁ b₂ λ x → ¬p (∈-resp-↭ (↭-sym writes-b↭writes-b₂) x)))
-        ... | yes p | writes-b↭writes-b₂ = {!!}
--}
 
 {- todo
 1. reverse reverse b and b₂ in hfr
