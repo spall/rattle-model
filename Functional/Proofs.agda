@@ -12,7 +12,7 @@ open import Functional.Script.Properties (oracle) as FSP hiding (++⁻ʳ)
 open import Relation.Binary.Definitions using (Decidable)
 open import Data.Sum using (_⊎_)
 open import Data.List using ([] ; List ; _++_ ; _∷_ ; map ; foldr ; _∷ʳ_ ; length ; reverse ; foldl ; [_])
-open import Data.List.Properties using (++-assoc ; unfold-reverse ; ++-identityʳ ; reverse-involutive ; ∷-injective ; length-reverse)
+open import Data.List.Properties using (++-assoc ; unfold-reverse ; ++-identityʳ ; reverse-involutive ; ∷-injective ; length-reverse ; ++-identityˡ)
 open import Data.Product using (proj₁ ; proj₂ ; _,_ ; ∃-syntax ; _×_ ; Σ-syntax)
 open import Data.Product.Relation.Binary.Pointwise.NonDependent using (×-decidable ; ≡×≡⇒≡ ; ≡⇒≡×≡ ; ×-decSetoid)
 
@@ -144,13 +144,24 @@ g₂ {v} x ≡₁ v∈ = subst (λ x₁ → v ∈ map proj₁ (proj₂ x₁)) �
 
 
 {- i think i can use this to simplify lemmaA4 -}
-lemmaX4 : {sys sys₁ : System} {ls₀ ls₁ ls : List String} -> ls₁ ≡ ls₀ -> (b : Build) -> HazardFree sys b (ls₀ ++ ls) -> All (λ f₁ → sys f₁ ≡ sys₁ f₁) (S.reads sys b) -> HazardFree sys₁ b (ls₁ ++ ls)
-lemmaX4 ls₁≡ls₀ [] hf all = HazardFree.Null
-lemmaX4 {sys} {sys₁} {ls₀} {ls₁} {ls} ls₁≡ls₀ (x ∷ b) (Cons .x .b ls₂ dsj hf) all with proj₂ (oracle x) sys sys₁ (λ f₁ x₂ → lookup (++⁻ˡ (S.Creads sys x) all) x₂)
-... | a = Cons x b (ls₁ ++ ls) (λ x₁ → dsj (g₂ x (sym a) (proj₁ x₁) , subst (λ x₂ → _ ∈ x₂ ++ ls) ls₁≡ls₀ (proj₂ x₁))) (lemmaX4 {run oracle x sys} {run oracle x sys₁} {S.read-writes sys x} {S.read-writes sys₁ x} {ls₁ ++ ls} ≡₁ b (subst (λ x₁ → HazardFree (run oracle x sys) b (S.read-writes sys x ++ x₁ ++ ls)) (sym ls₁≡ls₀) hf) (St.lemma1 {oracle} (S.reads (run oracle x sys) b) x (++⁻ˡ (S.Creads sys x) all) (++⁻ʳ (S.Creads sys x) all)))
-  where ≡₁ : S.read-writes sys₁ x ≡ S.read-writes sys x
-        ≡₁ = subst (λ x₁ → S.read-writes sys₁ x ≡ (map proj₁ (proj₁ x₁)) ++ (map proj₁ (proj₂ x₁))) (sym a) refl
-          
+lemmaX4 : {s s₁ : System} {as bs cs ls : List String} -> bs ≡ as -> (b : Build) -> HazardFree s b (as ++ cs ++ ls) -> All (λ f₁ → s f₁ ≡ s₁ f₁) (S.reads s b) -> HazardFree s₁ b (bs ++ ls)
+lemmaX4 bs≡as [] hf all₁ = HazardFree.Null
+lemmaX4 {s} {s₁} {as} {bs} {cs} {ls} bs≡as (x ∷ b) (Cons .x .b _ dsj hf) all₁
+  = Cons x b (bs ++ ls) (λ x₂ → dsj (g₂ x ≡₁ (proj₁ x₂) , v∈ (proj₂ x₂))) hf₁
+    where ≡₁ : proj₁ (oracle x) s₁ ≡ proj₁ (oracle x) s
+          ≡₁ = sym (proj₂ (oracle x) s s₁ (λ f₁ x₁ → lookup (++⁻ˡ (S.Creads s x) all₁) x₁))
+          ≡₂ : S.read-writes s₁ x ≡ S.read-writes s x
+          ≡₂ = subst (λ x₁ → S.read-writes s₁ x ≡ (map proj₁ (proj₁ x₁)) ++ (map proj₁ (proj₂ x₁))) ≡₁ refl
+          v∈ : {v : String} -> v ∈ bs ++ ls -> v ∈ as ++ cs ++ ls
+          v∈ v∈bs++ls with ∈-++⁻ bs v∈bs++ls
+          ... | inj₁ v∈bs = ∈-++⁺ˡ (subst (λ x₁ → _ ∈ x₁) bs≡as v∈bs)
+          ... | inj₂ v∈ls = ∈-++⁺ʳ as (∈-++⁺ʳ cs v∈ls)
+          hf₁-sub : HazardFree (run oracle x s) b ((S.read-writes s x ++ as) ++ cs ++ ls)
+          hf₁-sub = subst (λ x₁ → HazardFree (run oracle x s) b x₁) (sym (++-assoc (S.read-writes s x) as (cs ++ ls))) hf
+          hf₁ : HazardFree (run oracle x s₁) b (S.read-writes s₁ x ++ bs ++ ls)
+          hf₁ with lemmaX4 {run oracle x s} {run oracle x s₁} {S.read-writes s x ++ as} {S.read-writes s₁ x ++ bs} {cs} {ls} (cong₂ _++_ ≡₂ bs≡as) b hf₁-sub (St.lemma1 {oracle} {s} {s₁} (S.reads (run oracle x s) b) x (++⁻ˡ (S.Creads s x) all₁) (++⁻ʳ (S.Creads s x) all₁))
+          ... | hf₂ = subst (λ x₁ → HazardFree (run oracle x s₁) b x₁) (++-assoc (S.read-writes s₁ x) bs ls) hf₂
+
 
 {- if we remove x from the middle of the build, it is still hazardfree if we know that x doesn't write to anything read by b₁ -}
 -- need more evidenc epassed to this function.......
@@ -160,49 +171,14 @@ lemmaA4 {sys} {ls} x b (x₁ ∷ b₁) ds hf with CLP.∃-last x₁ b₁ -- last
 ... | x₂ , b₂ , b₂∷ᴿx₂≡x₁∷b₁ with trans (trans (unfold-reverse x₂ (reverse b₂)) (cong (_∷ʳ x₂) (reverse-involutive b₂))) b₂∷ᴿx₂≡x₁∷b₁
 ... | a with FSP.hf-++⁻ˡ sys ls x₂ (b ++ [ x ]) (reverse b₂) (subst (λ x₃ → HazardFree sys ((b ++ x ∷ []) ++ x₃) ls) (sym a) (subst (λ x₃ → HazardFree sys x₃ ls) (sym (CLP.l4 x b)) hf))
 ... | hf₁ with FSP.∷ʳ⁻ sys x b hf₁ | FSP.++⁻ʳ sys ls b (x ∷ x₁ ∷ b₁) hf
-... | hf₂ | Cons .x .(x₁ ∷ b₁) _ x₃ (Cons .x₁ .b₁ _ x₄ hf₃) = {!!}
--- FSP.++⁺ sys ls b (x₁ ∷ b₁) hf₂ hf₄
-  where hf₄ : HazardFree (S.exec sys b) (x₁ ∷ b₁) (S.build-rws sys b ls)
-        hf₄ = Cons x₁ b₁ (S.build-rws sys b ls) {!!} {!!}
-
--- (lemmaX4 {run oracle x₁ (run oracle x (S.exec sys b))} {run oracle x₁ (S.exec sys b)} {!!} (x₁ ∷ b₁) hf₃ (g₁ {S.exec sys b} x (S.reads (run oracle x (S.exec sys b)) (x₁ ∷ b₁)) ds))
-        g₁ : {sys₁ : System} (x : Cmd) -> (ls : List FileName) -> Disjoint (proj₂ (trace oracle sys₁ x)) ls -> All (λ f₁ → run oracle x sys₁ f₁ ≡ sys₁ f₁) ls
+... | hf₂ | Cons .x .(x₁ ∷ b₁) _ x₃ hf₃ = FSP.++⁺ sys ls b (x₁ ∷ b₁) hf₂ hf₄
+  where g₁ : {sys₁ : System} (x : Cmd) -> (ls : List FileName) -> Disjoint (proj₂ (trace oracle sys₁ x)) ls -> All (λ f₁ → run oracle x sys₁ f₁ ≡ sys₁ f₁) ls
         g₁ x [] ds = All.[]
         g₁ {sys₁} x (x₁ ∷ ls) ds with x₁ ∈? proj₂ (trace oracle sys₁ x)
         ... | yes x₁∈ = contradiction (x₁∈ , here refl) ds
         ... | no x₁∉ = (sym (lemma10 {sys₁} x x₁ x₁∉)) All.∷ (g₁ x ls λ x₆ → ds ((proj₁ x₆) , there (proj₂ x₆)))
-
-
-
--- for helper10 just call l7 ; ys is (ls₁ ++ ls₂)
-
--- replace with hfr->dsj in script/properties which uses reads instead of build-reads
-{-
-lemmaB2 : {sys : System} (x : Cmd) (b b₁ b₂ : Build) -> HazardFreeReordering sys (b ∷ʳ x) (b₁ ++ x ∷ b₂) -> Disjoint (proj₂ (trace oracle (S.exec sys b₁) x)) (build-reads (S.exec sys (b₁ ∷ʳ x)) b₂)
-lemmaB2 {sys} x b b₁ b₂ (HFR .(b ++ x ∷ []) .((b₁ ++ x ∷ []) ++ b₂) x₁ x₂ x₃ x₄) = λ x₅ → x₄ (g₁ {sys} x₁ (proj₁ x₅) (proj₂ x₅))
-
-  where g₃ : {sys : System} (v : String) -> (b₂ : Build) -> v ∈ build-reads sys b₂ -> ∃[ x₁ ](∃[ ls₁ ](∃[ ls₂ ](b₂ ≡ ls₁ ++ x₁ ∷ ls₂ × v ∈ proj₁ (trace oracle (S.exec sys ls₁) x₁))))
-  
-        g₃ {sys} v (x ∷ b₂) v∈build-reads with ∈-++⁻ (build-reads (run oracle x sys) b₂) v∈build-reads --v ∈? proj₁ (trace oracle sys x)
-        ... | inj₂ v∈₂ = x , [] , b₂ , refl , v∈₂
-        ... | inj₁ v∈₁ with g₃ {run oracle x sys} v b₂ v∈₁
-        ... | x₁ , ls₁ , ls₂ , b₂≡ls₁++x₁∷ls₂ , v∈reads-x₁ = x₁ , x ∷ ls₁ , ls₂ , cong (x ∷_) b₂≡ls₁++x₁∷ls₂ , v∈reads-x₁
-        
-        g₄ : {sys : System} {x : Cmd} (b₁ ls₁ : Build) -> S.exec (S.exec sys (b₁ ∷ʳ x)) ls₁ ≡ S.exec sys (b₁ ++ x ∷ ls₁)
-        g₄ [] ls₁ = refl
-        g₄ {sys} (x ∷ b₁) ls₁ = g₄ {run oracle x sys} b₁ ls₁
-        
-        g₁ : {sys : System} {v : String} -> b ∷ʳ x ↭ b₁ ++ x ∷ b₂ -> v ∈ proj₂ (trace oracle (S.exec sys b₁) x) -> v ∈ build-reads (S.exec sys (b₁ ∷ʳ x)) b₂ -> S.speculative-wr-hazard sys (b ∷ʳ x) (b₁ ++ x ∷ b₂)
-        g₁ {sys} {v} ↭₁ v∈₁ v∈₂ with g₃ {S.exec sys (b₁ ∷ʳ x)} v b₂ v∈₂
-        ... | x₁ , ls₁ , ls₂ , b₂≡ls₁++x₁∷ls₂ , v∈reads-x₁
-          = x₁ , x , (v , b₁ , ls₁ , ls₂ , (CLP.l7 x b₁ b₂≡ls₁++x₁∷ls₂) , v∈₁ , subst (λ x₅ → v ∈ proj₁ (trace oracle x₅ x₁)) (g₄ b₁ ls₁) v∈reads-x₁)
-            , S.lemma6 x₁ x b (∈-resp-↭ (↭-sym (CLP.l2 b b₁ b₂ ↭₁))
-                                 (∈-++⁺ʳ b₁
-                                  (subst (λ x₅ → x₁ ∈ x₅) (sym b₂≡ls₁++x₁∷ls₂) (∈-insert ls₁))))
--}
-
--- (g₁ b₃↭b₄)
-
+        hf₄ : HazardFree (S.exec sys b) (x₁ ∷ b₁) (S.build-rws sys b ls)
+        hf₄ = lemmaX4 {run oracle x (S.exec sys b)} {S.exec sys b} {[]} {[]} {S.read-writes (S.exec sys b) x} {S.build-rws sys b ls} refl (x₁ ∷ b₁) hf₃ (g₁ {S.exec sys b} x (S.reads (run oracle x (S.exec sys b)) (x₁ ∷ b₁)) ds)
 
 lemmaA2 : {sys : System} (x : Cmd) (b b₁ b₂ : Build) -> HazardFreeReordering sys (b ∷ʳ x) (b₁ ++ x ∷ b₂) -> HazardFreeReordering sys b (b₁ ++ b₂)
 lemmaA2 {sys} x b b₁ b₂ hfr@(HFR b₃ b₄  b₃↭b₄ hf hf₁ ¬sp-wr-haz) = HFR b (b₁ ++ b₂) (CLP.l9 x b b₁ b₂ b₃↭b₄) (FSP.∷ʳ⁻ sys x b hf) (lemmaA4 x b₁ b₂ (hfr→dsj sys x b b₁ b₂ hfr) hf₁) (S.swrh-∷ʳ⁻ sys x b b₁ b₂ ¬sp-wr-haz (hfr→dsj sys x b b₁ b₂ hfr))
