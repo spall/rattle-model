@@ -98,22 +98,6 @@ else x₁ in re-ordered build. drop x₁ from both builds.
 -}
 
 
-
-
-
-
-
-
-
--- helper6 can be l4 b ; ys is (x₁ ∷ b₁)
-
--- i think this can be list agnostic
--- helper7 can be replaced by a call to l5 (build-reads f (run f x sys) b)
-
-
-lemmaX5 : {sys sys₁ : System} (b : Build) -> All (λ f₁ → sys f₁ ≡ sys₁ f₁) (build-reads sys b) -> All (λ f₁ → sys f₁ ≡ sys₁ f₁) (build-reads sys₁ b)
-lemmaX5 b all = {!!}
-
 g : {sys sys₁ : System} (x : Cmd) -> (f₁ : FileName) -> proj₁ (oracle x) sys ≡ proj₁ (oracle x) sys₁ -> sys f₁ ≡ sys₁ f₁ -> run oracle x sys f₁ ≡ run oracle x sys₁ f₁
 g {sys} {sys₁} x f₁ ≡₁ ≡₂ with f₁ ∈? proj₂ (trace oracle sys x)
 ... | no f₁∉x-sys = trans (g₁ (proj₂ (proj₁ (oracle x) sys)) f₁ f₁∉x-sys) (trans ≡₂ (sym (g₁ (proj₂ (proj₁ (oracle x) sys₁)) f₁ (subst (λ x₁ → f₁ ∉ (map proj₁ (proj₂ x₁))) ≡₁ f₁∉x-sys))))
@@ -222,13 +206,9 @@ lemmaA1 {s} (x ∷ b) b₁ ≡₁ hfr@(HFR _ _ ↭₁ hf₁ hf₂ ¬swrh) with �
 
   
 script-reordered : {sys : System} (b b₂ : Build) -> HazardFreeReordering sys b b₂ -> ∀ f₁ → S.exec sys b f₁ ≡ S.exec sys b₂ f₁
-script-reordered {sys} b b₂ hfr = λ f₁ → {!!}
+script-reordered {sys} b b₂ hfr@(HFR .b .b₂ ↭₁ x₁ x₂ x₃) with lemmaA1 {sys} (reverse b) (reverse b₂) (trans (length-reverse b) (trans (↭-length ↭₁) (sym (length-reverse b₂)))) (subst₂ (λ x x₄ → HazardFreeReordering sys x x₄) (sym (reverse-involutive b)) (sym (reverse-involutive b₂)) hfr) 
+... | ∀₁ = subst₂ (λ x x₄ → ∀ f₁ → S.exec sys x f₁ ≡ S.exec sys x₄ f₁) (reverse-involutive b) (reverse-involutive b₂) ∀₁
 
-{- todo
-1. reverse reverse b and b₂ in hfr
-2. un reverse reverse the writes -- done
-
--}
 
 {-
 forward-reordered : {f : F} {sys : System} (b : Build) -> (b₂ : Build) -> b ↭ b₂ -> HazardFree f sys b ([] , []) -> HazardFree f sys b₂ ([] , []) -> ∀ f₁ → proj₁ (Forward.exec f (sys , empty) b) f₁ ≡ proj₁ (Forward.exec f (sys , empty) b₂) f₁
