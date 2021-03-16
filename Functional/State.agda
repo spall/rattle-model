@@ -75,6 +75,7 @@ lemma3 f₁ ((f₂ , v₂) ∷ ls) f₁∉ with f₂ ≟ f₁
 ... | yes f₂≡f₁ = contradiction (here (sym f₂≡f₁)) f₁∉
 ... | no ¬f₂≡f₂ = lemma3 f₁ ls (λ x → f₁∉ (there x))
 
+
 {- if results of x are the same when run in 2 systems, and f₁ is the same in both systems, 
    then f₁ is the same in the new systems after running x in both systems
 -}
