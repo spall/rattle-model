@@ -47,13 +47,12 @@ run f cmd sys = foldr extend sys (proj₂ (proj₁ (f cmd) sys))
 Memory : Set
 Memory = Cmd -> Maybe (List (FileName × Maybe FileContent))
 
-empty : Memory
-empty x = nothing
+-- List (Cmd × List (FileName × Maybe FileContent))
+
 
 save : Cmd -> List FileName -> System -> Memory -> Memory
-save cmd files sys mm = \cmd₂ -> if (cmd == cmd₂)
-                                 then just (map (\f -> f , sys f) files)
-                                 else mm cmd₂
+save cmd files sys mm = \ x -> if cmd == x then just (map (\f -> f , sys f) files) else mm x
+-- (cmd , map (\f -> f , sys f) files) ∷ mm
 
 State : Set
 State = (System × Memory) {- can add more later if needed -}
