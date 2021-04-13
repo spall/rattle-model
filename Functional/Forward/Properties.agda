@@ -8,7 +8,7 @@ open import Data.Bool using (false ; if_then_else_)
 open import Data.Product using (proj₁ ; proj₂ ; _,_)
 open import Agda.Builtin.Equality
 open import Functional.File using (FileName ; FileContent ; Files)
-open import Functional.Forward.Exec (oracle) using (run ; run? ; maybeAll)
+open import Functional.Forward.Exec (oracle) using (run ; run? ; maybeAll ; get)
 open import Data.Maybe as Maybe using (Maybe ; just ; nothing)
 open import Data.Maybe.Relation.Binary.Pointwise using (dec ; Pointwise)
 open import Data.String.Properties using (_≟_ ; _==_)
@@ -38,8 +38,8 @@ inputs : System -> Cmd -> List (FileName × Maybe FileContent)
 inputs s x = map (\f → f , St.run oracle x s f) (proj₁ (trace oracle s x))
 
 data IdempotentState : System -> Memory -> Set where
-  [] : {s : System} -> IdempotentState s (λ _ → nothing)
-  Cons : {x : Cmd} {fs : List (FileName × Maybe FileContent)} {s : System} {mm : Memory} -> CmdIdempotent x fs s -> IdempotentState s mm -> IdempotentState s (\ x₁ → if x == x₁ then just fs else mm x₁)
+  [] : {s : System} -> IdempotentState s []
+  Cons : {x : Cmd} {fs : List (FileName × Maybe FileContent)} {s : System} {mm : Memory} -> CmdIdempotent x fs s -> IdempotentState s mm -> IdempotentState s ((x , fs) ∷ mm)
 
 
 lemma1 : (f₁ : FileName) -> (ls : Files) -> f₁ ∈ map proj₁ ls -> ∃[ v ](∀ s → foldr extend s ls f₁ ≡ just v)
@@ -120,20 +120,20 @@ preserves {sys} x dsj is = Cons (λ _ _ → cmdIdempotent sys x dsj)(preserves2 
 {- goal: if cmd is in memory then there exists a cmdidempotent. 
 
 -}
-
-lookup2 : (sys : System) (mm : Memory) (x : Cmd) -> ∃[ ls ](mm x) ≡ just ls -> IdempotentState sys mm -> ∃[ ls ](CmdIdempotent x ls sys)
-lookup2 sys mm x ∃₁ (Cons {x₂} {fs} x₁ is) with x₂ ≟ x
-... | yes x₂≡x = fs , subst (λ x₃ → CmdIdempotent x₃ _ _) x₂≡x x₁
-... | no p = lookup2 sys {!!} x ({!!} , {!!}) {!!}
+getCmdIdempotent : {sys : System} (mm : Memory) (x : Cmd) -> IdempotentState sys mm -> (x∈ : x ∈ map proj₁ mm) -> CmdIdempotent x (get x mm x∈) sys
+getCmdIdempotent ((x₁ , fs) ∷ mm) x (Cons x₂ is) x∈ with x ≟ x₁
+... | yes x≡x₁ = subst (λ x₃ → CmdIdempotent x₃ _ _) (sym x≡x₁) x₂
+... | no ¬x≡x₁ = getCmdIdempotent mm x is (tail ¬x≡x₁ x∈)
 
 
 run≡ : (sys₁ sys₂ : System) (mm : Memory) (x : Cmd) -> (∀ f₁ → sys₁ f₁ ≡ sys₂ f₁) -> IdempotentState sys₂ mm -> ∀ f₁ → St.run oracle x sys₁ f₁ ≡ proj₁ (run (sys₂ , mm) x) f₁
-run≡ sys₁ sys₂ mm x ∀₁ is f₁ with mm x
+run≡ sys₁ sys₂ mm x ∀₁ is f₁ with x ∈? map proj₁ mm
+... | no x∉ = St.lemma2 {oracle} {sys₁} {sys₂} x f₁ (proj₂ (oracle x) sys₁ sys₂ λ f₂ _ → ∀₁ f₂) (∀₁ f₁)
+... | yes x∈ with maybeAll {sys₂} (get x mm x∈)
 ... | nothing = St.lemma2 {oracle} {sys₁} {sys₂} x f₁ (proj₂ (oracle x) sys₁ sys₂ λ f₂ _ → ∀₁ f₂) (∀₁ f₁)
-... | just ls with maybeAll {sys₂} ls
-... | nothing = St.lemma2 {oracle} {sys₁} {sys₂} x f₁ (proj₂ (oracle x) sys₁ sys₂ λ f₂ _ → ∀₁ f₂) (∀₁ f₁)
-... | just all₁ = trans (St.lemma2 {oracle} {sys₁} {sys₂} x f₁ (proj₂ (oracle x) sys₁ sys₂ λ f₂ _ → ∀₁ f₂) (∀₁ f₁))
-                        {!!}
+... | just all₁ with getCmdIdempotent mm x is x∈
+... | ci = trans (St.lemma2 {oracle} {sys₁} {sys₂} x f₁ (proj₂ (oracle x) sys₁ sys₂ λ f₂ _ → ∀₁ f₂) (∀₁ f₁))
+                        (ci all₁ {!!} f₁)
 
 {- with dec _≡?_ (changed? x (sys₂ , mm)) (just [])
   ... | yes a = trans (St.lemma2 {oracle} {sys₁} {sys₂} x f₁ (proj₂ (oracle x) sys₁ sys₂ (λ f₂ x₁ → ∀₁ f₂)) (∀₁ f₁)) (∀₂ a f₁)

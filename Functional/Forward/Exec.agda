@@ -33,11 +33,19 @@ maybeAll {sys} ls = decToMaybe (g₁ ls)
   where g₁ : (ls : List (FileName × Maybe FileContent)) -> Dec (All (λ (f₁ , v₁) → sys f₁ ≡ v₁) ls)
         g₁ ls = all? (λ (f₁ , v₁) → ≡-dec _≟_ (sys f₁) v₁) ls
 
+get : (x : Cmd) -> (ls : Memory) -> x ∈ map proj₁ ls -> List (FileName × Maybe FileContent)
+get x ((x₁ , fs) ∷ ls) x∈ with x ≟ x₁
+... | yes x≡x₁ = fs
+... | no ¬x≡x₁ = get x ls (tail ¬x≡x₁ x∈)
+
 run? : Cmd -> State -> Bool
-run? cmd (sys , mm) with mm cmd
+run? cmd (sys , mm) with cmd ∈? map proj₁ mm
+... | no cmd∉ = Bool.true
+... | yes cmd∈ = is-nothing (maybeAll {sys} (get cmd mm cmd∈))
+{-
 ... | nothing = Bool.true
 ... | just x = is-nothing (maybeAll {sys} x)
-
+-}
 run : State -> Cmd -> State
 run st cmd = if (run? cmd st)
                then (let sys = St.run oracle cmd (proj₁ st) in
