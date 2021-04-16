@@ -42,14 +42,14 @@ run? : Cmd -> State -> Bool
 run? cmd (sys , mm) with cmd ∈? map proj₁ mm
 ... | no cmd∉ = Bool.true
 ... | yes cmd∈ = is-nothing (maybeAll {sys} (get cmd mm cmd∈))
-{-
-... | nothing = Bool.true
-... | just x = is-nothing (maybeAll {sys} x)
--}
+
+doRun : State -> Cmd -> State
+doRun (sys , mm) cmd = let sys₂ = St.run oracle cmd sys in
+                           (sys₂ , save cmd (proj₁ (trace oracle sys cmd)) sys₂ mm)
+
 run : State -> Cmd -> State
 run st cmd = if (run? cmd st)
-               then (let sys = St.run oracle cmd (proj₁ st) in
-                       (sys , save cmd (proj₁ (trace oracle (proj₁ st) cmd)) sys (proj₂ st)))
+               then doRun st cmd
                else st
 
 
