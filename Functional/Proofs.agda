@@ -22,9 +22,10 @@ open import Functional.Script.Exec (oracle) as S using (writes)
 open import Functional.Script.HazardFree (oracle) using (HazardFree ; HazardFreeReordering ; HFR ; Cons ; Null)
 open import Functional.Script.HazardFree.Properties (oracle) using (hfr-∷ʳ⁻ ; hf→disjointWrites ; hfr→disjoint ; hf→disjointReads)
 open import Functional.Forward.Exec (oracle) as Forward hiding (run)
-open import Functional.Forward.Properties (oracle) using (run≡ ; IdempotentState ; preserves ; getCmdIdempotent ; cmdReadWrites ; cmdWrites)
-open import Functional.File using (FileName ; Files ; File)
-open import Functional.Rattle.Exec as Rattle hiding (run)
+open import Functional.Forward.Properties (oracle) using (run≡ ; IdempotentState ; preserves ; getCmdIdempotent ; cmdReadWrites ; cmdWrites ; ∈-resp-≡ ; cmdReads)
+open import Functional.File using (FileName ; Files ; File ; FileContent)
+open import Functional.Rattle.Exec (oracle) as Rattle hiding (run)
+open import Functional.Rattle.Properties (oracle) using (MemoryProperty ; getProperty)
 open import Data.List.Relation.Binary.Permutation.Propositional using (_↭_ ; ↭-sym ; ↭-refl)
 open import Data.List.Relation.Binary.Permutation.Propositional.Properties using (∈-resp-↭ ; ↭-length ; drop-mid)
 open import Data.String using (String)
@@ -45,7 +46,7 @@ open import Relation.Nullary using (¬_)
 open import Data.List.Relation.Unary.All as All using (All ; lookup ; all?)
 open import Data.List.Relation.Unary.All.Properties using (¬All⇒Any¬ ; ++⁻ˡ ; ++⁻ʳ)
 open import Data.List.Relation.Unary.Any using (Any)
-open import Data.Maybe using (just ; nothing)
+open import Data.Maybe using (just ; nothing ; Maybe)
 open import Data.Maybe.Properties using (≡-dec)
 open import Relation.Nullary.Decidable.Core using (map′)
 open import Function using (_∘₂_ ; _∘_)
@@ -172,14 +173,6 @@ script-reordered : {sys : System} (b b₂ : Build) -> HazardFreeReordering sys b
 script-reordered {sys} b b₂ hfr@(HFR .b .b₂ ↭₁ x₁ x₂ x₃) with lemmaA1 {sys} (reverse b) (reverse b₂) (trans (length-reverse b) (trans (↭-length ↭₁) (sym (length-reverse b₂)))) (subst₂ (λ x x₄ → HazardFreeReordering sys x x₄) (sym (reverse-involutive b)) (sym (reverse-involutive b₂)) hfr) 
 ... | ∀₁ = subst₂ (λ x x₄ → ∀ f₁ → S.exec sys x f₁ ≡ S.exec sys x₄ f₁) (reverse-involutive b) (reverse-involutive b₂) ∀₁
 
--- prove with a contradiction?
--- need a property about the memory 
-{-
-lemma1 : {ls : List FileName} (sys : System) -> (mm : St.Memory) -> (x : Cmd) -> (b : Build) -> HazardFree sys (x ∷ b) ls -> Forward.run? x (sys , mm) ≡ true
-lemma1 sys [] hf b x = refl
-lemma1 sys ((x₁ , fs) ∷ mm) x b hf@(Cons _ .x .b dsj hf₁) with x ≟ x₁
-... | yes x≡x₁ = contradiction {!!} dsj
-... | no ¬x≡x₁ = lemma1 sys mm x b hf -}
 
 data DisjointBuild : System -> Build -> Set where
   Null : {s : System} -> DisjointBuild s []
@@ -189,13 +182,11 @@ helper : {sys : System} (ls ls₁ : List Cmd) -> (x : Cmd) -> Disjoint (cmdWrite
 helper [] ls₁ x dsj ⊆₁ = All.[]
 helper {sys} (x₁ ∷ ls) ls₁ x dsj ⊆₁ = (λ x₂ → dsj ((proj₁ x₂) , ⊆₁ (∈-++⁺ˡ (proj₂ x₂)))) All.∷ (helper ls ls₁ x dsj λ x₂ → ⊆₁ (∈-++⁺ʳ (cmdReadWrites x₁ sys) x₂))
 
-∈-resp-≡ : {ls ls₁ : List String} (v : String) -> v ∈ ls -> ls ≡ ls₁ -> v ∈ ls₁
-∈-resp-≡ v v∈ls ls≡ls₁ = subst (λ x → v ∈ x) ls≡ls₁ v∈ls
-
+{- This proof requires the hazardfree evidence because the memory does not keep track of whether or not outputs have changed -}
 script-exec≡forward-exec : {ls : List String} {sys : System} (b : Build) -> DisjointBuild sys b -> HazardFree sys b ls -> ∀ f₁ → S.exec sys b f₁ ≡ proj₁ (Forward.exec (sys , []) b) f₁
 script-exec≡forward-exec {ls} {sys} b dsb hf f₁ = g₁ sys (sys , []) (λ f₂ → refl) b (λ ()) IdempotentState.[] dsb hf
 
-  where g₁ : {ls : List String} (sys₁ : System) ((sys₂ , mm) : St.State) -> (∀ f₁ → sys₁ f₁ ≡ sys₂ f₁) -> (b : Build) -> concatMap (λ x₁ → cmdReadWrites x₁ sys₂) (map proj₁ mm) ⊆ ls -> IdempotentState sys₂ mm -> DisjointBuild sys₁ b -> HazardFree sys₁ b ls -> S.exec sys₁ b f₁ ≡ proj₁ (Forward.exec (sys₂ , mm) b) f₁
+  where g₁ : {ls : List String} (sys₁ : System) ((sys₂ , mm) : St.State) -> (∀ f₁ → sys₁ f₁ ≡ sys₂ f₁) -> (b : Build) -> concatMap (λ x₁ → cmdReadWrites x₁ sys₂) (map proj₁ mm) ⊆ ls -> IdempotentState cmdReads sys₂ mm -> DisjointBuild sys₁ b -> HazardFree sys₁ b ls -> S.exec sys₁ b f₁ ≡ proj₁ (Forward.exec (sys₂ , mm) b) f₁
         g₁ sys₁ (sys₂ , mm) ∀≡₁ [] ⊆₁ is dsb hf = ∀≡₁ f₁
         g₁ {ls} sys₁ (sys₂ , mm) ∀≡₁ (x ∷ b) ⊆₁ is (Cons .x ds .b dsb) (Cons _ .x .b dsj hf) with x ∈? map proj₁ mm
         ... | no x∉ = g₁ (run oracle x sys₁) (Forward.doRun (sys₂ , mm) x) (λ f₂ → St.lemma2 {oracle} {sys₁} {sys₂} x f₂ (proj₂ (oracle x) sys₁ sys₂ λ f₃ _ → ∀≡₁ f₃) (∀≡₁ f₂)) b ⊆₂
@@ -208,7 +199,7 @@ script-exec≡forward-exec {ls} {sys} b dsb hf f₁ = g₁ sys (sys , []) (λ f�
                                  ≡₅ x₁ ds = sym (proj₂ (oracle x₁) sys₂ (St.run oracle x sys₂) λ f₂ x₂ → St.lemma3 f₂ (proj₂ (proj₁ (oracle x) sys₂)) λ x₃ → ds (x₃ , ∈-++⁺ˡ x₂))
 
                                  ≡₄ : proj₁ (oracle x) (run oracle x sys₂) ≡ proj₁ (oracle x) sys₁
-                                 ≡₄ = trans (sym (proj₂ (oracle x) sys₂ (St.run oracle x sys₂) λ f₂ x₁ → (St.lemma3 f₂ (proj₂ (proj₁ (oracle x) sys₂)) λ x₂ → ds (∈-resp-≡ f₂ x₁ (cong (map proj₁ ∘ proj₁) ≡₁) , ∈-resp-≡ f₂ x₂ (cong (map proj₁ ∘ proj₂) ≡₁))))) ≡₁
+                                 ≡₄ = trans (sym (proj₂ (oracle x) sys₂ (St.run oracle x sys₂) λ f₂ x₁ → (St.lemma3 f₂ (proj₂ (proj₁ (oracle x) sys₂)) λ x₂ → ds (∈-resp-≡ x₁ (cong (map proj₁ ∘ proj₁) ≡₁) , ∈-resp-≡ x₂ (cong (map proj₁ ∘ proj₂) ≡₁))))) ≡₁
                                  ≡₂ : cmdReadWrites x (run oracle x sys₂) ≡ cmdReadWrites x sys₁
                                  ≡₂ = cong₂ _++_ (cong (map proj₁ ∘ proj₁) ≡₄) (cong (map proj₁ ∘ proj₂) ≡₄)
                                  ≡₃ : (ls : List String) -> All (λ x₂ → Disjoint (cmdWrites x sys₂) (cmdReadWrites x₂ sys₂)) ls -> concatMap (λ x₁ → cmdReadWrites x₁ (St.run oracle x sys₂)) ls ≡ concatMap (λ x₁ → cmdReadWrites x₁ sys₂) ls
@@ -223,35 +214,71 @@ script-exec≡forward-exec {ls} {sys} b dsb hf f₁ = g₁ sys (sys , []) (λ f�
                                  
         ... | yes x∈ with maybeAll {sys₂} (get x mm x∈)
         ... | nothing = g₁ (run oracle x sys₁) (Forward.doRun (sys₂ , mm) x) (λ f₂ → St.lemma2 {oracle} {sys₁} {sys₂} x f₂ (proj₂ (oracle x) sys₁ sys₂ λ f₃ _ → ∀≡₁ f₃) (∀≡₁ f₂)) b ⊆₂
-                           (preserves {sys₂} {mm} x (λ x₂ → ds (subst (λ x₃ → _ ∈ map proj₁ (proj₁ x₃)) ≡₁ (proj₁ x₂) , subst (λ x₃ → _ ∈ map proj₁ (proj₂ x₃)) ≡₁ (proj₂ x₂))) all₁ is) dsb hf
-                             where ≡₁ : proj₁ (oracle x) sys₂ ≡ proj₁ (oracle x) sys₁
-                                   ≡₁ = proj₂ (oracle x) sys₂ sys₁ λ f₂ _ → sym (∀≡₁ f₂)
-                                   all₁ : All (λ x₂ → Disjoint (cmdWrites x sys₂) (cmdReadWrites x₂ sys₂)) (map proj₁ mm)
-                                   all₁ = helper (map proj₁ mm) ls x (λ x₂ → dsj (subst (λ x₁ → _ ∈ map proj₁ (proj₂ x₁)) ≡₁ (proj₁ x₂) , (proj₂ x₂))) ⊆₁
-                                   ⊆₂ : concatMap (λ x₁ → cmdReadWrites x₁ (St.run oracle x sys₂)) (x ∷ map proj₁ mm) ⊆ (cmdReadWrites x sys₁) ++ ls
-                                   ⊆₂ = {!!}
+                         (preserves {sys₂} {mm} x (λ x₂ → ds (subst (λ x₃ → _ ∈ map proj₁ (proj₁ x₃)) ≡₁ (proj₁ x₂) , subst (λ x₃ → _ ∈ map proj₁ (proj₂ x₃)) ≡₁ (proj₂ x₂))) all₁ is) dsb hf
+                         
+                           where ≡₁ : proj₁ (oracle x) sys₂ ≡ proj₁ (oracle x) sys₁
+                                 ≡₁ = proj₂ (oracle x) sys₂ sys₁ λ f₂ _ → sym (∀≡₁ f₂)
+                                 
+                                 ≡₅ : (x₁ : Cmd) -> Disjoint (cmdWrites x sys₂) (cmdReadWrites x₁ sys₂) -> proj₁ (oracle x₁) (run oracle x sys₂) ≡ proj₁ (oracle x₁) sys₂
+                                 ≡₅ x₁ ds = sym (proj₂ (oracle x₁) sys₂ (St.run oracle x sys₂) λ f₂ x₂ → St.lemma3 f₂ (proj₂ (proj₁ (oracle x) sys₂)) λ x₃ → ds (x₃ , ∈-++⁺ˡ x₂))
+
+                                 ≡₄ : proj₁ (oracle x) (run oracle x sys₂) ≡ proj₁ (oracle x) sys₁
+                                 ≡₄ = trans (sym (proj₂ (oracle x) sys₂ (St.run oracle x sys₂) λ f₂ x₁ → (St.lemma3 f₂ (proj₂ (proj₁ (oracle x) sys₂)) λ x₂ → ds (∈-resp-≡ x₁ (cong (map proj₁ ∘ proj₁) ≡₁) , ∈-resp-≡ x₂ (cong (map proj₁ ∘ proj₂) ≡₁))))) ≡₁
+                                 ≡₂ : cmdReadWrites x (run oracle x sys₂) ≡ cmdReadWrites x sys₁
+                                 ≡₂ = cong₂ _++_ (cong (map proj₁ ∘ proj₁) ≡₄) (cong (map proj₁ ∘ proj₂) ≡₄)
+                                 ≡₃ : (ls : List String) -> All (λ x₂ → Disjoint (cmdWrites x sys₂) (cmdReadWrites x₂ sys₂)) ls -> concatMap (λ x₁ → cmdReadWrites x₁ (St.run oracle x sys₂)) ls ≡ concatMap (λ x₁ → cmdReadWrites x₁ sys₂) ls
+                                 ≡₃ [] all₁ = refl
+                                 ≡₃ (y ∷ ls) (px All.∷ all₁) = cong₂ _++_ (cong₂ _++_ (cong (map proj₁ ∘ proj₁) (≡₅ y px)) (cong (map proj₁ ∘ proj₂) (≡₅ y px))) (≡₃ ls all₁)
+                                 all₁ : All (λ x₂ → Disjoint (cmdWrites x sys₂) (cmdReadWrites x₂ sys₂)) (map proj₁ mm)
+                                 all₁ = helper (map proj₁ mm) ls x (λ x₂ → dsj (subst (λ x₁ → _ ∈ map proj₁ (proj₂ x₁)) ≡₁ (proj₁ x₂) , (proj₂ x₂))) ⊆₁
+                                 ⊆₂ : concatMap (λ x₁ → cmdReadWrites x₁ (St.run oracle x sys₂)) (x ∷ map proj₁ mm) ⊆ (cmdReadWrites x sys₁) ++ ls
+                                 ⊆₂ x₂ with ∈-++⁻ (cmdReadWrites x (run oracle x sys₂)) x₂
+                                 ... | inj₁ ∈₁ = ∈-++⁺ˡ (subst (λ x₃ → _ ∈ x₃) ≡₂ ∈₁)
+                                 ... | inj₂ ∈₂ = ∈-++⁺ʳ _ (⊆₁ (subst (λ x₃ → _ ∈ x₃) (≡₃ (map proj₁ mm) all₁) ∈₂))
+                                 
         ... | just all₁ with getCmdIdempotent mm x is x∈
         ... | ci = g₁ (St.run oracle x sys₁) (sys₂ , mm) (λ f₂ → trans (St.lemma2 {oracle} {sys₁} {sys₂} x f₂ (proj₂ (oracle x) sys₁ sys₂ λ f₃ _ → ∀≡₁ f₃) (∀≡₁ f₂))
                                                                         (ci all₁ f₂)) b (λ x₁ → ∈-++⁺ʳ _ (⊆₁ x₁)) is dsb hf
-
--- if you have a hazardfree build and some prefix and the next command, then the writes of the cmd are disjoint from the writes and reads of prefix.
--- need to know the thigns in the memory are in ls (from the hazardfree)
--- maybe store more information in idempotentstate
-
-
-
--- doesnt write to anything in the memory, which is the inputs of previous commands
-        
-
 
 forward-reordered : {sys : System} (b : Build) -> (b₂ : Build) -> DisjointBuild sys b -> DisjointBuild sys b₂ -> HazardFreeReordering sys b b₂ -> ∀ f₁ → proj₁ (Forward.exec (sys , []) b) f₁ ≡ proj₁ (Forward.exec (sys , []) b₂) f₁
 forward-reordered {sys} b b₂ ds ds₂ hfr@(HFR .b .b₂ _ hf₁ hf₂ _)
   = λ f₁ → trans (sym (script-exec≡forward-exec b ds hf₁ f₁)) (trans (script-reordered b b₂ hfr f₁) (script-exec≡forward-exec b₂ ds₂ hf₂ f₁))
 
+{- This proof does not require the hazardfree evidence because the memory does record the values of outputs -}
+script-exec≡rattle-exec : {sys : System} (b : Build) -> DisjointBuild sys b -> ∀ f₁ → S.exec sys b f₁ ≡ proj₁ (Rattle.exec (sys , []) b) f₁
+script-exec≡rattle-exec {sys} b ds f₁ = g₁ sys (sys , []) (λ f₂ → refl) b ds MemoryProperty.[]
+  where g₁ : (sys₁ : System) ((sys₂ , mm) : St.State) -> (∀ f₁ → sys₁ f₁ ≡ sys₂ f₁) -> (b : Build) -> DisjointBuild sys₁ b -> MemoryProperty mm -> S.exec sys₁ b f₁ ≡ proj₁ (Rattle.exec (sys₂ , mm) b) f₁
+        g₁ sys₁ (sys₂ , mm) ∀≡₁ [] ds mp = ∀≡₁ f₁
+        g₁ sys₁ (sys₂ , mm) ∀≡₁ (x ∷ b) (Cons .x ds .b dsb) mp with x ∈? map proj₁ mm
+        ... | no x∉ = g₁ (run oracle x sys₁) (Rattle.doRun (sys₂ , mm) x) (λ f₂ → St.lemma2 {oracle} {sys₁} {sys₂} x f₂ (proj₂ (oracle x) sys₁ sys₂ λ f₃ _ → ∀≡₁ f₃) (∀≡₁ f₂)) b dsb (MemoryProperty.Cons x sys₂ (λ f₂ x₁ → St.lemma3 f₂ (proj₂ (proj₁ (oracle x) sys₂)) λ x₂ → ds (∈-resp-≡ x₁ (cong (map proj₁ ∘ proj₁) ≡₁) , ∈-resp-≡ x₂ (cong (map proj₁ ∘ proj₂) ≡₁))) mp)
+          where ≡₁ : proj₁ (oracle x) sys₂ ≡ proj₁ (oracle x) sys₁
+                ≡₁ = proj₂ (oracle x) sys₂ sys₁ λ f₂ x₁ → sym (∀≡₁ f₂)
+        ... | yes x∈ with maybeAll {sys₂} (get x mm x∈)
+        ... | nothing = g₁ (run oracle x sys₁) (Rattle.doRun (sys₂ , mm) x) (λ f₂ → St.lemma2 {oracle} {sys₁} {sys₂} x f₂ (proj₂ (oracle x) sys₁ sys₂ λ f₃ _ → ∀≡₁ f₃) (∀≡₁ f₂)) b dsb (MemoryProperty.Cons x sys₂ (λ f₂ x₁ → St.lemma3 f₂ (proj₂ (proj₁ (oracle x) sys₂)) λ x₂ → ds (∈-resp-≡ x₁ (cong (map proj₁ ∘ proj₁) ≡₁) , ∈-resp-≡ x₂ (cong (map proj₁ ∘ proj₂) ≡₁))) mp)
+          where ≡₁ : proj₁ (oracle x) sys₂ ≡ proj₁ (oracle x) sys₁
+                ≡₁ = proj₂ (oracle x) sys₂ sys₁ λ f₂ x₁ → sym (∀≡₁ f₂) 
+        ... | just all₁ with getProperty x mp x∈
+        ... | sys₃ , get≡ , ∀≡₂ = g₁ (St.run oracle x sys₁) (sys₂ , mm) (λ f₂ → ≡ₓ) b dsb mp
+          where all₂ : (ls : List (FileName × Maybe FileContent)) (ls₁ : List FileName) -> All (λ (f₁ , v₁) → sys₂ f₁ ≡ v₁) ls -> ls ≡ map (λ f₁ → f₁ , St.run oracle x sys₃ f₁) ls₁ -> All (λ f₁ → sys₂ f₁ ≡ St.run oracle x sys₃ f₁) ls₁
+                all₂ ls [] all₁ ≡₁ = All.[]
+                all₂ (_ ∷ ls) (x ∷ ls₁) (px All.∷ all₁) ≡₁ with ∷-injective ≡₁
+                ... | _≡x , ls≡ = (trans (cong (sys₂ ∘ proj₁) (sym _≡x)) (trans px (cong proj₂ _≡x))) All.∷ (all₂ ls ls₁ all₁ ls≡)
+                
+                ≡₀ : proj₁ (oracle x) sys₂ ≡ proj₁ (oracle x) sys₃ 
+                ≡₀ = sym (proj₂ (oracle x) sys₃ sys₂ λ f₂ x₁ → trans (∀≡₂ f₂ x₁) (sym (lookup (all₂ (get x mm x∈) (cmdReadWrites x sys₃) all₁ get≡) (∈-++⁺ˡ x₁))))
+                
+                ≡₁ : (f₁ : FileName) -> f₁ ∈ cmdWrites x sys₂ -> St.run oracle x sys₂ f₁ ≡ St.run oracle x sys₃ f₁
+                ≡₁ f₁ f₁∈ = subst (λ x₁ → foldr extend sys₂ (proj₂ (proj₁ (oracle x) sys₂)) f₁ ≡ foldr extend sys₃ x₁ f₁) (cong proj₂ ≡₀) (St.lemma4 {sys₂} {sys₃} (proj₂ (proj₁ (oracle x) sys₂)) f₁ f₁∈)
+                ≡₂ : (f₁ : FileName) -> f₁ ∈ cmdWrites x sys₂ -> St.run oracle x sys₃ f₁ ≡ sys₂ f₁
+                ≡₂ f₁ f₁∈ = sym (lookup (all₂ (get x mm x∈) (cmdReadWrites x sys₃) all₁ get≡) (∈-++⁺ʳ _ (∈-resp-≡ f₁∈ (cong (map proj₁ ∘ proj₂) ≡₀))))
+                ≡ₓ : {f₁ : FileName} -> St.run oracle x sys₁ f₁ ≡ sys₂ f₁
+                ≡ₓ with _ ∈? cmdWrites x sys₂
+                ... | no _∉ = trans (St.lemma2 {oracle} {sys₁} {sys₂} x _ (proj₂ (oracle x) sys₁ sys₂ λ f₂ x₁ → ∀≡₁ f₂) (∀≡₁ _)) (sym (St.lemma3 _ (proj₂ (proj₁ (oracle x) sys₂)) _∉))
+                ... | yes _∈ = trans (St.lemma2 {oracle} {sys₁} {sys₂} x _ (proj₂ (oracle x) sys₁ sys₂ λ f₂ x₁ → ∀≡₁ f₂) (∀≡₁ _))
+                                     (trans (≡₁ _ _∈) (≡₂ _ _∈))
 
-{-
-rattle-reordered : {f : F} {sys : System} (b : Build) -> (b₂ : Build) -> b ↭ b₂ -> HazardFree f sys b ([] , []) -> HazardFree f sys b₂ ([] , []) -> ∀ f₁ → proj₁ (Rattle.exec f (sys , empty) b) f₁ ≡ proj₁ (Rattle.exec f (sys , empty) b₂) f₁
-rattle-reordered b b₂ p p₂ p₃ = λ f₁ → f f₁
-  where f : {f : F} {sys : System} (f₁ : FileName) -> proj₁ (Rattle.exec f (sys , empty) b) f₁ ≡ proj₁ (Rattle.exec f (sys , empty) b₂) f₁
-        f {oc} {sys} f₁ = {!!}
--}
+
+rattle-reordered : {sys : System} (b : Build) -> (b₂ : Build) -> DisjointBuild sys b -> DisjointBuild sys b₂ -> HazardFreeReordering sys b b₂ -> ∀ f₁ → proj₁ (Rattle.exec (sys , []) b) f₁ ≡ proj₁ (Rattle.exec (sys , []) b₂) f₁
+rattle-reordered b b₂ ds ds₂ hfr@(HFR .b .b₂ x x₁ x₂ x₃)
+  = λ f₁ → trans (sym (script-exec≡rattle-exec b ds f₁)) (trans (script-reordered b b₂ hfr f₁) (script-exec≡rattle-exec b₂ ds₂ f₁))
+

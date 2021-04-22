@@ -1,4 +1,3 @@
--- {-# OPTIONS --allow-unsolved-metas #-}
 
 open import Functional.State as St using (F ; System ; Memory ; Cmd ; trace ; extend)
 
@@ -84,9 +83,6 @@ runPreserves {sys} x x₁ fs dsj (IC .x .fs .sys x₂ ci) = IC x fs (St.run orac
                              (trans (ci (lemma2 fs all₁ λ x₃ → dsj (proj₂ x₃ , ∈-++⁺ˡ (∈-resp-≡ (proj₁ x₃) x₂))) f₁) (St.lemma3 f₁ (proj₂ (proj₁ (oracle x₁) sys)) f₁∉))
 
 
--- todo: prove
--- IdempotentState sys mm -> IdempotentState (St.run oracle x sys) mm
--- knowing that x doesnt write to anything commands in mm read/wrote ; do i have that evidence tho?
 preserves2 : {sys : System} {mm : Memory} (x : Cmd) -> IdempotentState cmdReads sys mm -> All (λ x₁ → Disjoint (cmdWrites x sys) (cmdReadWrites x₁ sys)) (map proj₁ mm) -> IdempotentState cmdReads (St.run oracle x sys) mm
 preserves2 x [] all₁ = []
 preserves2 {sys} {(x₅ , _) ∷ mm} x (Cons ic is) (px All.∷ all₁) = Cons (runPreserves x₅ x _ px ic) (preserves2 x is all₁)
