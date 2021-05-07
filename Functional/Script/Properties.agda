@@ -3,6 +3,7 @@ open import Functional.State as St using (F ; System ; Cmd ; run ; trace)
 
 module Functional.Script.Properties (oracle : F) where
 
+open import Functional.Script.HazardFree (oracle) using (HazardFree)
 open import Agda.Builtin.Equality
 open import Data.Empty using (⊥)
 open import Functional.Build using (Build)
@@ -26,6 +27,7 @@ open import Data.List.Relation.Binary.Permutation.Propositional using (_↭_ ; �
 open import Data.List.Relation.Binary.Permutation.Propositional.Properties using (∈-resp-↭)
 open import Data.Sum using (inj₁ ; inj₂)
 open import Relation.Nullary using (yes ; no)
+open import Data.List.Relation.Binary.Subset.Propositional using (_⊆_)
 --- ---
 
 h₅ : (s s₁ : System) (x : Cmd) -> All (λ f₁ → s f₁ ≡ s₁ f₁) (Creads s₁ x) -> proj₁ (oracle x) s ≡ proj₁ (oracle x) s₁
@@ -111,3 +113,74 @@ exec-f₁≡ s f₁ x xs ys zs ∀₁ ≡₀ all₁ dsj | no f₁∉  = trans �
         ≡₂ with exec-∷≡ f₁ (exec s ys) (run oracle x (exec s ys)) zs all₁ (St.lemma3 {exec s ys} f₁ (proj₂ (proj₁ (oracle x) (exec s ys))) f₁∉₁)
         ... | a = trans (cong-app (exec≡₄ {s} ys zs) f₁) (trans a (cong-app (exec≡₅ {s} x ys zs) f₁))
 -- prove exec s (xs ∷ x) f₁ ≡ exec s xs f₁ ≡ exec s (ys ++ zs) f₁ ≡ exec s (xs ++ x ∷ ys) f₁
+
+data DisjointBuild : System -> Build -> Set where
+  Null : {s : System} -> DisjointBuild s []
+  Cons : {s : System} -> (x : Cmd) -> Disjoint (proj₁ (trace oracle s x)) (proj₂ (trace oracle s x)) -> (b : Build) -> DisjointBuild (St.run oracle x s) b -> DisjointBuild s (x ∷ b)
+
+
+hf-⊥ : {sys : System} {ls : List String} (f₁ : String) (b : Build) -> f₁ ∈ ls -> f₁ ∈ writes sys b -> HazardFree sys b ls -> ⊥
+hf-⊥ {sys} f₁ (x ∷ b) f₁∈ls f₁∈writes (HazardFree.Cons _ .x .b dsj hf) with ∈-++⁻ (Cwrites sys x) f₁∈writes
+... | inj₁ ∈₁ = dsj (∈₁ , f₁∈ls)
+... | inj₂ ∈₂ = hf-⊥ f₁ b (∈-++⁺ʳ (Creads sys x ++ Cwrites sys x) f₁∈ls) ∈₂ hf
+
+
+{- prove exec is equivalent when run in two different systems if ∀ f → f ∉ buildWrites x sys₁ -> sys₁ f ≡ sys₂ f -}
+exec≡-systems : {sys₁ sys₂ : System} {ls : List String} (b : Build) -> DisjointBuild sys₁ b -> HazardFree sys₁ b ls -> (∀ f₁ → f₁ ∉ writes sys₁ b → sys₁ f₁ ≡ sys₂ f₁) -> ∀ f₁ → exec sys₁ b f₁ ≡ exec sys₂ b f₁
+exec≡-systems [] ds hf ∀₁ f₁ = ∀₁ f₁ λ ()
+exec≡-systems {sys₁} {sys₂} (x ∷ b) (Cons .x dsj .b ds) (HazardFree.Cons _ .x .b x₁ hf) ∀₁ = exec≡-systems b ds hf λ f₁ x₂ → g₁ f₁ x₂
+  where ⊥₁ : {f₂ : String} {ls₁ ls₂ : List String} -> f₂ ∈ ls₁ ++ ls₂ -> f₂ ∉ ls₁ -> f₂ ∉ ls₂ -> ⊥
+        ⊥₁ f₂∈ f₂∉₁ f₂∉₂ with ∈-++⁻ _ f₂∈
+        ... | inj₁ f₂∈₁ = f₂∉₁ f₂∈₁
+        ... | inj₂ f₂∈₂ = f₂∉₂ f₂∈₂
+        g₂ : (f₁ : String) -> f₁ ∈ map proj₁ (proj₁ (proj₁ (oracle x) sys₁)) -> f₁ ∉ writes sys₁ (x ∷ b)
+        g₂ f₁ f₁∈ x₂ with ∈-++⁻ (map proj₁ (proj₂ (proj₁ (oracle x) sys₁))) x₂
+        ... | inj₁ ∈₁ = dsj (f₁∈ , ∈₁)
+        ... | inj₂ ∈₂ = hf-⊥ f₁ b (∈-++⁺ˡ (∈-++⁺ˡ f₁∈)) ∈₂ hf
+        ≡₁ : proj₁ (oracle x) sys₁ ≡ proj₁ (oracle x) sys₂
+        ≡₁ = proj₂ (oracle x) sys₁ sys₂ λ f₁ x₁ → ∀₁ f₁ (g₂ f₁ x₁)
+        g₁ : (f₂ : String) -> f₂ ∉ writes (run oracle x sys₁) b -> run oracle x sys₁ f₂ ≡ run oracle x sys₂ f₂
+        g₁ f₂ f₂∉ with f₂ ∈? map proj₁ (proj₂ (proj₁ (oracle x) sys₁))
+        ... | yes f₂∈ = subst (λ x₁ → foldr St.extend sys₁ (proj₂ (proj₁ (oracle x) sys₁)) f₂ ≡ foldr St.extend sys₂ x₁ f₂) (cong proj₂ ≡₁) (St.lemma4 (proj₂ (proj₁ (oracle x) sys₁)) f₂ f₂∈)
+        ... | no f₂∉₁ = St.lemma2 {oracle} {sys₁} {sys₂} x f₂ ≡₁ (∀₁ f₂ λ x₂ → ⊥₁ x₂ f₂∉₁ f₂∉)
+
+{-
+read-write-hazard-occurred : {sys₁ sys₂ : System} (b b₂ : Build) -> b₂ ⊆ b -> (∀ f₁ → f₁ ∉ writes sys₁ b -> sys₁ f₁ ≡ sys₂ f₁) -> ∀ f₁ → f₁ ∉ writes sys₁ b → sys₁ f₁ ≡ exec sys₂ b₂ f₁
+read-write-hazard-occurred b [] b₂⊆b ∀₁ = ∀₁
+read-write-hazard-occurred b (x ∷ b₂) b₂⊆b ∀₁ f₁ f₁∉ = {!!}
+-}
+{- what happens when a hazard occurs?  
+
+ A READ WRITE hazard occurs when a read happens, then a later command writes to that file. 
+ So, in terms here b₂ contains a read/write hazard if ∃[f₁]∃[x]∃[x₂]∃[ls₁]∃[ls₂] b₂ ≡ ls₁ ++ [x] ++ ls₂ × f₁ ∈ reads (exec ls₁) x × x₂ ∈ ls₂ × f₁ ∈ writes x₂
+
+
+ How do we prove the reads are the same then? 
+
+ if we can prove the writes of b₂ are a subset of the writes of b ; aka b₂ doesn't write to something b wouldn't write to
+
+ case of (x ∷ b₂) we need to prove x does not write to anything x∈b₂ wouldn't write to.  this feels like a special case of 
+the reordering proof we already completed. 
+
+I feel like this isn't provable unless we make more assumptions and we might need to refine what we are proving 
+
+ok, we have a cmd whose inputs don't have the correct value because it is going to participate in a read/write hazard.
+
+becasue of this, we cannot prove the outputs/inputs of the cmd are the same as in the original build.  
+
+But, what do we need to be true? AT the very least we need the inputs of b to be unchanged. 
+
+So, the cmd cannot write to any file that is exclusively an input of b. which means speculative write read hazard cannot be in b₂
+
+
+
+-------------------------------------------
+write a version of rattle  exec function that after each thing checks to see was there a hazard
+have the result be either a system or a hazard.  either equivalent to script build or you get an error
+
+might be useful for thinking about what properties are true when you detect a hazard... 
+
+want to know that dynamic detection doesn't reject too many programs; also that dynamic detection detects all the failures. 
+
+
+-}

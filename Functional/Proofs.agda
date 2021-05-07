@@ -1,5 +1,5 @@
 
-open import Functional.State as St using (F ; System ; trace ; Cmd ; run ; extend ; inputs ; read)
+open import Functional.State as St using (F ; System ; trace ; Cmd ; run ; extend ; inputs ; read ; Memory)
 
 module Functional.Proofs (oracle : F) where
 
@@ -25,7 +25,7 @@ open import Functional.Forward.Exec (oracle) as Forward hiding (run)
 open import Functional.Forward.Properties (oracle) using (run≡ ; IdempotentState ; preserves ; getCmdIdempotent ; cmdReadWrites ; cmdWrites ; ∈-resp-≡ ; cmdReads)
 open import Functional.File using (FileName ; Files ; File ; FileContent)
 open import Functional.Rattle.Exec (oracle) as Rattle hiding (run)
-open import Functional.Rattle.Properties (oracle) using (MemoryProperty ; getProperty)
+open import Functional.Rattle.Properties (oracle) using (MemoryProperty ; getProperty ; soundness)
 open import Data.List.Relation.Binary.Permutation.Propositional using (_↭_ ; ↭-sym ; ↭-refl)
 open import Data.List.Relation.Binary.Permutation.Propositional.Properties using (∈-resp-↭ ; ↭-length ; drop-mid)
 open import Data.String using (String)
@@ -174,10 +174,6 @@ script-reordered {sys} b b₂ hfr@(HFR .b .b₂ ↭₁ x₁ x₂ x₃) with lemm
 ... | ∀₁ = subst₂ (λ x x₄ → ∀ f₁ → S.exec sys x f₁ ≡ S.exec sys x₄ f₁) (reverse-involutive b) (reverse-involutive b₂) ∀₁
 
 
-data DisjointBuild : System -> Build -> Set where
-  Null : {s : System} -> DisjointBuild s []
-  Cons : {s : System} -> (x : Cmd) -> Disjoint (proj₁ (trace oracle s x)) (proj₂ (trace oracle s x)) -> (b : Build) -> DisjointBuild (St.run oracle x s) b -> DisjointBuild s (x ∷ b)
-
 helper : {sys : System} (ls ls₁ : List Cmd) -> (x : Cmd) -> Disjoint (cmdWrites x sys) ls₁ -> concatMap (λ x₁ → cmdReadWrites x₁ sys) ls ⊆ ls₁ -> All (λ x₁ → Disjoint (cmdWrites x sys) (cmdReadWrites x₁ sys)) ls
 helper [] ls₁ x dsj ⊆₁ = All.[]
 helper {sys} (x₁ ∷ ls) ls₁ x dsj ⊆₁ = (λ x₂ → dsj ((proj₁ x₂) , ⊆₁ (∈-++⁺ˡ (proj₂ x₂)))) All.∷ (helper ls ls₁ x dsj λ x₂ → ⊆₁ (∈-++⁺ʳ (cmdReadWrites x₁ sys) x₂))
@@ -281,4 +277,9 @@ script-exec≡rattle-exec {sys} b ds f₁ = g₁ sys (sys , []) (λ f₂ → ref
 rattle-reordered : {sys : System} (b : Build) -> (b₂ : Build) -> DisjointBuild sys b -> DisjointBuild sys b₂ -> HazardFreeReordering sys b b₂ -> ∀ f₁ → proj₁ (Rattle.exec (sys , []) b) f₁ ≡ proj₁ (Rattle.exec (sys , []) b₂) f₁
 rattle-reordered b b₂ ds ds₂ hfr@(HFR .b .b₂ x x₁ x₂ x₃)
   = λ f₁ → trans (sym (script-exec≡rattle-exec b ds f₁)) (trans (script-reordered b b₂ hfr f₁) (script-exec≡rattle-exec b₂ ds₂ f₁))
+
+-- does rattle ever give the wrong answer?
+soundness2 : {sys sys₁ : System} {fi fi₁ : FileInfo} {b₁ : Build} (b : Build) -> DisjointBuild sys b -> execWError ((sys , []) , fi) b b₁ ≡ inj₂ ((sys₁ , _) , fi₁) -> ∀ f₁ → S.exec sys b f₁ ≡ sys₁ f₁
+soundness2 {sys} {sys₁} {fi} b dsj ≡₁ f₁ = trans (script-exec≡rattle-exec b dsj f₁) (cong-app (cong proj₁ (soundness b ≡₁)) f₁)
+
 
