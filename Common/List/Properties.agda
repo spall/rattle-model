@@ -68,6 +68,9 @@ l4 : ∀ (v : A) xs {ys} → xs ∷ʳ v ++ ys ≡ xs ++ v ∷ ys
 l4 v [] = refl
 l4 v (x ∷ xs) = cong (x ∷_) (l4 v xs)
 
+l11 : ∀ (v : A) xs ys → reverse xs ++ v ∷ ys ≡ reverse (v ∷ xs) ++ ys
+l11 v xs ys = trans (sym (l4 v (reverse xs))) (cong (_++ ys) (sym (unfold-reverse v xs)))
+
 l9 : ∀ (v : A) xs ys zs → xs ∷ʳ v ↭ ys ++ v ∷ zs -> xs ↭ ys ++ zs
 l9 v xs ys zs x∷ʳv↭ys++v∷zs = subst (λ x → x ↭ _) (++-identityʳ xs) (drop-mid xs ys x∷ʳv↭ys++v∷zs)
 

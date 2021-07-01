@@ -137,7 +137,7 @@ g {sys} {sys₁} x f₁ ≡₁ ≡₂ with f₁ ∈? proj₂ (trace oracle sys x
 -- we dont want to prove the writes are equivalent; they might not be the same order, we want to prove theyre the same sets. where order isnt important
 lemmaA1 : {sys : System} (b b₁ : Build) -> length b ≡ length b₁ -> HazardFreeReordering sys (reverse b) (reverse b₁) -> ∀ f₁ → S.exec sys (reverse b) f₁ ≡ S.exec sys (reverse b₁) f₁
 lemmaA1 {s} [] [] ≡₁ (HFR .[] .[] ↭₁ Null Null ¬swrh) = λ f₁ → refl
-lemmaA1 {s} (x ∷ b) b₁ ≡₁ hfr@(HFR _ _ ↭₁ hf₁ hf₂ ¬swrh) with ∈-∃++ (∈-resp-↭ ↭₁ (reverse⁺ x∈x∷b))
+lemmaA1 {s} (x ∷ b) b₁ ≡₁ hfr@(HFR _ _ ↭₁ hf₁ hf₂ _) with ∈-∃++ (∈-resp-↭ ↭₁ (reverse⁺ x∈x∷b))
   where x∈x∷b : x ∈ x ∷ b
         x∈x∷b = here refl
 ... | ls₁ , ls₂ , reverse-b₁≡ls₁++x∷ls₂ with subst₂ (λ x₁ x₂ → HazardFreeReordering s x₁ x₂) (unfold-reverse x b) reverse-b₁≡ls₁++x∷ls₂ hfr
@@ -236,7 +236,7 @@ script-exec≡forward-exec {ls} {sys} b dsb hf f₁ = g₁ sys (sys , []) (λ f�
         ... | ci = g₁ (St.run oracle x sys₁) (sys₂ , mm) (λ f₂ → trans (St.lemma2 {oracle} {sys₁} {sys₂} x f₂ (proj₂ (oracle x) sys₁ sys₂ λ f₃ _ → ∀≡₁ f₃) (∀≡₁ f₂))
                                                                         (ci all₁ f₂)) b (λ x₁ → ∈-++⁺ʳ _ (⊆₁ x₁)) is dsb hf
 
-forward-reordered : {sys : System} (b : Build) -> (b₂ : Build) -> DisjointBuild sys b -> DisjointBuild sys b₂ -> HazardFreeReordering sys b b₂ -> ∀ f₁ → proj₁ (Forward.exec (sys , []) b) f₁ ≡ proj₁ (Forward.exec (sys , []) b₂) f₁
+forward-reordered : {sys : System} (b : Build) -> (b₂ : Build) -> DisjointBuild sys b -> DisjointBuild sys b₂ -> HazardFreeReordering sys b b₂ -> ∀ f₁ → proj₁ (Forwabrd.exec (sys , []) b) f₁ ≡ proj₁ (Forward.exec (sys , []) b₂) f₁
 forward-reordered {sys} b b₂ ds ds₂ hfr@(HFR .b .b₂ _ hf₁ hf₂ _)
   = λ f₁ → trans (sym (script-exec≡forward-exec b ds hf₁ f₁)) (trans (script-reordered b b₂ hfr f₁) (script-exec≡forward-exec b₂ ds₂ hf₂ f₁))
 
@@ -278,8 +278,9 @@ rattle-reordered : {sys : System} (b : Build) -> (b₂ : Build) -> DisjointBuild
 rattle-reordered b b₂ ds ds₂ hfr@(HFR .b .b₂ x x₁ x₂ x₃)
   = λ f₁ → trans (sym (script-exec≡rattle-exec b ds f₁)) (trans (script-reordered b b₂ hfr f₁) (script-exec≡rattle-exec b₂ ds₂ f₁))
 
+{-
 -- does rattle ever give the wrong answer?
 soundness2 : {sys sys₁ : System} {fi fi₁ : FileInfo} {b₁ : Build} (b : Build) -> DisjointBuild sys b -> execWError ((sys , []) , fi) b b₁ ≡ inj₂ ((sys₁ , _) , fi₁) -> ∀ f₁ → S.exec sys b f₁ ≡ sys₁ f₁
-soundness2 {sys} {sys₁} {fi} b dsj ≡₁ f₁ = trans (script-exec≡rattle-exec b dsj f₁) (cong-app (cong proj₁ (soundness b ≡₁)) f₁)
-
+soundness2 {sys} {sys₁} {fi} b dsj ≡₁ f₁ = trans (script-exec≡rattle-exec b dsj f₁) (cong-app (cong proj₁ (soundness b ≡₁)) f₁)\
+-}
 

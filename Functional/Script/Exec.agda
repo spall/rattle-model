@@ -1,5 +1,5 @@
 
-open import Functional.State as St using (F ; run ; System ; Cmd ; trace)
+open import Functional.State as St using (F ; run ; System ; Cmd ; trace ; run-≡)
 
 module Functional.Script.Exec (oracle : F) where
 
@@ -83,6 +83,10 @@ h₁ {s} f₁ x w (x₁ ∷ xs) ys (x₂ ∷ ls₁) ls₂ f₁∈ dsj x₁∷xs+
         dsj₂ = λ x₃ → dsj (subst (λ x₄ → _ ∈ Cwrites (exec (run oracle x₄ s) xs) x) (sym x₁≡x₂) (proj₁ x₃)
                           , subst (λ x₄ → _ ∈ reads (run oracle x (exec (run oracle x₄ s) xs)) ys) (sym x₁≡x₂) (proj₂ x₃))
 ... | ls₃ , ls₄ , xs++x∷ys≡ls₃++w∷ls₄ , f₁∈₂ = x₂ ∷ ls₃ , ls₄ , cong₂ _∷_ x₁≡x₂ xs++x∷ys≡ls₃++w∷ls₄ , f₁∈₂
+
+exec-≡ : {sys sys₁ : System} (b : Build) -> (∀ f₁ → sys f₁ ≡ sys₁ f₁) -> (∀ f₁ → exec sys b f₁ ≡ exec sys₁ b f₁)
+exec-≡ [] ∀₁ f₁ = ∀₁ f₁
+exec-≡ (x ∷ b) ∀₁ = exec-≡ b λ f₁ → run-≡ {oracle} x ∀₁ f₁
 
 
 

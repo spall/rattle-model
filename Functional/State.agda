@@ -104,3 +104,8 @@ lemma5 [] ls₁ dsj = All.[]
 lemma5 (x ∷ ls) ls₁ dsj with x ∈? map proj₁ ls₁
 ... | yes x∈ = contradiction (x∈ , here refl) dsj
 ... | no x∉ = (lemma3 x ls₁ x∉) All.∷ (lemma5 ls ls₁ λ x₁ → dsj (proj₁ x₁ , there (proj₂ x₁)))
+
+run-≡ : {f : F} {sys sys₁ : System} (x : Cmd) -> (∀ f₁ → sys f₁ ≡ sys₁ f₁) -> (∀ f₁ → run f x sys f₁ ≡ run f x sys₁ f₁)
+run-≡ {f} {sys} {sys₁} x ∀₁ f₁ = lemma2 {f} {sys} {sys₁} x f₁ ≡₁ (∀₁ f₁)
+  where ≡₁ : proj₁ (f x) sys ≡ proj₁ (f x) sys₁
+        ≡₁ = proj₂ (f x) sys sys₁ λ f₂ x₁ → ∀₁ f₂

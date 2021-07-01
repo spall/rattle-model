@@ -1,5 +1,5 @@
 
-open import Functional.State using (F ; System ; Cmd ; run ; trace ; lemma5 ; lemma1 ; lemma1-sym)  
+open import Functional.State as St using (F ; System ; Cmd ; run ; trace ; lemma5 ; lemma1 ; lemma1-sym)  
 
 module Functional.Script.HazardFree.Properties (oracle : F) where
 
@@ -78,6 +78,25 @@ hf-∷⁻ {s} {s₁} {as} {bs} {cs} {ls} bs≡as (x ∷ b) (Cons _ .x .b dsj hf)
           hf₁ : HazardFree (run oracle x s₁) b (CmdReadWrites s₁ x ++ bs ++ ls)
           hf₁ with hf-∷⁻ {run oracle x s} {run oracle x s₁} {CmdReadWrites s x ++ as} {CmdReadWrites s₁ x ++ bs} {cs} {ls} (cong₂ _++_ ≡₂ bs≡as) b hf₁-sub (lemma1-sym {oracle} {s₁} {s} (reads (run oracle x s) b) x (++⁻ˡ (CmdReads s x) all₁) (++⁻ʳ (CmdReads s x) all₁))
           ... | hf₂ = subst (λ x₁ → HazardFree (run oracle x s₁) b x₁) (++-assoc (CmdReadWrites s₁ x) bs ls) hf₂
+
+hf-∷⁻-∀ : {s s₁ : System} {as bs cs ls : List String} {b : Build} -> bs ≡ as -> (∀ f₁ → s₁ f₁ ≡ s f₁) -> HazardFree s b (as ++ cs ++ ls) -> HazardFree s₁ b (bs ++ ls)
+hf-∷⁻-∀ bs≡as ∀₁ HazardFree.Null = HazardFree.Null
+hf-∷⁻-∀ {s} {s₁} {as} {bs} {cs} {ls} bs≡as ∀₁ (Cons _ x b dsj hf) = Cons (bs ++ ls) x b dsj₁ hf₁
+  where ≡₁ : proj₁ (oracle x) s₁ ≡ proj₁ (oracle x) s
+        ≡₁ = proj₂ (oracle x) s₁ s λ f₁ x₁ → ∀₁ f₁
+        ≡₂ : CmdReadWrites s₁ x ≡ CmdReadWrites s x
+        ≡₂ = cong₂ _++_ (cong (map proj₁ ∘ proj₁) ≡₁) (cong (map proj₁ ∘ proj₂) ≡₁)
+        ∈₁ : {v : String} -> v ∈ (bs ++ ls) -> v ∈ (as ++ cs ++ ls)
+        ∈₁ v∈bs++ls with ∈-++⁻ bs v∈bs++ls
+        ... | inj₁ v∈bs = ∈-++⁺ˡ (∈-resp-≡ _ bs as bs≡as v∈bs)
+        ... | inj₂ v∈ls = ∈-++⁺ʳ as (∈-++⁺ʳ cs v∈ls)
+        dsj₁ : Disjoint (CmdWrites s₁ x) (bs ++ ls)
+        dsj₁ = λ x₁ → dsj (∈-resp-≡ _ (CmdWrites s₁ x) (CmdWrites s x) (cong (map proj₁ ∘ proj₂) ≡₁) (proj₁ x₁)
+                           , ∈₁ (proj₂ x₁))
+        hf-sub : HazardFree (run oracle x s) b ((CmdReadWrites s x ++ as) ++ cs ++ ls)
+        hf-sub = subst (λ x₁ → HazardFree (run oracle x s) b x₁) (sym (++-assoc (CmdReadWrites s x) as (cs ++ ls))) hf
+        hf₁ : HazardFree (run oracle x s₁) b (CmdReadWrites s₁ x ++ bs ++ ls)
+        hf₁ = subst (λ x₁ → HazardFree (run oracle x s₁) b x₁) (++-assoc (CmdReadWrites s₁ x) bs ls) (hf-∷⁻-∀ (cong₂ _++_ ≡₂ bs≡as) (λ f₁ → St.lemma2 {oracle} x f₁ ≡₁ (∀₁ f₁)) hf-sub)
 
 
 {- if we remove x from the middle of the build, it is still hazardfree if we know that x doesn't write to anything read by b₁ -}
@@ -187,7 +206,10 @@ hfr-∷ʳ⁻ : {sys : System} (x : Cmd) (b b₁ b₂ : Build) -> HazardFreeReord
 hfr-∷ʳ⁻ {sys} x b b₁ b₂ hfr@(HFR b₃ b₄  b₃↭b₄ hf hf₁ ¬sp-wr-haz) = HFR b (b₁ ++ b₂) (l9 x b b₁ b₂ b₃↭b₄) (hf-∷ʳ⁻ sys x b hf) (hf-drop-mid x b₁ b₂ (hfr→disjoint sys x b b₁ b₂ hfr) hf₁) (swrh-∷ʳ⁻ sys x b b₁ b₂ ¬sp-wr-haz (hfr→disjoint sys x b b₁ b₂ hfr))
 
 
-
+{- can produce bottom if we know a write occurs twice in a hazard free build 
+hf-⊥ : (f₁ : FileName) -> f₁ ∈ ls -> f₁ ∈ writes sys b -> HazardFree sys b ls -> ⊥
+hf-⊥ f₁ f₁∈ls f₁∈writes hf = {!!}
+-}
 
 
 

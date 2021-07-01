@@ -47,3 +47,10 @@ data HazardFree : System -> Build -> List FileName -> Set where
 
 data HazardFreeReordering : System -> Build -> Build -> Set where
  HFR : {s : System} {ls : List FileName} (b₁ : Build) -> (b₂ : Build) -> b₁ ↭ b₂ -> HazardFree s b₁ ls -> HazardFree s b₂ ls -> ¬ SpeculativeWRHazard s b₁ b₂ -> HazardFreeReordering s b₁ b₂
+
+{-
+data Hazard : System -> Build -> Set where
+ ReadWrite  : {s : System} {b : Build} (x₁ x₂ : Cmd) -> (f₁ : FileName) -> f₁ ∈ cmdReads x₁ -> f₁ ∈ cmdWrites x₂ -> Hazard  -- two cmds exist in the build, and there is a file
+ WriteWrite : (x₁ x₂ : Cmd) -> (f₁ : FileName) -> f₁ ∈ cmdWrites x₁ -> f₁ ∈ cmdWrites x₂ -> Hazard
+ SpeculativeWriteRead : (x₁ x₂ : Cmd) -> (f₁ : FileName) -> f₁ ∈ cmdWrites x₁ -> f₁ ∈ cmdReads x₂ -> Hazard -}
+
