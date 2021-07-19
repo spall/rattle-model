@@ -2,6 +2,7 @@
 module Common.List.Properties where
 
 open import Agda.Builtin.Equality
+open import Agda.Builtin.Nat
 
 open import Data.List using (List ; _++_ ; [_] ; _∷ʳ_ ; [] ; _∷_ ; reverse)
 open import Data.List.Properties using (++-identityʳ ; unfold-reverse ; ++-assoc ; ∷-injective ; ∷-injectiveʳ)
@@ -31,11 +32,14 @@ l10 : ∀ (v : A) xs ys → (xs ++ ys) ∷ʳ v ≡ xs ++ ys ∷ʳ v
 l10 v [] ys = refl
 l10 v (x ∷ xs) ys = cong (x ∷_) (l10 v xs ys)
 
-
 _before_en_ : A -> A -> List A -> Set _ -- why the _ ?
 v before w en xs = ∃[ ys ](∃[ zs ](xs ≡ ys ++ [ v ] ++ zs × w ∈ zs))
 
 -- properties about _before_en_ --
+
+before-∷ : ∀ (v w x : A) xs → v before w en xs → v before w en (x ∷ xs)
+before-∷ v w x xs (as , bs , xs≡as++v∷bs , w∈bs)
+  = x ∷ as , bs , cong (x ∷_) xs≡as++v∷bs , w∈bs
 
 before-∷ʳ⁺ : ∀ (v w x : A) xs → v before w en xs -> v before w en (xs ∷ʳ x)
 before-∷ʳ⁺ v w x xs (as , bs , xs≡as++v∷bs , w∈bs)

@@ -236,7 +236,7 @@ script-exec≡forward-exec {ls} {sys} b dsb hf f₁ = g₁ sys (sys , []) (λ f�
         ... | ci = g₁ (St.run oracle x sys₁) (sys₂ , mm) (λ f₂ → trans (St.lemma2 {oracle} {sys₁} {sys₂} x f₂ (proj₂ (oracle x) sys₁ sys₂ λ f₃ _ → ∀≡₁ f₃) (∀≡₁ f₂))
                                                                         (ci all₁ f₂)) b (λ x₁ → ∈-++⁺ʳ _ (⊆₁ x₁)) is dsb hf
 
-forward-reordered : {sys : System} (b : Build) -> (b₂ : Build) -> DisjointBuild sys b -> DisjointBuild sys b₂ -> HazardFreeReordering sys b b₂ -> ∀ f₁ → proj₁ (Forwabrd.exec (sys , []) b) f₁ ≡ proj₁ (Forward.exec (sys , []) b₂) f₁
+forward-reordered : {sys : System} (b : Build) -> (b₂ : Build) -> DisjointBuild sys b -> DisjointBuild sys b₂ -> HazardFreeReordering sys b b₂ -> ∀ f₁ → proj₁ (Forward.exec (sys , []) b) f₁ ≡ proj₁ (Forward.exec (sys , []) b₂) f₁
 forward-reordered {sys} b b₂ ds ds₂ hfr@(HFR .b .b₂ _ hf₁ hf₂ _)
   = λ f₁ → trans (sym (script-exec≡forward-exec b ds hf₁ f₁)) (trans (script-reordered b b₂ hfr f₁) (script-exec≡forward-exec b₂ ds₂ hf₂ f₁))
 

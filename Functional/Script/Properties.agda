@@ -118,6 +118,11 @@ data DisjointBuild : System -> Build -> Set where
   Null : {s : System} -> DisjointBuild s []
   Cons : {s : System} -> (x : Cmd) -> Disjoint (proj₁ (trace oracle s x)) (proj₂ (trace oracle s x)) -> (b : Build) -> DisjointBuild (St.run oracle x s) b -> DisjointBuild s (x ∷ b)
 
+{-
+dsj-≡ : ∀ s₁ s₂ b₁ → (∀ f₁ → s₂ f₁ ≡ s₁ f₁) → DisjointBuild s₁ b₁ → DisjointBuild s₂ b₁
+dsj-≡ s₁ s₂ .[] ∀₁ Null = Null
+dsj-≡ s₁ s₂ .(x ∷ b) ∀₁ (Cons x dsj b dsb) = Cons x (λ x₂ → dsj ({!!} , {!!})) b (dsj-≡ {!!} {!!} b {!!} dsb)
+-}
 
 hf-⊥ : {sys : System} {ls : List String} (f₁ : String) (b : Build) -> f₁ ∈ ls -> f₁ ∈ writes sys b -> HazardFree sys b ls -> ⊥
 hf-⊥ {sys} f₁ (x ∷ b) f₁∈ls f₁∈writes (HazardFree.Cons _ .x .b dsj hf) with ∈-++⁻ (Cwrites sys x) f₁∈writes
