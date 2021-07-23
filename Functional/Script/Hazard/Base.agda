@@ -11,7 +11,7 @@ open import Data.List using (List ; [] ; _∷_ ; _∷ʳ_  ; _++_ ; map ; foldl ;
 open import Data.Product using (_×_ ; proj₁ ; proj₂ ; _,_ ; Σ-syntax) 
 open import Data.Product.Properties using (,-injectiveˡ ; ,-injectiveʳ)
 open import Functional.File using (FileName)
-open import Functional.Build using (Build ; NBuild)
+open import Functional.Build using (Build ; ΣNBuild ; Unique-> ; _¬≡-⊎->_)
 open import Data.List.Membership.Propositional using (_∈_)
 open import Data.List.Membership.Propositional.Properties using (∈-++⁺ˡ ; ∈-++⁺ʳ)
 open import Relation.Nullary using (yes ; no ; ¬_)
@@ -76,20 +76,13 @@ this definition is just so long and ugly.
 
 -}
 
--- Proof the pairs are not equal. 
-_¬≡-⊎->_ : (Cmd × ℕ) → (Cmd × ℕ) → Set
-(x , n₁) ¬≡-⊎-> (y , n₂) = ¬ x ≡ y ⊎ n₁ > n₂
-
-Unique : List (Cmd × ℕ) → Set
-Unique ls = AllPairs _¬≡-⊎->_ ls
-
 -- the files a command read and wrote ; and proof commands being added are "uniquely" labeled
 FileInfo : Set
 FileInfo = List ((Cmd × ℕ) × List FileName × List FileName)
 
 -- file info with evidence of uniqueness
 ΣFileInfo : Set
-ΣFileInfo = Σ[ ls ∈ FileInfo ](Unique (map proj₁ ls))
+ΣFileInfo = Σ[ ls ∈ FileInfo ](Unique-> (map proj₁ ls))
 
 All⇒All : ∀ x n → (ls : List (Cmd × ℕ)) → All (_¬≡-⊎->_ (x , n)) ls → All (_¬≡-⊎->_ (x , suc n)) ls
 All⇒All x n [] All.[] = All.[]
@@ -101,7 +94,7 @@ All⇒All x n (x₂ ∷ ls) (px All.∷ all) with x ≟ proj₁ x₂
 
 
 {- Gives us a new N and proof that the new pair will be unique -}
-getN : (x : Cmd) → (ls : FileInfo) → Unique (map proj₁ ls) → Σ[ n ∈ ℕ ](All (_¬≡-⊎->_ (x , n)) (map proj₁ ls))
+getN : (x : Cmd) → (ls : FileInfo) → Unique-> (map proj₁ ls) → Σ[ n ∈ ℕ ](All (_¬≡-⊎->_ (x , n)) (map proj₁ ls))
 getN x [] AllPairs.[] = zero , All.[]
 getN x (x₁ ∷ ls) (px ∷ p) with x ≟ proj₁ (proj₁ x₁)
 ... | yes x≡x₁ = suc (proj₂ (proj₁ x₁)) , inj₂ (Data.Nat.s≤s ≤-refl) All.∷ subst (λ x₂ → All (_¬≡-⊎->_ (x₂ , suc (proj₂ (proj₁ x₁)))) (map proj₁ ls))
@@ -114,8 +107,8 @@ save : Cmd → List FileName → List FileName → ΣFileInfo → ΣFileInfo
 save x rs ws (fi , u) with getN x fi u
 ... | n , p = ((x , n) , rs , ws) ∷ fi , p ∷ u
 
-cmdsRun : ΣFileInfo → List (Cmd × ℕ)
-cmdsRun = map proj₁ ∘ proj₁
+cmdsRun : FileInfo → List (Cmd × ℕ)
+cmdsRun = map proj₁
 
 filesRead : ΣFileInfo → List FileName
 filesRead = concatMap (proj₁ ∘ proj₂) ∘ proj₁
@@ -145,12 +138,11 @@ cmdWrote (x ∷ ls) p with ×-decidable _≟_ N._≟_ (proj₁ x) p
 ... | yes x≡p = proj₂ (proj₂ x)
 ... | no ¬x≡p = cmdWrote ls p
 
-{-
-∈-cmdWrote∷ʳ : ∀ v x x₁ ls → v ∈ cmdWrote ls x₁ → ¬ (proj₁ x) ≡ x₁ → v ∈ cmdWrote (x ∷ ls) x₁
-∈-cmdWrote∷ʳ v x x₁ ls v∈ ¬≡ with ×-decidable _≟_ N._≟_ (proj₁ x) x₁
+∈-cmdWrote∷ : ∀ v x x₁ ls → v ∈ cmdWrote ls x₁ → ¬ (proj₁ x) ≡ x₁ → v ∈ cmdWrote (x ∷ ls) x₁
+∈-cmdWrote∷ v x x₁ ls v∈ ¬≡ with ×-decidable _≟_ N._≟_ (proj₁ x) x₁
 ... | yes x≡x₁ = contradiction (≡×≡⇒≡ x≡x₁) ¬≡
 ... | no ¬x≡x₁ = v∈
--}
+
 {-
 cmdWrote-⊆ : ∀ x {xs} {ys} → xs ⊆ ys → cmdWrote xs x ⊆ cmdWrote ys x
 cmdWrote-⊆ x xs⊆ys = concat⁺ (map⁺ (proj₂ ∘ proj₂) (filter⁺′ ((x ≟_) ∘ proj₁) ((x ≟_) ∘ proj₁) (λ x₄ → x₄) xs⊆ys))
@@ -162,6 +154,10 @@ cmdRead (x ∷ ls) p with ×-decidable _≟_ N._≟_ (proj₁ x) p
 ... | yes x≡p = proj₁ (proj₂ x)
 ... | no ¬x≡p = cmdRead ls p
 
+∈-cmdRead∷ : ∀ v x x₁ ls → v ∈ cmdRead ls x₁ → ¬ (proj₁ x) ≡ x₁ → v ∈ cmdRead (x ∷ ls) x₁
+∈-cmdRead∷ v x x₁ ls v∈ ¬≡ with ×-decidable _≟_ N._≟_ (proj₁ x) x₁
+... | yes x≡x₁ = contradiction (≡×≡⇒≡ x≡x₁) ¬≡
+... | no ¬x≡x₁ = v∈
 {-
 ∈-cmdRead∷ˡ : ∀ v x ls → v ∈ proj₁ (proj₂ x) → v ∈ cmdRead (x ∷ ls) (proj₁ x)
 ∈-cmdRead∷ˡ v x ls v∈ with ×-decidable _≟_ N._≟_ (proj₁ x) (proj₁ x)
@@ -185,9 +181,13 @@ cmdReads s x = proj₁ (trace oracle s x)
   so if the reader is before the writer in ls, then the writer happened first
   
   The writer ran before the reader, but the write doesn't exist or the writer was after the reader in the original list. So 
+
+NBuild is also now reversed; so earlier commands are later in b.
+
+Write ran before read, but Writer should have run AFTER reader.  
 -}
-¬SpeculativeHazard : NBuild → ΣFileInfo → Set
-¬SpeculativeHazard b ls = ∀ x₁ x₂ → x₂ before x₁ en (cmdsRun ls) → ¬ x₁ before x₂ en b → Disjoint (cmdRead (proj₁ ls) x₂) (cmdWrote (proj₁ ls) x₁)
+¬SpeculativeHazard : ΣNBuild → ΣFileInfo → Set
+¬SpeculativeHazard (b , _)(ls , _) = ∀ x₁ x₂ → x₂ before x₁ en (cmdsRun ls) → x₂ ∈ b → ¬ x₂ before x₁ en b → Disjoint (cmdRead ls x₂) (cmdWrote ls x₁)
 
 {- we have a Speculative hazard if a required command read something a speculative command wrote to. 
  So we need to be able to determine: 
@@ -196,18 +196,18 @@ cmdReads s x = proj₁ (trace oracle s x)
 2. when a command is speculated
 -}
 
-data Hazard : System → Cmd → NBuild → ΣFileInfo → Set where
+data Hazard : System → Cmd → ΣNBuild → ΣFileInfo → Set where
   ReadWrite   : ∀ s x {b} ls v → v ∈ (cmdWrites s x) → v ∈ (filesRead ls) → Hazard s x b ls
   WriteWrite  : ∀ s x {b} ls v → v ∈ (cmdWrites s x) → v ∈ (filesWrote ls) → Hazard s x b ls
-  Speculative : ∀ s x b ls x₁ x₂ v → x₂ before x₁ en (cmdsRun (save x (cmdReads s x) (cmdWrites s x) ls)) → ¬ x₁ before x₂ en b → v ∈ cmdRead (proj₁ (save x (cmdReads s x) (cmdWrites s x) ls)) x₂ → v ∈ cmdWrote (proj₁ (save x (cmdReads s x) (cmdWrites s x) ls)) x₁ → Hazard s x b ls
+  Speculative : ∀ s x b ls x₁ x₂ v → x₂ before x₁ en (cmdsRun (proj₁ (save x (cmdReads s x) (cmdWrites s x) ls))) → x₂ ∈ (proj₁ b) → ¬ x₂ before x₁ en (proj₁ b) → v ∈ cmdRead (proj₁ (save x (cmdReads s x) (cmdWrites s x) ls)) x₂ → v ∈ cmdWrote (proj₁ (save x (cmdReads s x) (cmdWrites s x) ls)) x₁ → Hazard s x b ls
 
 
 hazardContradiction : ∀ s x b₂ ls → (hz : Hazard s x b₂ ls) → Disjoint (cmdWrites s x) (files ls) → ¬SpeculativeHazard b₂ (save x (cmdReads s x) (cmdWrites s x) ls) → ⊥
 hazardContradiction s x b ls hz dsj ¬sh with hz
 ... | ReadWrite .s .x .ls v v∈cw v∈rs = contradiction (v∈cw , ∈-++⁺ˡ v∈rs) dsj
 ... | WriteWrite .s .x .ls v v∈cw v∈ws = contradiction (v∈cw , ∈-++⁺ʳ (filesRead ls) v∈ws) dsj
-... | Speculative .s .x .b .ls x₁ x₂ v bf ¬bf v∈rs v∈ws = contradiction (v∈rs , v∈ws) (¬sh x₁ x₂ bf ¬bf)
+... | Speculative .s .x .b .ls x₁ x₂ v bf x₂∈b ¬bf v∈rs v∈ws = contradiction (v∈rs , v∈ws) (¬sh x₁ x₂ bf x₂∈b ¬bf)
 
-data HazardFree : System → Build → NBuild → ΣFileInfo → Set where
+data HazardFree : System → Build → ΣNBuild → ΣFileInfo → Set where
   [] : ∀ {s} {b} {ls} → HazardFree s [] b ls
   :: : ∀ s ls x b₁ b₂ → ¬SpeculativeHazard b₂ (save x (cmdReads s x) (cmdWrites s x) ls) → Disjoint (cmdWrites s x) (files ls) → HazardFree (run oracle x s) b₁ b₂ (save x (cmdReads s x) (cmdWrites s x) ls) → HazardFree s (x ∷ b₁) b₂ ls
