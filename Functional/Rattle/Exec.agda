@@ -1,4 +1,3 @@
-{-# OPTIONS --allow-unsolved-metas #-}
 open import Functional.State as St using (State ; F ; Cmd ; System ; trace ; Memory)
 
 module Functional.Rattle.Exec (oracle : F) where

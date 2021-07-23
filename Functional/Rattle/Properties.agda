@@ -52,35 +52,21 @@ getProperty x (Cons x₁ sys ∀₁ mp) x∈ with x ≟ x₁
 
 doRunSoundness : ∀ st ls st₁ ls₁ b x → doRunWError b (st , ls) x ≡ inj₂ (st₁ , ls₁) → doRun st x ≡ st₁
 doRunSoundness st ls st₁ ls₁ b x ≡₁ with checkHazard (proj₁ st) x b ls
-... | nothing = {!!}
-
-{-doRunSoundness {sys₀} {st} {st₁} {b} {rf} {fi} x {fi₁} ≡₁ with hasHazard st fi x rf
-... | nothing = cong proj₁ (inj₂-injective ≡₁) -}
+... | nothing = cong proj₁ (inj₂-injective ≡₁)
 
 runSoundness : ∀ st ls st₁ ls₁ b x → runWError b (st , ls) x ≡ inj₂ (st₁ , ls₁) → run st x ≡ st₁
 runSoundness st ls st₁ ls₁ b x ≡₁ with run? x st
 ... | false = cong proj₁ (inj₂-injective ≡₁)
-... | true = {!!}
-{-
-runSoundness {sys₀} {st} {st₁} {b} {rf} {fi} x {fi₁} ≡₁ with run? x st
-... | true =doRunSoundness {sys₀} {st} {st₁} {b} {rf} {fi} x {fi₁} {!!}
-... | false = cong proj₁ (inj₂-injective ≡₁)
--}
+... | true = doRunSoundness st ls st₁ ls₁ b x ≡₁
 
 soundness : ∀ st ls st₁ ls₁ b₁ b₂ → execWError (st , ls) b₁ b₂ ≡ inj₂ (st₁ , ls₁) → exec st b₁ ≡ st₁
 soundness st ls st₁ ls₁ [] b₂ ≡₁ = cong proj₁ (inj₂-injective ≡₁)
-soundness st ls st₁ ls₁ (x ∷ b₁) b₂ ≡₁ with runWError b₂ (st , ls) x
-... | inj₂ (st₂ , ls₂) with run? x st
-... | true = {!!}
-... | false = soundness st ls st₁ ls₁ b₁ b₂ {!!}
-
-{-
-soundness [] ≡₁ = cong proj₁ (inj₂-injective {!!})
-soundness {sys₀} {st} {st₁} {b₁} {b₂} {rf} {fi} {fi₁} (x ∷ b) ≡₁ with runWError st fi x rf | inspect (runWError st fi x) rf
-... | inj₂ (st₂ , fi₂) | [ ≡₂ ] with run? x st | runSoundness {sys₀} {st} {st₂} {b₁} {rf} {fi} x {fi₂} ≡₂
-... | false | st≡st₂ = soundness b (subst (λ x₁ → execWError (x₁ , fi₂) b rf ≡ _) (sym st≡st₂) {!!})
-... | true | ≡₃ = soundness b (subst (λ x₁ → execWError (x₁ , fi₂) b rf ≡ _) (sym ≡₃) {!!})
--}
+soundness st ls st₁ ls₁ (x ∷ b₁) b₂ ≡₁ with runWError b₂ (st , ls) x | inspect (runWError b₂ (st , ls)) x
+... | inj₂ (st₂ , ls₂) | [ ≡₂ ] with run? x st | runSoundness st ls st₂ ls₂ b₂ x ≡₂
+... | false | st≡st₂ with soundness st₂ ls₂ st₁ ls₁ b₁ b₂ ≡₁
+... | a = subst (λ x₁ → exec x₁ b₁ ≡ st₁) (sym st≡st₂) a
+soundness st ls st₁ ls₁ (x ∷ b₁) b₂ ≡₁ | inj₂ (st₂ , ls₂) | [ ≡₂ ] | true | ≡st₂ with soundness st₂ ls₂ st₁ ls₁ b₁ b₂ ≡₁
+... | a = subst (λ x₁ → exec x₁ b₁ ≡ st₁) (sym ≡st₂) a
 
 
 -- runWError ≡ run if runWError ≡ inj₂
