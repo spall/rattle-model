@@ -118,11 +118,16 @@ data DisjointBuild : System -> Build -> Set where
   Null : {s : System} -> DisjointBuild s []
   Cons : {s : System} -> (x : Cmd) -> Disjoint (proj₁ (trace oracle s x)) (proj₂ (trace oracle s x)) -> (b : Build) -> DisjointBuild (St.run oracle x s) b -> DisjointBuild s (x ∷ b)
 
-{-
+
 dsj-≡ : ∀ s₁ s₂ b₁ → (∀ f₁ → s₂ f₁ ≡ s₁ f₁) → DisjointBuild s₁ b₁ → DisjointBuild s₂ b₁
 dsj-≡ s₁ s₂ .[] ∀₁ Null = Null
-dsj-≡ s₁ s₂ .(x ∷ b) ∀₁ (Cons x dsj b dsb) = Cons x (λ x₂ → dsj ({!!} , {!!})) b (dsj-≡ {!!} {!!} b {!!} dsb)
--}
+dsj-≡ s₁ s₂ .(x ∷ b) ∀₁ (Cons x dsj b dsb) = Cons x (λ x₂ → dsj (v∈reads (proj₁ x₂) , v∈writes (proj₂ x₂))) b (dsj-≡ (run oracle x s₁) (run oracle x s₂) b (St.run-≡ {oracle} x ∀₁) dsb)
+  where ≡₁ : proj₁ (oracle x) s₂ ≡ proj₁ (oracle x) s₁
+        ≡₁ = proj₂ (oracle x) s₂ s₁ λ f₁ x₁ → ∀₁ f₁
+        v∈reads : ∀ {v} → v ∈ proj₁ (trace oracle s₂ x) → v ∈ proj₁ (trace oracle s₁ x)
+        v∈reads v∈ = subst (λ x₁ → _ ∈ x₁) (cong (map proj₁ ∘ proj₁) ≡₁) v∈
+        v∈writes : ∀ {v} → v ∈ proj₂ (trace oracle s₂ x) → v ∈ proj₂ (trace oracle s₁ x)
+        v∈writes v∈ = subst (λ x₁ → _ ∈ x₁) (cong (map proj₁ ∘ proj₂) ≡₁) v∈
 
 hf-⊥ : {sys : System} {ls : List String} (f₁ : String) (b : Build) -> f₁ ∈ ls -> f₁ ∈ writes sys b -> HazardFree sys b ls -> ⊥
 hf-⊥ {sys} f₁ (x ∷ b) f₁∈ls f₁∈writes (HazardFree.Cons _ .x .b dsj hf) with ∈-++⁻ (Cwrites sys x) f₁∈writes

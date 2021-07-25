@@ -13,6 +13,7 @@ open import Data.Bool using (true ; false ; if_then_else_)
 
 open import Data.List.Relation.Binary.Disjoint.Propositional using (Disjoint)
 open import Data.Product using (proj₁ ; proj₂ ; _,_ ; _×_ ; ∃-syntax)
+open import Data.Product.Properties using (,-injectiveʳ ; ,-injectiveˡ)
 open import Data.List.Relation.Unary.All using (All ; lookup)
 open import Data.List using (List ; map ; _++_ ; foldr ; _∷_ ; [] ; concatMap ; reverse ; _∷ʳ_)
 open import Data.List.Properties using (∷-injective ; unfold-reverse)
@@ -31,7 +32,7 @@ open import Data.Sum using (inj₂ ; from-inj₂ ; inj₁ )
 open import Data.Sum.Properties using (inj₂-injective)
 open import Functional.Script.Exec (oracle) as Script hiding (exec)
 open import Functional.Script.HazardFree.Properties (oracle) using (hf-∷⁻-∀)
-open import Functional.Script.Properties (oracle) using (DisjointBuild ; Cons)
+open import Functional.Script.Properties (oracle) using (DisjointBuild ; Cons ; dsj-≡)
 open import Functional.Script.Hazard (oracle) using (Hazard ; HazardFree ; FileInfo ; ReadWrite ; WriteWrite ; Speculative ; :: ; cmdWrites ; filesRead ; files ; cmdReads ; ¬SpeculativeHazard ; save ; getN ; hazardContradiction)
 -- open import Functional.Script.Hazard.Properties (oracle) using (hf-≡)
 open import Data.Empty using (⊥ ; ⊥-elim)
@@ -48,6 +49,27 @@ getProperty x (Cons x₁ sys ∀₁ mp) x∈ with x ≟ x₁
 ... | yes x≡x₁ = sys , cong (λ x₂ → map (λ f₁ → f₁ , foldr extend sys (proj₂ (proj₁ (oracle x₂) sys)) f₁) (cmdReadWrites x₂ sys)) (sym x≡x₁) , λ f₁ x₂ → subst (λ x₃ → sys f₁ ≡ St.run oracle x₃ sys f₁) (sym x≡x₁) (∀₁ f₁ (subst (λ x₃ → f₁ ∈ map proj₁ (proj₁ (proj₁ (oracle x₃) sys))) x≡x₁ x₂))
 ... | no ¬x≡x₁ = getProperty x mp (tail ¬x≡x₁ x∈)
 
+lemma1 : ∀ (s : System) {s₁} {x} ls ls₁ → All (λ (f₁ , v₁) → s f₁ ≡ v₁) ls → ls ≡ map (λ f₁ → f₁ , (St.run oracle x s₁) f₁) ls₁ → All (λ f₁ → s f₁ ≡ St.run oracle x s₁ f₁) ls₁
+lemma1 s [] [] all₁ ≡₁ = All.[]
+lemma1 s (x₁ ∷ ls) (x ∷ ls₁) (px All.∷ all₁) ≡₁ with ∷-injective ≡₁
+... | x₁≡x , ≡₂ = (trans (subst (λ x₂ → s x₂ ≡ proj₂ x₁) (,-injectiveˡ x₁≡x) px) (,-injectiveʳ x₁≡x)) All.∷ (lemma1 s ls ls₁ all₁ ≡₂)
+
+{- Want to prove that system will be the same whether or not we run the command; -}
+{- If a command's inputs and outputs are unchanged from when it was last run,
+ then running it will have no effect. -}
+noEffect : ∀ {s} {mm} x → MemoryProperty mm → (x∈ : x ∈ map proj₁ mm) → All (λ (f₁ , v₁) → s f₁ ≡ v₁) (get x mm x∈) → ∀ f₁ → s f₁ ≡ St.run oracle x s f₁
+noEffect {s} {mm} x mp x∈ all₁ f₁ with getProperty x mp x∈
+... | s₁ , get≡ , ∀₁ with f₁ ∈? cmdWrites s x
+... | no f₁∉ = St.lemma3 f₁ (proj₂ (proj₁ (oracle x) s)) f₁∉
+{- If we write to it we know we don't read from it.  
+   Need to prove the result of running x is the same in s and s₁
+-}
+... | yes f₁∈ with lemma1 s (get x mm x∈) (cmdReadWrites x s₁) all₁ get≡
+... | all₂ with proj₂ (oracle x) s₁ s λ f₂ x₁ → trans (∀₁ f₂ x₁) (sym (lookup all₂ (∈-++⁺ˡ x₁)))
+... | ≡results with subst (λ x₁ → f₁ ∈ x₁) (sym (cong (map proj₁ ∘ proj₂) ≡results)) f₁∈
+... | f₁∈x-s₁ = trans (lookup all₂ (∈-++⁺ʳ (cmdReads s₁ x) f₁∈x-s₁))
+                      (subst (λ x₁ → foldr extend s₁ (proj₂ (proj₁ (oracle x) s₁)) f₁ ≡ foldr extend s x₁ f₁) (cong proj₂ ≡results)
+                        (St.lemma4 (proj₂ (proj₁ (oracle x) s₁)) f₁ f₁∈x-s₁))
 
 
 doRunSoundness : ∀ st ls st₁ ls₁ b x → doRunWError b (st , ls) x ≡ inj₂ (st₁ , ls₁) → doRun st x ≡ st₁
@@ -84,9 +106,10 @@ completeness st@(s , mm) ls (x ∷ b₁) b₂ (Cons .x ds .b₁ dsb) (:: .s .ls 
 ... | nothing with checkHazard s x b₂ ls
 ... | nothing = completeness (St.run oracle x s , St.save x ((cmdReads s x) ++ (cmdWrites s x)) (St.run oracle x s) mm) (save x (cmdReads s x) (cmdWrites s x) ls) b₁ b₂ dsb hf (MemoryProperty.Cons x s (λ f₁ x₂ → St.lemma3 f₁ (proj₂ (proj₁ (oracle x) s)) λ x₃ → ds (x₂ , x₃)) mp)
 ... | just hz = ⊥-elim (hazardContradiction s x b₂ ls hz dsj ¬sh)
-completeness st@(s , mm) ls (x ∷ b₁) b₂ (Cons .x x₁ .b₁ dsb) (:: .s .ls .x .b₁ .b₂ ¬sh dsj hf) mp | yes x∈ | just all₁ with getProperty x mp x∈
-... | s₁ , get≡ , ∀₁ = completeness st ls b₁ b₂ {!!} {!!} mp
-        -- (hf-≡ [] (St.run oracle x s) s {!!} hf)
+completeness st@(s , mm) ls (x ∷ b₁) b₂ (Cons .x x₁ .b₁ dsb) (:: .s .ls .x .b₁ .b₂ ¬sh dsj hf) mp | yes x∈ | just all₁ with noEffect x mp x∈ all₁
+... | ∀₁ = completeness st ls b₁ b₂ (dsj-≡ (St.run oracle x s) s b₁ ∀₁ dsb) {!!} mp
+
+
 completeness st@(s , mm) ls (x ∷ b₁) b₂ (Cons .x ds .b₁ dsb) (:: .s .ls .x .b₁ .b₂ ¬sh dsj hf) mp | no x∉ with checkHazard s x b₂ ls
 ... | nothing = completeness (St.run oracle x s , St.save x ((cmdReads s x) ++ (cmdWrites s x)) (St.run oracle x s) mm) (save x (cmdReads s x) (cmdWrites s x) ls) b₁ b₂ dsb hf (MemoryProperty.Cons x s (λ f₁ x₂ → St.lemma3 f₁ (proj₂ (proj₁ (oracle x) s)) λ x₃ → ds (x₂ , x₃)) mp)
 ... | just hz = ⊥-elim (hazardContradiction s x b₂ ls hz dsj ¬sh)
