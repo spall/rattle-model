@@ -32,6 +32,7 @@ open import Data.List.Relation.Binary.Equality.DecPropositional (_≟_) using (_
 open import Relation.Binary.PropositionalEquality using (subst ; cong ; sym ; trans)
 open import Data.Empty using (⊥)
 open import Data.List.Relation.Unary.AllPairs using (AllPairs ; _∷_)
+open import Data.List.Relation.Unary.Unique.Propositional using (Unique)
 
 
 {- Hazards:
@@ -78,11 +79,7 @@ this definition is just so long and ugly.
 
 -- the files a command read and wrote ; and proof commands being added are "uniquely" labeled
 FileInfo : Set
-FileInfo = List ((Cmd × ℕ) × List FileName × List FileName)
-
--- file info with evidence of uniqueness
-ΣFileInfo : Set
-ΣFileInfo = Σ[ ls ∈ FileInfo ](Unique-> (map proj₁ ls))
+FileInfo = List (Cmd × List FileName × List FileName)
 
 All⇒All : ∀ x n → (ls : List (Cmd × ℕ)) → All (_¬≡-⊎->_ (x , n)) ls → All (_¬≡-⊎->_ (x , suc n)) ls
 All⇒All x n [] All.[] = All.[]
@@ -92,55 +89,43 @@ All⇒All x n (x₂ ∷ ls) (px All.∷ all) with x ≟ proj₁ x₂
 ... | inj₁ ¬x≡x₂ = contradiction x≡x₂ ¬x≡x₂
 ... | inj₂ n>sx₂ = inj₂ (≤-step n>sx₂) All.∷ All⇒All x n ls all
 
+save : Cmd → List FileName → List FileName → FileInfo → FileInfo
+save x rs ws fi = (x , rs , ws) ∷ fi
 
-{- Gives us a new N and proof that the new pair will be unique -}
-getN : (x : Cmd) → (ls : FileInfo) → Unique-> (map proj₁ ls) → Σ[ n ∈ ℕ ](All (_¬≡-⊎->_ (x , n)) (map proj₁ ls))
-getN x [] AllPairs.[] = zero , All.[]
-getN x (x₁ ∷ ls) (px ∷ p) with x ≟ proj₁ (proj₁ x₁)
-... | yes x≡x₁ = suc (proj₂ (proj₁ x₁)) , inj₂ (Data.Nat.s≤s ≤-refl) All.∷ subst (λ x₂ → All (_¬≡-⊎->_ (x₂ , suc (proj₂ (proj₁ x₁)))) (map proj₁ ls))
-                                                                                 (sym x≡x₁)
-                                                                                 (All⇒All (proj₁ (proj₁ x₁)) (proj₂ (proj₁ x₁)) (map proj₁ ls) px)
-... | no ¬x≡x₁ with getN x ls p
-... | n , p₁ = n , inj₁ ¬x≡x₁ All.∷ p₁
-
-save : Cmd → List FileName → List FileName → ΣFileInfo → ΣFileInfo
-save x rs ws (fi , u) with getN x fi u
-... | n , p = ((x , n) , rs , ws) ∷ fi , p ∷ u
-
-cmdsRun : FileInfo → List (Cmd × ℕ)
+cmdsRun : FileInfo → List Cmd
 cmdsRun = map proj₁
 
-filesRead : ΣFileInfo → List FileName
-filesRead = concatMap (proj₁ ∘ proj₂) ∘ proj₁
+filesRead : FileInfo → List FileName
+filesRead = concatMap (proj₁ ∘ proj₂) 
 
 {-
 filesRead-⊆ : ∀ {xs} {ys} → xs ⊆ ys → filesRead xs ⊆ filesRead ys
 filesRead-⊆ xs⊆ys = concat⁺ (map⁺ (proj₁ ∘ proj₂) xs⊆ys) 
 -}
 
-filesWrote : ΣFileInfo → List FileName
-filesWrote = concatMap (proj₂ ∘ proj₂) ∘ proj₁
+filesWrote : FileInfo → List FileName
+filesWrote = concatMap (proj₂ ∘ proj₂)
 
 {-
 filesWrote-⊆ : ∀ {xs} {ys} → xs ⊆ ys → filesWrote xs ⊆ filesWrote ys
 filesWrote-⊆ xs⊆ys = concat⁺ (map⁺ (proj₂ ∘ proj₂) xs⊆ys)
 -}
-files : ΣFileInfo → List FileName
+files : FileInfo → List FileName
 files ls = (filesRead ls) ++ (filesWrote ls)
 
 {-
 files-⊆ : ∀ {xs} {ys} → xs ⊆ ys → files xs ⊆ files ys
 files-⊆ xs⊆ys = ++⁺ (filesRead-⊆ xs⊆ys) (filesWrote-⊆ xs⊆ys)
 -}
-cmdWrote : FileInfo → (Cmd × ℕ) → List FileName
+cmdWrote : FileInfo → Cmd → List FileName
 cmdWrote [] p = []
-cmdWrote (x ∷ ls) p with ×-decidable _≟_ N._≟_ (proj₁ x) p
+cmdWrote (x ∷ ls) p with (proj₁ x) ≟ p
 ... | yes x≡p = proj₂ (proj₂ x)
 ... | no ¬x≡p = cmdWrote ls p
 
 ∈-cmdWrote∷ : ∀ v x x₁ ls → v ∈ cmdWrote ls x₁ → ¬ (proj₁ x) ≡ x₁ → v ∈ cmdWrote (x ∷ ls) x₁
-∈-cmdWrote∷ v x x₁ ls v∈ ¬≡ with ×-decidable _≟_ N._≟_ (proj₁ x) x₁
-... | yes x≡x₁ = contradiction (≡×≡⇒≡ x≡x₁) ¬≡
+∈-cmdWrote∷ v x x₁ ls v∈ ¬≡ with (proj₁ x) ≟ x₁
+... | yes x≡x₁ = contradiction x≡x₁ ¬≡
 ... | no ¬x≡x₁ = v∈
 
 {-
@@ -148,15 +133,15 @@ cmdWrote-⊆ : ∀ x {xs} {ys} → xs ⊆ ys → cmdWrote xs x ⊆ cmdWrote ys x
 cmdWrote-⊆ x xs⊆ys = concat⁺ (map⁺ (proj₂ ∘ proj₂) (filter⁺′ ((x ≟_) ∘ proj₁) ((x ≟_) ∘ proj₁) (λ x₄ → x₄) xs⊆ys))
 -}
 
-cmdRead : FileInfo → (Cmd × ℕ) → List FileName
+cmdRead : FileInfo → Cmd → List FileName
 cmdRead [] p = []
-cmdRead (x ∷ ls) p with ×-decidable _≟_ N._≟_ (proj₁ x) p
+cmdRead (x ∷ ls) p with (proj₁ x) ≟ p
 ... | yes x≡p = proj₁ (proj₂ x)
 ... | no ¬x≡p = cmdRead ls p
 
 ∈-cmdRead∷ : ∀ v x x₁ ls → v ∈ cmdRead ls x₁ → ¬ (proj₁ x) ≡ x₁ → v ∈ cmdRead (x ∷ ls) x₁
-∈-cmdRead∷ v x x₁ ls v∈ ¬≡ with ×-decidable _≟_ N._≟_ (proj₁ x) x₁
-... | yes x≡x₁ = contradiction (≡×≡⇒≡ x≡x₁) ¬≡
+∈-cmdRead∷ v x x₁ ls v∈ ¬≡ with (proj₁ x) ≟ x₁
+... | yes x≡x₁ = contradiction x≡x₁ ¬≡
 ... | no ¬x≡x₁ = v∈
 {-
 ∈-cmdRead∷ˡ : ∀ v x ls → v ∈ proj₁ (proj₂ x) → v ∈ cmdRead (x ∷ ls) (proj₁ x)
@@ -182,12 +167,29 @@ cmdReads s x = proj₁ (trace oracle s x)
   
   The writer ran before the reader, but the write doesn't exist or the writer was after the reader in the original list. So 
 
-NBuild is also now reversed; so earlier commands are later in b.
 
 Write ran before read, but Writer should have run AFTER reader.  
 -}
-¬SpeculativeHazard : ΣNBuild → ΣFileInfo → Set
-¬SpeculativeHazard (b , _)(ls , _) = ∀ x₁ x₂ → x₂ before x₁ en (cmdsRun ls) → x₂ ∈ b → ¬ x₂ before x₁ en b → Disjoint (cmdRead ls x₂) (cmdWrote ls x₁)
+¬SpeculativeHazard : Build → FileInfo → Set
+¬SpeculativeHazard b ls = ∀ x₁ x₂ → x₂ before x₁ en (cmdsRun ls) → x₂ ∈ b → ¬ x₁ before x₂ en b → Disjoint (cmdRead ls x₂) (cmdWrote ls x₁)
+
+{- if ; reader is after the writer (in the run)
+
+   but the reader is before the writer in the real build; then the reads/writes must be disjoint. 
+
+   reader is before the writer; or the writer is not in the build.
+
+ -- 
+  
+(A , 3) (C , 0) (A , 2) (B , 0) (A , 1)  (D, 0) (A , 0)   
+
+what if we end up not running (A , 1)
+
+
+
+
+
+-}
 
 {- we have a Speculative hazard if a required command read something a speculative command wrote to. 
  So we need to be able to determine: 
@@ -196,10 +198,10 @@ Write ran before read, but Writer should have run AFTER reader.
 2. when a command is speculated
 -}
 
-data Hazard : System → Cmd → ΣNBuild → ΣFileInfo → Set where
+data Hazard : System → Cmd → Build → FileInfo → Set where
   ReadWrite   : ∀ s x {b} ls v → v ∈ (cmdWrites s x) → v ∈ (filesRead ls) → Hazard s x b ls
   WriteWrite  : ∀ s x {b} ls v → v ∈ (cmdWrites s x) → v ∈ (filesWrote ls) → Hazard s x b ls
-  Speculative : ∀ s x b ls x₁ x₂ v → x₂ before x₁ en (cmdsRun (proj₁ (save x (cmdReads s x) (cmdWrites s x) ls))) → x₂ ∈ (proj₁ b) → ¬ x₂ before x₁ en (proj₁ b) → v ∈ cmdRead (proj₁ (save x (cmdReads s x) (cmdWrites s x) ls)) x₂ → v ∈ cmdWrote (proj₁ (save x (cmdReads s x) (cmdWrites s x) ls)) x₁ → Hazard s x b ls
+  Speculative : ∀ s x b ls x₁ x₂ v → x₂ before x₁ en (cmdsRun (save x (cmdReads s x) (cmdWrites s x) ls)) → x₂ ∈ b → ¬ x₁ before x₂ en b → v ∈ cmdRead (save x (cmdReads s x) (cmdWrites s x) ls) x₂ → v ∈ cmdWrote (save x (cmdReads s x) (cmdWrites s x) ls) x₁ → Hazard s x b ls
 
 
 hazardContradiction : ∀ s x b₂ ls → (hz : Hazard s x b₂ ls) → Disjoint (cmdWrites s x) (files ls) → ¬SpeculativeHazard b₂ (save x (cmdReads s x) (cmdWrites s x) ls) → ⊥
@@ -208,6 +210,6 @@ hazardContradiction s x b ls hz dsj ¬sh with hz
 ... | WriteWrite .s .x .ls v v∈cw v∈ws = contradiction (v∈cw , ∈-++⁺ʳ (filesRead ls) v∈ws) dsj
 ... | Speculative .s .x .b .ls x₁ x₂ v bf x₂∈b ¬bf v∈rs v∈ws = contradiction (v∈rs , v∈ws) (¬sh x₁ x₂ bf x₂∈b ¬bf)
 
-data HazardFree : System → Build → ΣNBuild → ΣFileInfo → Set where
+data HazardFree : System → Build → Build → FileInfo → Set where
   [] : ∀ {s} {b} {ls} → HazardFree s [] b ls
   :: : ∀ s ls x b₁ b₂ → ¬SpeculativeHazard b₂ (save x (cmdReads s x) (cmdWrites s x) ls) → Disjoint (cmdWrites s x) (files ls) → HazardFree (run oracle x s) b₁ b₂ (save x (cmdReads s x) (cmdWrites s x) ls) → HazardFree s (x ∷ b₁) b₂ ls
