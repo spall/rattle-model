@@ -7,7 +7,8 @@ open import Agda.Builtin.Equality
 open import Agda.Builtin.Nat renaming (Nat to ℕ)
 open import Data.Nat.Properties as N using (1+n≢n ; ≤-refl ; ≤-step)
 open import Data.Nat using (_>_)
-open import Data.List using (List ; [] ; _∷_ ; _∷ʳ_  ; _++_ ; map ; foldl ; filter ; concatMap ; length)
+open import Data.List using (List ; [] ; _∷_ ; _∷ʳ_  ; _++_ ; map ; foldl ; filter ; concatMap ; length ; concat)
+open import Data.List.Properties using (concat-++ ; map-++-commute)
 open import Data.Product using (_×_ ; proj₁ ; proj₂ ; _,_ ; Σ-syntax) 
 open import Data.Product.Properties using (,-injectiveˡ ; ,-injectiveʳ)
 open import Functional.File using (FileName)
@@ -21,7 +22,7 @@ open import Common.List.Properties using (_before_en_)
 open import Function using (_∘_)
 open import Data.String.Properties using (_≟_)
 open import Data.List.Relation.Unary.Any using (tail)
-open import Data.List.Relation.Unary.All using (All)
+open import Data.List.Relation.Unary.All using (All ; lookup)
 open import Data.List.Relation.Binary.Subset.Propositional using (_⊆_)
 open import Data.List.Relation.Binary.Subset.Propositional.Properties using (concat⁺ ; map⁺ ; filter-⊆ ; filter⁺′ ; ++⁺)
 open import Data.List.Relation.Unary.Any using (there ; here)
@@ -96,42 +97,78 @@ cmdsRun : FileInfo → List Cmd
 cmdsRun = map proj₁
 
 filesRead : FileInfo → List FileName
-filesRead = concatMap (proj₁ ∘ proj₂) 
+filesRead = concatMap (proj₁ ∘ proj₂)
 
-{-
-filesRead-⊆ : ∀ {xs} {ys} → xs ⊆ ys → filesRead xs ⊆ filesRead ys
-filesRead-⊆ xs⊆ys = concat⁺ (map⁺ (proj₁ ∘ proj₂) xs⊆ys) 
--}
+∈-concatMap-++ : ∀ {v : FileName} f (xs : FileInfo) ys zs → v ∈ concatMap f (xs ++ zs) → v ∈ concatMap f (xs ++ ys ++ zs)
+∈-concatMap-++ f xs ys zs v∈ with ∈-++⁻ (concat (map f xs)) (subst (λ x → _ ∈ x) ≡₁ v∈)
+  where ≡₁ : concatMap f (xs ++ zs) ≡ concat (map f xs) ++ concat (map f zs)
+        ≡₁ = trans (cong concat (map-++-commute f xs zs)) (sym (concat-++ (map f xs) (map f zs)))
+... | inj₁ v∈xs = subst (λ x → _ ∈ x) ≡₁ (∈-++⁺ˡ v∈xs)
+  where ≡₁ : concat (map f xs) ++ concat (map f (ys ++ zs)) ≡ concat (map f (xs ++ ys ++ zs))
+        ≡₁ = trans (concat-++ (map f xs) (map f (ys ++ zs))) (cong concat (sym (map-++-commute f xs (ys ++ zs))))
+... | inj₂ v∈ys = subst (λ x → _ ∈ x) ≡₁ (∈-++⁺ʳ (concat (map f xs)) (∈-++⁺ʳ (concat (map f ys)) v∈ys))
+  where ≡₁ : concat (map f xs) ++ concat (map f ys) ++ concat (map f zs) ≡ concat (map f (xs ++ ys ++ zs))
+        ≡₁ = trans (cong (concat (map f xs) ++_) (concat-++ (map f ys) (map f zs)))
+                   (trans (concat-++ (map f xs) (map f ys ++ map f zs))
+                          (cong concat (trans (cong (map f xs ++_) (sym (map-++-commute f ys zs)))
+                                       (sym (map-++-commute f xs (ys ++ zs))))))
+
+
+∈-filesRead-++ : ∀ {v} xs ys zs → v ∈ filesRead (xs ++ zs) → v ∈ filesRead (xs ++ ys ++ zs)
+∈-filesRead-++ = ∈-concatMap-++ (proj₁ ∘ proj₂)
 
 filesWrote : FileInfo → List FileName
 filesWrote = concatMap (proj₂ ∘ proj₂)
 
-{-
-filesWrote-⊆ : ∀ {xs} {ys} → xs ⊆ ys → filesWrote xs ⊆ filesWrote ys
-filesWrote-⊆ xs⊆ys = concat⁺ (map⁺ (proj₂ ∘ proj₂) xs⊆ys)
--}
+∈-filesWrote-++ : ∀ {v} xs ys zs → v ∈ filesWrote (xs ++ zs) → v ∈ filesWrote (xs ++ ys ++ zs)
+∈-filesWrote-++ = ∈-concatMap-++ (proj₂ ∘ proj₂)
+
 files : FileInfo → List FileName
 files ls = (filesRead ls) ++ (filesWrote ls)
 
-{-
-files-⊆ : ∀ {xs} {ys} → xs ⊆ ys → files xs ⊆ files ys
-files-⊆ xs⊆ys = ++⁺ (filesRead-⊆ xs⊆ys) (filesWrote-⊆ xs⊆ys)
--}
+∈-files-++ : ∀ {v} xs ys zs → v ∈ files (xs ++ zs) → v ∈ files (xs ++ ys ++ zs)
+∈-files-++ xs ys zs v∈files with ∈-++⁻ (filesRead (xs ++ zs)) v∈files
+... | inj₁ v∈reads = ∈-++⁺ˡ (∈-filesRead-++ xs ys zs v∈reads)
+... | inj₂ v∈writes = ∈-++⁺ʳ (filesRead (xs ++ ys ++ zs)) (∈-filesWrote-++ xs ys zs v∈writes)
+
 cmdWrote : FileInfo → Cmd → List FileName
 cmdWrote [] p = []
 cmdWrote (x ∷ ls) p with (proj₁ x) ≟ p
 ... | yes x≡p = proj₂ (proj₂ x)
 ... | no ¬x≡p = cmdWrote ls p
 
-∈-cmdWrote∷ : ∀ v x x₁ ls → v ∈ cmdWrote ls x₁ → ¬ (proj₁ x) ≡ x₁ → v ∈ cmdWrote (x ∷ ls) x₁
-∈-cmdWrote∷ v x x₁ ls v∈ ¬≡ with (proj₁ x) ≟ x₁
+
+cmdWrote∷-≡ : ∀ x ls → cmdWrote (x ∷ ls) (proj₁ x) ≡ proj₂ (proj₂ x)
+cmdWrote∷-≡ x ls with (proj₁ x) ≟ (proj₁ x)
+... | yes x≡x = refl
+... | no ¬x≡x = contradiction refl ¬x≡x
+
+∈-cmdWrote∷ : ∀ {v} x x₁ ls → v ∈ cmdWrote ls x₁ → ¬ (proj₁ x) ≡ x₁ → v ∈ cmdWrote (x ∷ ls) x₁
+∈-cmdWrote∷ x x₁ ls v∈ ¬≡ with (proj₁ x) ≟ x₁
 ... | yes x≡x₁ = contradiction x≡x₁ ¬≡
 ... | no ¬x≡x₁ = v∈
 
-{-
-cmdWrote-⊆ : ∀ x {xs} {ys} → xs ⊆ ys → cmdWrote xs x ⊆ cmdWrote ys x
-cmdWrote-⊆ x xs⊆ys = concat⁺ (map⁺ (proj₂ ∘ proj₂) (filter⁺′ ((x ≟_) ∘ proj₁) ((x ≟_) ∘ proj₁) (λ x₄ → x₄) xs⊆ys))
--}
+-- if there is a file in the cmdRead for x , then x ∈ xs
+lemma2 : ∀ {v} x xs → v ∈ cmdWrote xs x → x ∈ map proj₁ xs
+lemma2 x (x₁ ∷ xs) v∈ with (proj₁ x₁) ≟ x
+... | yes x₁≡x = here (sym x₁≡x)
+... | no ¬x₁≡x = there (lemma2 x xs v∈)
+
+∈-cmdWrote++⁺ʳ : ∀ {v} x xs ys → Unique (map proj₁ (xs ++ ys)) → v ∈ cmdWrote ys x → v ∈ cmdWrote (xs ++ ys) x
+∈-cmdWrote++⁺ʳ x [] ys u v∈ = v∈
+∈-cmdWrote++⁺ʳ x (x₁ ∷ xs) ys (px₁ ∷ u) v∈ with (proj₁ x₁) ≟ x
+... | yes x₁≡x = contradiction x₁≡x (lookup px₁ x∈xs++ys)
+  where x∈xs++ys : x ∈ map proj₁ (xs ++ ys)
+        x∈xs++ys = subst (λ ls → _ ∈ ls) (sym (map-++-commute proj₁ xs ys)) (∈-++⁺ʳ (map proj₁ xs) (lemma2 x ys v∈))
+... | no ¬x₁≡x = ∈-cmdWrote++⁺ʳ x xs ys u v∈
+
+∈-cmdWrote++mid : ∀ {v} x xs ys zs → Unique (map proj₁ (xs ++ ys ++ zs)) → v ∈ cmdWrote (xs ++ zs) x → v ∈ cmdWrote (xs ++ ys ++ zs) x
+∈-cmdWrote++mid x [] ys zs u v∈ = ∈-cmdWrote++⁺ʳ x ys zs u v∈
+∈-cmdWrote++mid x (x₁ ∷ xs) ys zs (px₁ ∷ u) v∈ with (proj₁ x₁) ≟ x
+... | yes x₁≡x = v∈
+... | no ¬x₁≡x = ∈-cmdWrote++mid x xs ys zs u v∈
+
+
 
 cmdRead : FileInfo → Cmd → List FileName
 cmdRead [] p = []
@@ -139,16 +176,35 @@ cmdRead (x ∷ ls) p with (proj₁ x) ≟ p
 ... | yes x≡p = proj₁ (proj₂ x)
 ... | no ¬x≡p = cmdRead ls p
 
-∈-cmdRead∷ : ∀ v x x₁ ls → v ∈ cmdRead ls x₁ → ¬ (proj₁ x) ≡ x₁ → v ∈ cmdRead (x ∷ ls) x₁
-∈-cmdRead∷ v x x₁ ls v∈ ¬≡ with (proj₁ x) ≟ x₁
+∈-cmdRead∷l : ∀ {v} x ls → v ∈ proj₁ (proj₂ x) → v ∈ cmdRead (x ∷ ls) (proj₁ x)
+∈-cmdRead∷l x ls v∈ with (proj₁ x) ≟ (proj₁ x)
+... | no ¬x≡x = contradiction refl ¬x≡x
+... | yes x≡x = v∈
+
+∈-cmdRead∷ : ∀ {v} x x₁ ls → v ∈ cmdRead ls x₁ → ¬ (proj₁ x) ≡ x₁ → v ∈ cmdRead (x ∷ ls) x₁
+∈-cmdRead∷ x x₁ ls v∈ ¬≡ with (proj₁ x) ≟ x₁
 ... | yes x≡x₁ = contradiction x≡x₁ ¬≡
 ... | no ¬x≡x₁ = v∈
-{-
-∈-cmdRead∷ˡ : ∀ v x ls → v ∈ proj₁ (proj₂ x) → v ∈ cmdRead (x ∷ ls) (proj₁ x)
-∈-cmdRead∷ˡ v x ls v∈ with ×-decidable _≟_ N._≟_ (proj₁ x) (proj₁ x)
-... | yes x≡x = v∈
-... | no ¬x≡x = contradiction (refl , refl) ¬x≡x
--}
+
+-- if there is a file in the cmdRead for x , then x ∈ xs
+lemma1 : ∀ {v} x xs → v ∈ cmdRead xs x → x ∈ map proj₁ xs
+lemma1 x (x₁ ∷ xs) v∈ with (proj₁ x₁) ≟ x
+... | yes x₁≡x = here (sym x₁≡x)
+... | no ¬x₁≡x = there (lemma1 x xs v∈)
+
+∈-cmdRead++⁺ʳ : ∀ {v} x xs ys → Unique (map proj₁ (xs ++ ys)) → v ∈ cmdRead ys x → v ∈ cmdRead (xs ++ ys) x
+∈-cmdRead++⁺ʳ x [] ys u v∈ = v∈
+∈-cmdRead++⁺ʳ x (x₁ ∷ xs) ys (px₁ ∷ u) v∈ with (proj₁ x₁) ≟ x
+... | yes x₁≡x = contradiction x₁≡x (lookup px₁ x∈xs++ys)
+  where x∈xs++ys : x ∈ map proj₁ (xs ++ ys)
+        x∈xs++ys = subst (λ ls → _ ∈ ls) (sym (map-++-commute proj₁ xs ys)) (∈-++⁺ʳ (map proj₁ xs) (lemma1 x ys v∈))
+... | no ¬x₁≡x = ∈-cmdRead++⁺ʳ x xs ys u v∈
+
+∈-cmdRead++mid : ∀ {v} x xs ys zs → Unique (map proj₁ (xs ++ ys ++ zs)) → v ∈ cmdRead (xs ++ zs) x → v ∈ cmdRead (xs ++ ys ++ zs) x
+∈-cmdRead++mid x [] ys zs u v∈ = ∈-cmdRead++⁺ʳ x ys zs u v∈
+∈-cmdRead++mid x (x₁ ∷ xs) ys zs (px₁ ∷ u) v∈ with (proj₁ x₁) ≟ x
+... | yes x₁≡x = v∈
+... | no ¬x₁≡x = ∈-cmdRead++mid x xs ys zs u v∈
 
 cmdWrites : System → Cmd → List FileName
 cmdWrites s x = proj₂ (trace oracle s x)
