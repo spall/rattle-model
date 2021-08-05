@@ -73,16 +73,15 @@ read write
 
 {- is the command required? 
    is x in b?
-   are all commands before x in b (and b is reversed so) in ls?
+   are all commands before x in b in ls?
 -}
--- wow this was actually bugged before haha
-required? : (x : Cmd) (b ls : Build) → Maybe (x ∈ b)
-required? x [] ls = nothing
-required? x (x₁ ∷ b) ls with x ≟ x₁
-... | no ¬x≡x₁ with required? x b ls
+required? : (x : Cmd) (b ls bf : Build) → Maybe (x ∈ b)
+required? x [] ls _ = nothing
+required? x (x₁ ∷ b) ls bf with x ≟ x₁
+... | no ¬x≡x₁ with required? x b ls (x₁ ∷ bf)
 ... | nothing = nothing
 ... | just x∈b = just (there x∈b)
-required? x (x₁ ∷ b) ls | yes x≡x₁ with subset? b ls
+required? x (x₁ ∷ b) ls bf | yes x≡x₁ with subset? bf ls
   where subset? : (ls₁ ls₂ : Build) → Bool
         subset? [] ls₂ = true
         subset? (x ∷ ls₁) ls₂ with x ∈? ls₁
@@ -118,36 +117,36 @@ required? x (x₁ ∷ b) ls | yes x≡x₁ with subset? b ls
 ... | inj₂ bf with ∃Speculative2 x₂ b ls rs uls ub x₂∈b
 ... | nothing = nothing
 ... | just (x₁ , v , x₁∈ls , ¬bf , v∈rs , v∈ws)
-  = just (x₁ , v , there x₁∈ls , ¬bf , v∈rs , ∈-cmdWrote∷ v x x₁ ls v∈ws (lookup px x₁∈ls))
+  = just (x₁ , v , there x₁∈ls , ¬bf , v∈rs , ∈-cmdWrote∷ x x₁ ls v∈ws (lookup px x₁∈ls))
 ∃Speculative2 x₂ b (x ∷ ls) rs (px ∷ uls) ub x₂∈b | inj₁ ¬bf with ∃Intersection rs (cmdWrote (x ∷ ls) (proj₁ x))
 ... | just (v , v∈rs , v∈ws) = just (proj₁ x , v , here refl , ¬bf , v∈rs , v∈ws)
 ... | nothing with ∃Speculative2 x₂ b ls rs uls ub x₂∈b
 ... | nothing = nothing
 ... | just (x₁ , v , x₁∈ls , ¬bf₁ , v∈rs , v∈ws)
-  = just (x₁ , v , there x₁∈ls , ¬bf₁ , v∈rs , ∈-cmdWrote∷ v x x₁ ls v∈ws (lookup px x₁∈ls))
+  = just (x₁ , v , there x₁∈ls , ¬bf₁ , v∈rs , ∈-cmdWrote∷ x x₁ ls v∈ws (lookup px x₁∈ls))
 
 ∃Speculative1 : ∀ ls b (ran : Build) → Unique (map proj₁ ls) → Unique b → Maybe (∃[ x₁ ](∃[ x₂ ](∃[ v ](x₂ before x₁ en (cmdsRun ls) × x₂ ∈ b × ¬ x₁ before x₂ en b × v ∈ cmdRead ls x₂ × v ∈ cmdWrote ls x₁))))
 ∃Speculative1 [] b ran uls ub = nothing
-∃Speculative1 (x ∷ ls) b ran (px ∷ uls) ub with required? (proj₁ x) b ((cmdsRun ls) ++ ran)
+∃Speculative1 (x ∷ ls) b ran (px ∷ uls) ub with required? (proj₁ x) b ((cmdsRun ls) ++ ran) []
 ... | just x∈b with ∃Speculative2 (proj₁ x) b ls (cmdRead (x ∷ ls) (proj₁ x)) uls ub x∈b
 ... | just (x₁ , v , x₁∈ls , ¬bf , v∈rs , v∈ws)
   = just (x₁ , proj₁ x , v , ([] , cmdsRun ls , refl , x₁∈ls) , x∈b , ¬bf , v∈rs
-         , ∈-cmdWrote∷ v x x₁ ls v∈ws (lookup px x₁∈ls))
+         , ∈-cmdWrote∷ x x₁ ls v∈ws (lookup px x₁∈ls))
 ... | nothing with ∃Speculative1 ls b ((proj₁ x) ∷ ran) uls ub
 ... | nothing = nothing
 ... | just (x₁ , x₂ , v , bf@(xs , ys , ≡₁ , x₁∈ys) , x₂∈b , ¬bf , v∈cr , v∈cw)
   = just (x₁ , x₂ , v , before-∷ x₂ x₁ (proj₁ x) (cmdsRun ls) bf , x₂∈b , ¬bf
-         , ∈-cmdRead∷ v x x₂ ls v∈cr
+         , ∈-cmdRead∷ x x₂ ls v∈cr
            (lookup px (subst (λ x₃ → x₂ ∈ x₃) (sym ≡₁) (∈-++⁺ʳ xs (here refl))))
-         , ∈-cmdWrote∷ v x x₁ ls v∈cw
+         , ∈-cmdWrote∷ x x₁ ls v∈cw
            (lookup px (subst (λ x₃ → x₁ ∈ x₃) (sym ≡₁) (∈-++⁺ʳ xs (there x₁∈ys)))))
 ∃Speculative1 (x ∷ ls) b ran (px ∷ uls) ub | nothing with ∃Speculative1 ls b ((proj₁ x) ∷ ran) uls ub
 ... | nothing = nothing
 ... | just (x₁ , x₂ , v , bf@(xs , ys , ≡₁ , x₁∈ys) , x₂∈b , ¬bf , v∈cr , v∈cw)
   = just (x₁ , x₂ , v , before-∷ x₂ x₁ (proj₁ x) (cmdsRun ls) bf , x₂∈b , ¬bf
-         , ∈-cmdRead∷ v x x₂ ls v∈cr
+         , ∈-cmdRead∷ x x₂ ls v∈cr
            (lookup px (subst (λ x₃ → x₂ ∈ x₃) (sym ≡₁) (∈-++⁺ʳ xs (here refl))))
-         , ∈-cmdWrote∷ v x x₁ ls v∈cw
+         , ∈-cmdWrote∷ x x₁ ls v∈cw
            (lookup px (subst (λ x₃ → x₁ ∈ x₃) (sym ≡₁) (∈-++⁺ʳ xs (there x₁∈ys)))))
 
 
@@ -176,16 +175,12 @@ checkHazard s x b ls uls ub with ∃WriteWrite s x b ls
 ... | just hz = just hz
 ... | nothing = ∃ReadWrite s x b ls
 
-g₂ : ∀ {x} xs → x ∉ xs → All (λ y → ¬ x ≡ y) xs
-g₂ [] x∉xs = All.[]
-g₂ (x ∷ xs) x∉xs = (λ x₃ → x∉xs (here x₃)) All.∷ (g₂ xs λ x₃ → x∉xs (there x₃))
 
-
-doRunWError : ∀ b → (((s , mm) , ls) : State × FileInfo) → (x : Cmd) → x ∉ map proj₁ ls → Unique (map proj₁ ls) → Unique b → Hazard s x b ls ⊎ ∃[ st ](Σ[ ls₁ ∈ FileInfo ](Unique (map proj₁ ls₁) × (map proj₁ ls₁) ≡ x ∷ (map proj₁ ls)))
-doRunWError b ((s , mm) , ls) x x∉ls uls ub with checkHazard s x b ls (g₂ (map proj₁ ls) x∉ls ∷ uls) ub
+doRunWError : ∀ b → (((s , mm) , ls) : State × FileInfo) → (x : Cmd) → Unique (x ∷ (map proj₁ ls)) → Unique b → Hazard s x b ls ⊎ ∃[ st ](Σ[ ls₁ ∈ FileInfo ](Unique (map proj₁ ls₁) × ((map proj₁ ls₁) ≡ (map proj₁ ls) ⊎ (map proj₁ ls₁) ≡ x ∷ (map proj₁ ls))))
+doRunWError b ((s , mm) , ls) x uls ub with checkHazard s x b ls uls ub
 ... | just hz = inj₁ hz
 ... | nothing = let sys₁ = St.run oracle x s in
-                inj₂ ((sys₁ , St.save x ((cmdReads s x) ++ (cmdWrites s x)) sys₁ mm) , save x (cmdReads s x) (cmdWrites s x) ls , g₂ (map proj₁ ls) x∉ls ∷ uls , refl)
+                inj₂ ((sys₁ , St.save x ((cmdReads s x) ++ (cmdWrites s x)) sys₁ mm) , save x (cmdReads s x) (cmdWrites s x) ls , uls , inj₂ refl)
 
 
 run : State -> Cmd -> State
@@ -193,12 +188,15 @@ run st cmd = if (run? cmd st)
              then doRun st cmd
              else st
 
-runWError : ∀ b → (((s , mm) , ls) : State × FileInfo) → (x : Cmd) → Unique (map proj₁ ls) → Unique b → x ∉ (map proj₁ ls) → Hazard s x b ls ⊎ ∃[ st ](∃[ ls₁ ](Unique (map proj₁ ls₁) × ((map proj₁ ls₁) ≡ (map proj₁ ls) ⊎ (map proj₁ ls₁) ≡ x ∷ (map proj₁ ls))))
+g₂ : ∀ {x} xs → x ∉ xs → All (λ y → ¬ x ≡ y) xs
+g₂ [] x∉xs = All.[]
+g₂ (x ∷ xs) x∉xs = (λ x₃ → x∉xs (here x₃)) All.∷ (g₂ xs λ x₃ → x∉xs (there x₃))
+
+
+runWError : ∀ b → (((s , mm) , ls) : State × FileInfo) → (x : Cmd) → Unique (map proj₁ ls) → Unique b → x ∉ (map proj₁ ls) → Hazard s x b ls ⊎ State × (Σ[ ls₁ ∈ FileInfo ](Unique (map proj₁ ls₁) × ((map proj₁ ls₁) ≡ (map proj₁ ls) ⊎ (map proj₁ ls₁) ≡ x ∷ (map proj₁ ls))))
 runWError b (st , ls) x uls ub x∉ with (run? x st)
 ... | false = inj₂ (st , ls , uls , inj₁ refl)
-... | true with doRunWError b (st , ls) x x∉ uls ub
-... | inj₁ hz = inj₁ hz
-... | inj₂ (st₁ , ls₁ , uls₁ , ≡₁) = inj₂ (st₁ , ls₁ , uls₁ , inj₂ ≡₁)
+... | true = doRunWError b (st , ls) x (g₂ (map proj₁ ls) x∉ ∷ uls) ub
 
 exec : State -> Build -> State
 exec st [] = st

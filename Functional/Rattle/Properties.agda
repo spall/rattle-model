@@ -1,4 +1,4 @@
-{-# OPTIONS --allow-unsolved-metas #-}
+
 open import Functional.State as St using (F ; System ; Memory ; Cmd ; trace ; extend ; State)
 
 module Functional.Rattle.Properties (oracle : F) where
@@ -25,17 +25,21 @@ open import Data.String.Properties using (_≟_ ; _==_)
 open import Data.List.Membership.DecSetoid (decSetoid _≟_) using (_∈_ ; _∈?_ ; _∉_)
 open import Relation.Nullary using (yes ; no ; ¬_)
 open import Relation.Nullary.Negation using (contradiction)
-open import Data.List.Relation.Unary.Any using (tail)
-open import Functional.Rattle.Exec (oracle) using (execWError ; runWError ; run ; doRun ; exec ; doRunWError ; checkHazard)
+open import Data.List.Relation.Unary.Any using (tail ; here ; there)
+open import Functional.Rattle.Exec (oracle) using (execWError ; runWError ; run ; doRun ; exec ; doRunWError ; checkHazard ; g₂)
 open import Functional.Build using (Build)
 open import Data.Sum using (inj₂ ; from-inj₂ ; inj₁ )
 open import Data.Sum.Properties using (inj₂-injective)
 open import Functional.Script.Exec (oracle) as Script hiding (exec)
-open import Functional.Script.HazardFree.Properties (oracle) using (hf-∷⁻-∀)
 open import Functional.Script.Properties (oracle) using (DisjointBuild ; Cons ; dsj-≡)
-open import Functional.Script.Hazard (oracle) using (Hazard ; HazardFree ; FileInfo ; ReadWrite ; WriteWrite ; Speculative ; :: ; cmdWrites ; filesRead ; files ; cmdReads ; ¬SpeculativeHazard ; save ; getN ; hazardContradiction)
--- open import Functional.Script.Hazard.Properties (oracle) using (hf-≡)
+
+open import Functional.Script.Hazard (oracle) using (Hazard ; HazardFree ; FileInfo ; :: ; cmdWrites ; cmdReads ; ¬SpeculativeHazard ; save ; hazardContradiction)
+
+open import Functional.Script.Hazard.Properties (oracle) using (hf-≡)
 open import Data.Empty using (⊥ ; ⊥-elim)
+
+open import Data.List.Relation.Unary.Unique.Propositional using (Unique)
+open import Data.List.Relation.Unary.AllPairs using (_∷_)
 
 
 
@@ -72,26 +76,25 @@ noEffect {s} {mm} x mp x∈ all₁ f₁ with getProperty x mp x∈
                         (St.lemma4 (proj₂ (proj₁ (oracle x) s₁)) f₁ f₁∈x-s₁))
 
 
-doRunSoundness : ∀ st ls st₁ ls₁ b x → doRunWError b (st , ls) x ≡ inj₂ (st₁ , ls₁) → doRun st x ≡ st₁
-doRunSoundness st ls st₁ ls₁ b x ≡₁ with checkHazard (proj₁ st) x b ls
+doRunSoundness : ∀ st ls {st₁} {ls₁} b x uls ub {uls₁} {≡₁} → doRunWError b (st , ls) x uls ub ≡ inj₂ (st₁ , ls₁ , uls₁ , ≡₁) → doRun st x ≡ st₁
+doRunSoundness st ls b x uls ub ≡₁ with checkHazard (proj₁ st) x b ls uls ub
 ... | nothing = cong proj₁ (inj₂-injective ≡₁)
 
-runSoundness : ∀ st ls st₁ ls₁ b x → runWError b (st , ls) x ≡ inj₂ (st₁ , ls₁) → run st x ≡ st₁
-runSoundness st ls st₁ ls₁ b x ≡₁ with run? x st
+runSoundness : ∀ st ls st₁ ls₁ b x uls ub x∉ls {uls₁} {≡₁} → runWError b (st , ls) x uls ub x∉ls ≡ inj₂ (st₁ , ls₁ , uls₁ , ≡₁) → run st x ≡ st₁
+runSoundness st ls st₁ ls₁ b x uls ub x∉ls ≡₁ with run? x st
 ... | false = cong proj₁ (inj₂-injective ≡₁)
-... | true = doRunSoundness st ls st₁ ls₁ b x ≡₁
+... | true = doRunSoundness st ls b x (g₂ (map proj₁ ls) x∉ls ∷ uls) ub ≡₁
 
-soundness : ∀ st ls st₁ ls₁ b₁ b₂ → execWError (st , ls) b₁ b₂ ≡ inj₂ (st₁ , ls₁) → exec st b₁ ≡ st₁
-soundness st ls st₁ ls₁ [] b₂ ≡₁ = cong proj₁ (inj₂-injective ≡₁)
-soundness st ls st₁ ls₁ (x ∷ b₁) b₂ ≡₁ with runWError b₂ (st , ls) x | inspect (runWError b₂ (st , ls)) x
-... | inj₂ (st₂ , ls₂) | [ ≡₂ ] with run? x st | runSoundness st ls st₂ ls₂ b₂ x ≡₂
-... | false | st≡st₂ with soundness st₂ ls₂ st₁ ls₁ b₁ b₂ ≡₁
-... | a = subst (λ x₁ → exec x₁ b₁ ≡ st₁) (sym st≡st₂) a
-soundness st ls st₁ ls₁ (x ∷ b₁) b₂ ≡₁ | inj₂ (st₂ , ls₂) | [ ≡₂ ] | true | ≡st₂ with soundness st₂ ls₂ st₁ ls₁ b₁ b₂ ≡₁
-... | a = subst (λ x₁ → exec x₁ b₁ ≡ st₁) (sym ≡st₂) a
+soundness : ∀ {st₁} {ls₁} st ls → (b₁ b₂ : Build) → (ub₁ : Unique b₁) → (ub₂ : Unique b₂) → (uls : Unique (map proj₁ ls)) → (dsj : Disjoint b₁ (map proj₁ ls)) → execWError (st , ls) b₁ b₂ ub₁ ub₂ uls dsj ≡ inj₂ (st₁ , ls₁) → exec st b₁ ≡ st₁
+soundness st ls [] b₂ ub₁ ub₂ uls dsj ≡₁ = cong proj₁ (inj₂-injective ≡₁)
+soundness st ls (x ∷ b₁) b₂ (px ∷ ub₁) ub₂ uls dsj ≡₁ with runWError b₂ (st , ls) x uls ub₂ (λ x₁ → dsj (here refl , x₁)) | inspect (runWError b₂ (st , ls) x uls ub₂) (λ x₁ → dsj (here refl , x₁))
+... | inj₂ (st₂ , ls₂ , uls₂ , inj₁ ls₂≡ls) | [ ≡₂ ] with runSoundness st ls st₂ ls₂ b₂ x uls ub₂ (λ x₁ → dsj (here refl , x₁)) ≡₂
+... | ≡st₂ = subst (λ x₁ → exec x₁ b₁ ≡ _) (sym ≡st₂) (soundness st₂ ls₂ b₁ b₂ ub₁ ub₂ uls₂ (λ x₁ → dsj (there (proj₁ x₁) , subst (λ x₂ → _ ∈ x₂) ls₂≡ls (proj₂ x₁))) ≡₁)
+soundness st ls (x ∷ b₁) b₂ (px ∷ ub₁) ub₂ uls dsj ≡₁ | inj₂ (st₂ , ls₂ , uls₂ , inj₂ ls₂≡x∷ls) | [ ≡₂ ] with runSoundness st ls st₂ ls₂ b₂ x uls ub₂ (λ x₁ → dsj (here refl , x₁)) ≡₂
+... | ≡st₂ = subst (λ x₁ → exec x₁ b₁ ≡ _) (sym ≡st₂) (soundness st₂ ls₂ b₁ b₂ ub₁ ub₂ uls₂ (λ x₁ → dsj (there (proj₁ x₁) , g₁ (proj₂ x₁) ls₂≡x∷ls λ v≡x → lookup px (proj₁ x₁) (sym v≡x))) ≡₁)
+  where g₁ : ∀ {v} {ls₁} {ls₂} {x} → v ∈ ls₁ → ls₁ ≡ x ∷ ls₂ → ¬ v ≡ x → v ∈ ls₂
+        g₁ v∈ls₁ ls₁≡x∷ls₂ ¬v≡x = tail ¬v≡x (subst (λ x₁ → _ ∈ x₁) ls₁≡x∷ls₂ v∈ls₁)
 
-
--- runWError ≡ run if runWError ≡ inj₂
 
 -- prove if no errors ; do run and dorun check are the same ; aka give same system
 
@@ -99,20 +102,31 @@ soundness st ls st₁ ls₁ (x ∷ b₁) b₂ ≡₁ | inj₂ (st₂ , ls₂) | 
 
 -- if there is no hazard then run with error produces right; use hazardfree evidence
 -- won't tell you there is a hazard when there isn't a hazard
-completeness : ∀ st₁ ls₁ b₁ b₂ → DisjointBuild (proj₁ st₁) b₁ → HazardFree (proj₁ st₁) b₁ b₂ ls₁ → MemoryProperty (proj₂ st₁) → ∃[ st ](∃[ ls ](execWError (st₁ , ls₁) b₁ b₂ ≡ inj₂ (st , ls)))
-completeness st ls [] _ dsb hf mp = st , ls , refl
-completeness st@(s , mm) ls (x ∷ b₁) b₂ (Cons .x ds .b₁ dsb) (:: .s .ls .x .b₁ .b₂ ¬sh dsj hf) mp with x ∈? map proj₁ mm
+
+completeness : ∀ st₁ ls₁ b₁ b₂ → (ub₁ : Unique b₁) → (ub₂ : Unique b₂) →  (uls : Unique (map proj₁ ls₁)) → (dsj : Disjoint b₁ (map proj₁ ls₁)) → DisjointBuild (proj₁ st₁) b₁ → HazardFree (proj₁ st₁) b₁ b₂ ls₁ → MemoryProperty (proj₂ st₁) → ∃[ st ](∃[ ls ](execWError (st₁ , ls₁) b₁ b₂ ub₁ ub₂ uls dsj ≡ inj₂ (st , ls)))
+completeness st ls [] _ ub₁ ub₂ uls dsj dsb hf mp = st , ls , refl
+completeness st@(s , mm) ls (x ∷ b₁) b₂ (px ∷ ub₁) ub₂ uls dsj₁ (Cons .x ds .b₁ dsb) (:: .s .ls .x .b₁ .b₂ ¬sh dsj hf) mp with x ∈? map proj₁ mm
 ... | yes x∈ with maybeAll {s} (get x mm x∈)
-... | nothing with checkHazard s x b₂ ls
-... | nothing = completeness (St.run oracle x s , St.save x ((cmdReads s x) ++ (cmdWrites s x)) (St.run oracle x s) mm) (save x (cmdReads s x) (cmdWrites s x) ls) b₁ b₂ dsb hf (MemoryProperty.Cons x s (λ f₁ x₂ → St.lemma3 f₁ (proj₂ (proj₁ (oracle x) s)) λ x₃ → ds (x₂ , x₃)) mp)
+... | nothing with checkHazard s x b₂ ls (g₂ (map proj₁ ls) (λ x₁ → dsj₁ (here refl , x₁)) ∷ uls) ub₂
 ... | just hz = ⊥-elim (hazardContradiction s x b₂ ls hz dsj ¬sh)
-completeness st@(s , mm) ls (x ∷ b₁) b₂ (Cons .x x₁ .b₁ dsb) (:: .s .ls .x .b₁ .b₂ ¬sh dsj hf) mp | yes x∈ | just all₁ with noEffect x mp x∈ all₁
-... | ∀₁ = completeness st ls b₁ b₂ (dsj-≡ (St.run oracle x s) s b₁ ∀₁ dsb) {!!} mp
+... | nothing = completeness (St.run oracle x s , St.save x ((cmdReads s x) ++ (cmdWrites s x)) (St.run oracle x s) mm) (save x (cmdReads s x) (cmdWrites s x) ls) b₁ b₂ ub₁ ub₂ (g₂ (map proj₁ ls) (λ x₁ → dsj₁ (here refl , x₁)) ∷ uls) dsj₂ dsb hf (MemoryProperty.Cons x s (λ f₁ x₂ → St.lemma3 f₁ (proj₂ (proj₁ (oracle x) s)) λ x₃ → ds (x₂ , x₃)) mp)
+  where dsj₂ : Disjoint b₁ (x ∷ map proj₁ ls)
+        dsj₂ = λ x₁ → dsj₁ (there (proj₁ x₁) , tail (λ v≡x → lookup px (proj₁ x₁) (sym v≡x)) (proj₂ x₁))
 
 
-completeness st@(s , mm) ls (x ∷ b₁) b₂ (Cons .x ds .b₁ dsb) (:: .s .ls .x .b₁ .b₂ ¬sh dsj hf) mp | no x∉ with checkHazard s x b₂ ls
-... | nothing = completeness (St.run oracle x s , St.save x ((cmdReads s x) ++ (cmdWrites s x)) (St.run oracle x s) mm) (save x (cmdReads s x) (cmdWrites s x) ls) b₁ b₂ dsb hf (MemoryProperty.Cons x s (λ f₁ x₂ → St.lemma3 f₁ (proj₂ (proj₁ (oracle x) s)) λ x₃ → ds (x₂ , x₃)) mp)
+completeness st@(s , mm) ls (x ∷ b₁) b₂ (px ∷ ub₁) ub₂ uls dsj₁ (Cons .x x₁ .b₁ dsb) (:: .s .ls .x .b₁ .b₂ ¬sh dsj hf) mp | yes x∈ | just all₁ with noEffect x mp x∈ all₁
+... | ∀₁ = completeness st ls b₁ b₂ ub₁ ub₂ uls dsj₂ (dsj-≡ (St.run oracle x s) s b₁ ∀₁ dsb) (hf-≡ s [] b₁ {!!} ∀₁ hf) mp
+  where dsj₂ : Disjoint b₁ (map proj₁ ls)
+        dsj₂ = λ x₂ → dsj₁ (there (proj₁ x₂) , proj₂ x₂)
+        
+completeness st@(s , mm) ls (x ∷ b₁) b₂ (px ∷ ub₁) ub₂ uls dsj₁ (Cons .x ds .b₁ dsb) (:: .s .ls .x .b₁ .b₂ ¬sh dsj hf) mp | no x∉ with checkHazard s x b₂ ls (g₂ (map proj₁ ls) (λ x₁ → dsj₁ (here refl , x₁)) ∷ uls) ub₂
+... | nothing = completeness (St.run oracle x s , St.save x ((cmdReads s x) ++ (cmdWrites s x)) (St.run oracle x s) mm) (save x (cmdReads s x) (cmdWrites s x) ls) b₁ b₂ ub₁ ub₂ (g₂ (map proj₁ ls) (λ x₁ → dsj₁ (here refl , x₁)) ∷ uls) dsj₂ dsb hf (MemoryProperty.Cons x s (λ f₁ x₂ → St.lemma3 f₁ (proj₂ (proj₁ (oracle x) s)) λ x₃ → ds (x₂ , x₃)) mp)
+  where dsj₂ : Disjoint b₁ (x ∷ map proj₁ ls)
+        dsj₂ = λ x₁ → dsj₁ (there (proj₁ x₁) , tail (λ v≡x → lookup px (proj₁ x₁) (sym v≡x)) (proj₂ x₁))
+
 ... | just hz = ⊥-elim (hazardContradiction s x b₂ ls hz dsj ¬sh)
+
+
 
 {-
 correct : ∀ sys b ls → HazardFree sys b ls → exec (sys , []) b ≡ exec (exec (sys , []) b) b
