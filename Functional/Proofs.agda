@@ -19,8 +19,8 @@ open import Data.Product.Relation.Binary.Pointwise.NonDependent using (×-decida
 
 open import Functional.Build using (Build)
 open import Functional.Script.Exec (oracle) as S using (writes)
-open import Functional.Script.HazardFree (oracle) using (HazardFree ; HazardFreeReordering ; HFR ; Cons ; Null)
-open import Functional.Script.HazardFree.Properties (oracle) using (hfr-∷ʳ⁻ ; hf→disjointWrites ; hfr→disjoint ; hf→disjointReads)
+-- open import Functional.Script.HazardFree (oracle) using (HazardFree ; HazardFreeReordering ; HFR ; Cons ; Null)
+-- open import Functional.Script.HazardFree.Properties (oracle) using (hfr-∷ʳ⁻ ; hf→disjointWrites ; hfr→disjoint ; hf→disjointReads)
 open import Functional.Forward.Exec (oracle) as Forward hiding (run)
 open import Functional.Forward.Properties (oracle) using (run≡ ; IdempotentState ; preserves ; getCmdIdempotent ; cmdReadWrites ; cmdWrites ; ∈-resp-≡ ; cmdReads)
 open import Functional.File using (FileName ; Files ; File ; FileContent)
@@ -168,11 +168,11 @@ lemmaA1 {s} (x ∷ b) b₁ ≡₁ hfr@(HFR _ _ ↭₁ hf₁ hf₂ _) with ∈-�
                 all₁ : All (λ f₂ → S.exec s ls₁ f₂ ≡ run oracle x (S.exec s ls₁) f₂) (S.reads (run oracle x (S.exec s ls₁)) ls₂)
                 all₁ = St.lemma5 {S.exec s ls₁} (S.reads (run oracle x (S.exec s ls₁)) ls₂) (proj₂ (proj₁ (oracle x) (S.exec s ls₁))) (hfr→disjoint s x (reverse b) ls₁ ls₂ hfr₁)
 
-  
+{-
 script-reordered : {sys : System} (b b₂ : Build) -> HazardFreeReordering sys b b₂ -> ∀ f₁ → S.exec sys b f₁ ≡ S.exec sys b₂ f₁
 script-reordered {sys} b b₂ hfr@(HFR .b .b₂ ↭₁ x₁ x₂ x₃) with lemmaA1 {sys} (reverse b) (reverse b₂) (trans (length-reverse b) (trans (↭-length ↭₁) (sym (length-reverse b₂)))) (subst₂ (λ x x₄ → HazardFreeReordering sys x x₄) (sym (reverse-involutive b)) (sym (reverse-involutive b₂)) hfr) 
 ... | ∀₁ = subst₂ (λ x x₄ → ∀ f₁ → S.exec sys x f₁ ≡ S.exec sys x₄ f₁) (reverse-involutive b) (reverse-involutive b₂) ∀₁
-
+-}
 
 helper : {sys : System} (ls ls₁ : List Cmd) -> (x : Cmd) -> Disjoint (cmdWrites x sys) ls₁ -> concatMap (λ x₁ → cmdReadWrites x₁ sys) ls ⊆ ls₁ -> All (λ x₁ → Disjoint (cmdWrites x sys) (cmdReadWrites x₁ sys)) ls
 helper [] ls₁ x dsj ⊆₁ = All.[]
@@ -283,4 +283,14 @@ rattle-reordered b b₂ ds ds₂ hfr@(HFR .b .b₂ x x₁ x₂ x₃)
 soundness2 : {sys sys₁ : System} {fi fi₁ : FileInfo} {b₁ : Build} (b : Build) -> DisjointBuild sys b -> execWError ((sys , []) , fi) b b₁ ≡ inj₂ ((sys₁ , _) , fi₁) -> ∀ f₁ → S.exec sys b f₁ ≡ sys₁ f₁
 soundness2 {sys} {sys₁} {fi} b dsj ≡₁ f₁ = trans (script-exec≡rattle-exec b dsj f₁) (cong-app (cong proj₁ (soundness b ≡₁)) f₁)\
 -}
+
+{- 1. produce an error ; completeness says that for a build with no hazards 
+      behaves the same whether or not we check for errors; 
+      which means it cannot produce errors . 
+   2. behave like script; behaves like script if it doesn't produce an error.
+   3. behave some other way ; aka this is not possible. 
+-}
+
+-- correctness: HazardFree build →  you get the same execution as the script using executing with errors version of rattle
+-- use soundness and completeness to prove it. 
 
