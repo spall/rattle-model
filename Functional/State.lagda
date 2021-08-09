@@ -1,4 +1,5 @@
 
+\begin{code}
 module Functional.State where
 
 open import Agda.Builtin.Equality
@@ -17,18 +18,35 @@ open import Relation.Nullary using (yes ; no)
 open import Relation.Nullary.Negation using (contradiction)
 open import Data.List.Relation.Unary.Any using (here ; there ; tail)
 open import Data.List.Relation.Binary.Disjoint.Propositional using (Disjoint)
+\end{code}
 
+\newcommand{\sys}{%
+\begin{code}
 System : Set
 System = FileName -> Maybe FileContent
+\end{code}}
 
-extend : File -> System -> System
-extend (k , v) st = \ k₁ -> if (k == k₁) then just v else st k₁
-
+\newcommand{\cmd}{%
+\begin{code}
 Cmd : Set
 Cmd = String
+\end{code}}
 
+\newcommand{\oracle}{%
+\begin{code}
 F : Set
 F = Cmd -> Σ[ f ∈ (System -> Files × Files) ](∀ s s₁ → (∀ f₁ → f₁ ∈ map proj₁ (proj₁ (f s)) -> s f₁ ≡ s₁ f₁) -> f s ≡ f s₁)
+\end{code}}
+
+\newcommand{\mem}{%
+\begin{code}
+Memory : Set
+Memory = List (Cmd × List (FileName × Maybe FileContent))
+\end{code}}
+
+\begin{code}
+extend : File -> System -> System
+extend (k , v) st = \ k₁ -> if (k == k₁) then just v else st k₁
 
 read : List FileName -> System -> List (FileName × Maybe FileContent)
 read fs sys = map (\ x -> (x , sys x)) fs
@@ -43,9 +61,6 @@ trace f sys cmd = let (rs , ws) = proj₁ (f cmd) sys in
 
 run : F -> Cmd -> System -> System
 run f cmd sys = foldr extend sys (proj₂ (proj₁ (f cmd) sys))
-
-Memory : Set
-Memory = List (Cmd × List (FileName × Maybe FileContent))
 
 
 save : Cmd -> List FileName -> System -> Memory -> Memory
@@ -109,3 +124,5 @@ run-≡ : {f : F} {sys sys₁ : System} (x : Cmd) -> (∀ f₁ → sys f₁ ≡ 
 run-≡ {f} {sys} {sys₁} x ∀₁ f₁ = lemma2 {f} {sys} {sys₁} x f₁ ≡₁ (∀₁ f₁)
   where ≡₁ : proj₁ (f x) sys ≡ proj₁ (f x) sys₁
         ≡₁ = proj₂ (f x) sys sys₁ λ f₂ x₁ → ∀₁ f₂
+  
+\end{code}
