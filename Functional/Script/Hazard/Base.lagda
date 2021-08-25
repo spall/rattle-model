@@ -1,4 +1,4 @@
-
+\begin{code}[hide]
 open import Functional.State using (F ; Cmd ; System ; trace ; run)
 
 module Functional.Script.Hazard.Base (oracle : F) where
@@ -9,10 +9,10 @@ open import Data.Nat.Properties as N using (1+n≢n ; ≤-refl ; ≤-step)
 open import Data.Nat using (_>_)
 open import Data.List using (List ; [] ; _∷_ ; _∷ʳ_  ; _++_ ; map ; foldl ; filter ; concatMap ; length ; concat)
 open import Data.List.Properties using (concat-++ ; map-++-commute)
-open import Data.Product using (_×_ ; proj₁ ; proj₂ ; _,_ ; Σ-syntax) 
+open import Data.Product using (_×_ ; proj₁ ; proj₂ ; _,_ ; Σ-syntax ; ∃-syntax) 
 open import Data.Product.Properties using (,-injectiveˡ ; ,-injectiveʳ)
 open import Functional.File using (FileName)
-open import Functional.Build using (Build ; ΣNBuild ; Unique-> ; _¬≡-⊎->_)
+open import Functional.Build using (Build)
 open import Data.List.Membership.Propositional using (_∈_)
 open import Data.List.Membership.Propositional.Properties using (∈-++⁺ˡ ; ∈-++⁺ʳ)
 open import Relation.Nullary using (yes ; no ; ¬_)
@@ -77,19 +77,16 @@ speculativewrhazard says there are two commands, such that the first command is 
 this definition is just so long and ugly.  
 
 -}
+\end{code}
 
+\newcommand{\fileinfo}{%
+\begin{code}
 -- the files a command read and wrote ; and proof commands being added are "uniquely" labeled
 FileInfo : Set
 FileInfo = List (Cmd × List FileName × List FileName)
+\end{code}}
 
-All⇒All : ∀ x n → (ls : List (Cmd × ℕ)) → All (_¬≡-⊎->_ (x , n)) ls → All (_¬≡-⊎->_ (x , suc n)) ls
-All⇒All x n [] All.[] = All.[]
-All⇒All x n (x₂ ∷ ls) (px All.∷ all) with x ≟ proj₁ x₂
-... | no ¬x≡x₂ = inj₁ ¬x≡x₂ All.∷ All⇒All x n ls all 
-... | yes x≡x₂ with px
-... | inj₁ ¬x≡x₂ = contradiction x≡x₂ ¬x≡x₂
-... | inj₂ n>sx₂ = inj₂ (≤-step n>sx₂) All.∷ All⇒All x n ls all
-
+\begin{code}[hide]
 save : Cmd → List FileName → List FileName → FileInfo → FileInfo
 save x rs ws fi = (x , rs , ws) ∷ fi
 
@@ -226,9 +223,15 @@ cmdReads s x = proj₁ (trace oracle s x)
 
 Write ran before read, but Writer should have run AFTER reader.  
 -}
+\end{code}
+
+\newcommand{\speculative}{%
+\begin{code}
 ¬SpeculativeHazard : Build → FileInfo → Set
 ¬SpeculativeHazard b ls = ∀ x₁ x₂ → x₂ before x₁ en (cmdsRun ls) → x₂ ∈ b → ¬ x₁ before x₂ en b → Disjoint (cmdRead ls x₂) (cmdWrote ls x₁)
+\end{code}}
 
+\begin{code}[hide]
 {- if ; reader is after the writer (in the run)
 
    but the reader is before the writer in the real build; then the reads/writes must be disjoint. 
@@ -253,19 +256,30 @@ what if we end up not running (A , 1)
 
 2. when a command is speculated
 -}
+\end{code}
 
+\newcommand{\hazard}{%
+\begin{code}
 data Hazard : System → Cmd → Build → FileInfo → Set where
   ReadWrite   : ∀ s x {b} ls v → v ∈ (cmdWrites s x) → v ∈ (filesRead ls) → Hazard s x b ls
   WriteWrite  : ∀ s x {b} ls v → v ∈ (cmdWrites s x) → v ∈ (filesWrote ls) → Hazard s x b ls
   Speculative : ∀ s x b ls x₁ x₂ v → x₂ before x₁ en (cmdsRun (save x (cmdReads s x) (cmdWrites s x) ls)) → x₂ ∈ b → ¬ x₁ before x₂ en b → v ∈ cmdRead (save x (cmdReads s x) (cmdWrites s x) ls) x₂ → v ∈ cmdWrote (save x (cmdReads s x) (cmdWrites s x) ls) x₁ → Hazard s x b ls
+\end{code}}
 
+\begin{code}[hide]
+∃Hazard : Build → Set
+∃Hazard b = ∃[ sys ](∃[ x ](∃[ ls ](Hazard sys x b ls)))
 
 hazardContradiction : ∀ s x b₂ ls → (hz : Hazard s x b₂ ls) → Disjoint (cmdWrites s x) (files ls) → ¬SpeculativeHazard b₂ (save x (cmdReads s x) (cmdWrites s x) ls) → ⊥
 hazardContradiction s x b ls hz dsj ¬sh with hz
 ... | ReadWrite .s .x .ls v v∈cw v∈rs = contradiction (v∈cw , ∈-++⁺ˡ v∈rs) dsj
 ... | WriteWrite .s .x .ls v v∈cw v∈ws = contradiction (v∈cw , ∈-++⁺ʳ (filesRead ls) v∈ws) dsj
 ... | Speculative .s .x .b .ls x₁ x₂ v bf x₂∈b ¬bf v∈rs v∈ws = contradiction (v∈rs , v∈ws) (¬sh x₁ x₂ bf x₂∈b ¬bf)
+\end{code}
 
+\newcommand{hazardfree}{%
+\begin{code}
 data HazardFree : System → Build → Build → FileInfo → Set where
   [] : ∀ {s} {b} {ls} → HazardFree s [] b ls
   :: : ∀ s ls x b₁ b₂ → ¬SpeculativeHazard b₂ (save x (cmdReads s x) (cmdWrites s x) ls) → Disjoint (cmdWrites s x) (files ls) → HazardFree (run oracle x s) b₁ b₂ (save x (cmdReads s x) (cmdWrites s x) ls) → HazardFree s (x ∷ b₁) b₂ ls
+\end{code}}

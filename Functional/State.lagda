@@ -1,5 +1,5 @@
 
-\begin{code}
+\begin{code}[hide]
 module Functional.State where
 
 open import Agda.Builtin.Equality
@@ -44,7 +44,7 @@ Memory : Set
 Memory = List (Cmd × List (FileName × Maybe FileContent))
 \end{code}}
 
-\begin{code}
+\begin{code}[hide]
 extend : File -> System -> System
 extend (k , v) st = \ k₁ -> if (k == k₁) then just v else st k₁
 
