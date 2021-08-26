@@ -32,10 +32,22 @@ Cmd : Set
 Cmd = String
 \end{code}}
 
+\newcommand{\cmdF}{%
+\begin{code}
+CmdFunction : Set
+CmdFunction = System → Files × Files
+\end{code}}
+
+\newcommand{\cmdP}{%
+\begin{code}
+CmdProof : CmdFunction → Set
+CmdProof f = ∀ s₁ s₂ → (∀ f₁ → f₁ ∈ map proj₁ (proj₁ (f s₁)) -> s₁ f₁ ≡ s₂ f₁) -> f s₁ ≡ f s₂ 
+\end{code}}
+
 \newcommand{\oracle}{%
 \begin{code}
 F : Set
-F = Cmd -> Σ[ f ∈ (System -> Files × Files) ](∀ s s₁ → (∀ f₁ → f₁ ∈ map proj₁ (proj₁ (f s)) -> s f₁ ≡ s₁ f₁) -> f s ≡ f s₁)
+F = Cmd -> Σ[ f ∈ CmdFunction ](CmdProof)
 \end{code}}
 
 \newcommand{\mem}{%

@@ -277,7 +277,7 @@ hazardContradiction s x b ls hz dsj ¬sh with hz
 ... | Speculative .s .x .b .ls x₁ x₂ v bf x₂∈b ¬bf v∈rs v∈ws = contradiction (v∈rs , v∈ws) (¬sh x₁ x₂ bf x₂∈b ¬bf)
 \end{code}
 
-\newcommand{hazardfree}{%
+\newcommand{\hazardfree}{%
 \begin{code}
 data HazardFree : System → Build → Build → FileInfo → Set where
   [] : ∀ {s} {b} {ls} → HazardFree s [] b ls
