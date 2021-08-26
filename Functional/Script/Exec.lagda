@@ -1,4 +1,4 @@
-
+\begin{code}[hide]
 open import Functional.State as St using (F ; run ; System ; Cmd ; trace ; run-≡)
 
 module Functional.Script.Exec (oracle : F) where
@@ -28,11 +28,16 @@ open import Data.Empty using (⊥)
 open import Data.List.Relation.Unary.All using (All ; lookup)
 open import Data.List.Relation.Unary.All.Properties using (++⁻ˡ ; ++⁻ʳ ; ++⁻ )
 open import Function using (_∘_)
+\end{code}
 
+\newcommand{\exec}{%
+\begin{code}
 exec : System -> Build -> System
 exec sys [] = sys
 exec sys (x ∷ b) = exec (run oracle x sys) b
+\end{code}}
 
+\begin{code}[hide]
 Cwrites : System -> Cmd -> List FileName
 Cwrites s x = proj₂ (trace oracle s x)
 
@@ -87,7 +92,7 @@ h₁ {s} f₁ x w (x₁ ∷ xs) ys (x₂ ∷ ls₁) ls₂ f₁∈ dsj x₁∷xs+
 exec-≡ : {sys sys₁ : System} (b : Build) -> (∀ f₁ → sys f₁ ≡ sys₁ f₁) -> (∀ f₁ → exec sys b f₁ ≡ exec sys₁ b f₁)
 exec-≡ [] ∀₁ f₁ = ∀₁ f₁
 exec-≡ (x ∷ b) ∀₁ = exec-≡ b λ f₁ → run-≡ {oracle} x ∀₁ f₁
-
+\end{code}
 
 
 

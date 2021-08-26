@@ -69,12 +69,15 @@ inputs f sys cmd = map proj₁ (proj₁ (proj₁ (f cmd) sys))
 trace : F -> System -> Cmd -> (List FileName × List FileName)
 trace f sys cmd = let (rs , ws) = proj₁ (f cmd) sys in
                     (map proj₁ rs , map proj₁ ws)
+\end{code}
 
-
+\newcommand{\run}{%
+\begin{code}
 run : F -> Cmd -> System -> System
 run f cmd sys = foldr extend sys (proj₂ (proj₁ (f cmd) sys))
+\end{code}}
 
-
+\begin{code}[hide]
 save : Cmd -> List FileName -> System -> Memory -> Memory
 save cmd files sys mm = (cmd , map (\f -> f , sys f) files) ∷ mm
 
