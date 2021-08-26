@@ -47,7 +47,7 @@ CmdProof f = ∀ s₁ s₂ → (∀ f₁ → f₁ ∈ map proj₁ (proj₁ (f s�
 \newcommand{\oracle}{%
 \begin{code}
 F : Set
-F = Cmd -> Σ[ f ∈ CmdFunction ](CmdProof)
+F = Cmd -> Σ[ f ∈ CmdFunction ](CmdProof f)
 \end{code}}
 
 \newcommand{\mem}{%
