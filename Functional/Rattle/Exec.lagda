@@ -201,7 +201,7 @@ runWError b (st , ls) x uls ub x∉ with (run? x st)
 ... | true = doRunWError b (st , ls) x (g₂ (map proj₁ ls) x∉ ∷ uls) ub
 \end{code}
 
-\newcommand{\exec}{%
+\newcommand{\Rexec}{%
 \begin{code}
 exec : State -> Build -> State
 exec st [] = st
