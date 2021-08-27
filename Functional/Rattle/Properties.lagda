@@ -149,7 +149,7 @@ completeness st@(s , mm) ls (x ∷ b₁) b₂ ((px ∷ ub₁) , ub₂ , uls , ds
         dsj₂ = λ x₁ → dsj₁ (there (proj₁ x₁) , tail (λ v≡x → lookup px (proj₁ x₁) (sym v≡x)) (proj₂ x₁))
 \end{code}
 
-\newcommand{\lemma1}{%
+\newcommand{\lemmasr}{%
 \begin{code}
 script≡rattle : ∀ {s₁} {s₂} mm b₁ → (∀ f₁ → s₁ f₁ ≡ s₂ f₁) → DisjointBuild s₂ b₁ → MemoryProperty mm → (∀ f₁ → Script.exec s₁ b₁ f₁ ≡ proj₁ (exec (s₂ , mm) b₁) f₁)
 \end{code}}
