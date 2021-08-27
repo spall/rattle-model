@@ -87,7 +87,7 @@ State : Set
 State = (System × Memory)
 \end{code}}
 
-\begin{code[hide]
+\begin{code}[hide]
 -- proofs --
 
 {- if f₁ is in ls, then f₁ will be the same after both systems are extended with ls -}
