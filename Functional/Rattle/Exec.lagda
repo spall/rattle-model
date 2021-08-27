@@ -1,3 +1,5 @@
+
+\begin{code}[hide]
 open import Functional.State as St using (State ; F ; Cmd ; System ; trace ; Memory)
 
 module Functional.Rattle.Exec (oracle : F) where
@@ -18,7 +20,7 @@ open import Data.Product.Properties using (≡-dec ; ,-injectiveˡ ; ,-injective
 open import Data.Product.Relation.Binary.Pointwise.NonDependent using (×-decidable ; ≡×≡⇒≡ ; ≡⇒≡×≡ )
 open import Function.Base using (_∘_)
 open import Functional.File using (FileName ; FileContent)
-open import Functional.Build using (Build ; ΣNBuild ; Unique-> ; NBuild ; ¬≡-⊎->⇒¬≡)
+open import Functional.Build using (Build)
 open import Relation.Binary using (Decidable)
 open import Relation.Nullary.Decidable as Dec using (isYes ; map′)
 open import Relation.Nullary.Negation using (¬? ; contradiction)
@@ -32,7 +34,7 @@ open import Relation.Nullary using (yes ; no ; ¬_)
 open import Data.List.Relation.Unary.Any using (tail ; here ; there)
 open import Functional.Script.Exec (oracle)  as S hiding (exec)
 open import Common.List.Properties using (_before_en_ ; before-∷)
-open import Functional.Script.Hazard (oracle) using (Hazard ; cmdReads ; cmdWrites ; save ; WriteWrite ; ReadWrite ; Speculative ; filesRead ; filesWrote ; cmdRead ; cmdWrote ; cmdsRun ; FileInfo ; ∈-cmdWrote∷ ; ∈-cmdRead∷)
+open import Functional.Script.Hazard (oracle) using (Hazard ; cmdReads ; cmdWrites ; save ; WriteWrite ; ReadWrite ; Speculative ; filesRead ; filesWrote ; cmdRead ; cmdWrote ; cmdsRun ; FileInfo ; ∈-cmdWrote∷ ; ∈-cmdRead∷ ; ∃Hazard)
 open import Data.List.Relation.Unary.AllPairs using (_∷_)
 open import Relation.Binary.PropositionalEquality using (cong ; trans ; sym ; subst ; _≢_)
 open import Data.List.Relation.Unary.All using (All ; lookup)
@@ -197,16 +199,28 @@ runWError : ∀ b → (((s , mm) , ls) : State × FileInfo) → (x : Cmd) → Un
 runWError b (st , ls) x uls ub x∉ with (run? x st)
 ... | false = inj₂ (st , ls , uls , inj₁ refl)
 ... | true = doRunWError b (st , ls) x (g₂ (map proj₁ ls) x∉ ∷ uls) ub
+\end{code}
 
+\newcommand{\exec}{%
+\begin{code}
 exec : State -> Build -> State
 exec st [] = st
 exec st (x ∷ b) = exec (run st x) b
+\end{code}}
 
-execWError : ∀ (st@(_ , ls) : State × FileInfo) b₁ b₂ → Unique b₁ → Unique b₂ → Unique (map proj₁ ls) → Disjoint b₁ (map proj₁ ls) → ∃[ s ](∃[ x ](∃[ ls ](Hazard s x b₂ ls))) ⊎ State × FileInfo
-execWError st [] b₂ ub₁ ub₂ uls dsj = inj₂ st
-execWError st (x ∷ b₁) b₂ (px ∷ ub₁) ub₂ uls dsj with runWError b₂ st x uls ub₂ λ x₁ → dsj (here refl , x₁)
+\begin{code}[hide]
+UniqueEvidence : Build → Build → List Cmd → Set
+UniqueEvidence b₁ b₂ ls = Unique b₁ × Unique b₂ × Unique ls × Disjoint b₁ ls
+\end{code}
+
+\newcommand{\execWError}{%
+\begin{code}
+execWError : ∀ (st@(_ , ls) : State × FileInfo) b₁ b₂ → UniqueEvidence b₁ b₂ (map proj₁ ls) → ∃Hazard b₂ ⊎ State × FileInfo
+execWError st [] b₂ (ub₁ , ub₂ , uls , dsj) = inj₂ st
+execWError st (x ∷ b₁) b₂ ((px ∷ ub₁) , ub₂ , uls , dsj) with runWError b₂ st x uls ub₂ λ x₁ → dsj (here refl , x₁)
 ... | inj₁ hz = inj₁ (proj₁ (proj₁ st) , x , proj₂ st , hz)
-... | inj₂ (st₁ , ls₁ , uls₁ , inj₁ ≡₁) = execWError (st₁ , ls₁) b₁ b₂ ub₁ ub₂ uls₁ λ x₂ → dsj (there (proj₁ x₂) , subst (λ x₃ → _ ∈ x₃) ≡₁ (proj₂ x₂))
-... | inj₂ (st₁ , ls₁ , uls₁ , inj₂ ≡₁) = execWError (st₁ , ls₁) b₁ b₂ ub₁ ub₂ uls₁ λ x₁ → dsj (there (proj₁ x₁) , g₁ (proj₂ x₁) ≡₁ λ v≡x → lookup px (proj₁ x₁) (sym v≡x))
+... | inj₂ (st₁ , ls₁ , uls₁ , inj₁ ≡₁) = execWError (st₁ , ls₁) b₁ b₂ (ub₁ , ub₂ , uls₁ , λ x₂ → dsj (there (proj₁ x₂) , subst (λ x₃ → _ ∈ x₃) ≡₁ (proj₂ x₂)))
+... | inj₂ (st₁ , ls₁ , uls₁ , inj₂ ≡₁) = execWError (st₁ , ls₁) b₁ b₂ (ub₁ , ub₂ , uls₁ , λ x₁ → dsj (there (proj₁ x₁) , g₁ (proj₂ x₁) ≡₁ λ v≡x → lookup px (proj₁ x₁) (sym v≡x)))
   where g₁ : ∀ {v} {ls₁} {ls₂} {x} → v ∈ ls₁ → ls₁ ≡ x ∷ ls₂ → ¬ v ≡ x → v ∈ ls₂
         g₁ v∈ls₁ ls₁≡x∷ls₂ ¬v≡x = tail ¬v≡x (subst (λ x₁ → _ ∈ x₁) ls₁≡x∷ls₂ v∈ls₁)
+\end{code}}

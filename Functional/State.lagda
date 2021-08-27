@@ -80,10 +80,14 @@ run f cmd sys = foldr extend sys (proj₂ (proj₁ (f cmd) sys))
 \begin{code}[hide]
 save : Cmd -> List FileName -> System -> Memory -> Memory
 save cmd files sys mm = (cmd , map (\f -> f , sys f) files) ∷ mm
-
+\end{code}
+\newcommand{\state}{%
+\begin{code}
 State : Set
-State = (System × Memory) {- can add more later if needed -}
+State = (System × Memory)
+\end{code}}
 
+\begin{code[hide]
 -- proofs --
 
 {- if f₁ is in ls, then f₁ will be the same after both systems are extended with ls -}
