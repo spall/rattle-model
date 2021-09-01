@@ -1,5 +1,5 @@
 
-\begin{code}
+\begin{code}[hide]
 module Functional.Build where
 
 open import Data.List using (List)
