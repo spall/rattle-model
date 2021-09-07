@@ -9,11 +9,14 @@ open import Data.String using (String)
 FileName : Set
 FileName = String
 
+FileNames : Set
+FileNames = List FileName
+
 FileContent : Set
 FileContent = String
 
 File : Set
-File = (FileName × FileContent)
+File = FileName × FileContent
 
 Files : Set
 Files = List File
