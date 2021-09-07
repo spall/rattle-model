@@ -1,9 +1,10 @@
 
 \begin{code}[hide]
-open import Functional.State as St using (State ; F ; Cmd ; System ; trace ; Memory)
+open import Functional.State using (State ; F ; Cmd ; System ; Memory ; save)
 
 module Functional.Rattle.Exec (oracle : F) where
 
+open import Functional.State.Helpers (oracle) as St hiding (run)
 open import Agda.Builtin.Equality
 open import Agda.Builtin.Nat renaming (Nat to ℕ)
 open import Data.Nat using (_≤_)
@@ -34,15 +35,15 @@ open import Relation.Nullary using (yes ; no ; ¬_)
 open import Data.List.Relation.Unary.Any using (tail ; here ; there)
 open import Functional.Script.Exec (oracle)  as S hiding (exec)
 open import Common.List.Properties using (_before_en_ ; before-∷)
-open import Functional.Script.Hazard (oracle) using (Hazard ; cmdReads ; cmdWrites ; save ; WriteWrite ; ReadWrite ; Speculative ; filesRead ; filesWrote ; cmdRead ; cmdWrote ; cmdsRun ; FileInfo ; ∈-cmdWrote∷ ; ∈-cmdRead∷ ; ∃Hazard)
+open import Functional.Script.Hazard (oracle) using (Hazard ; WriteWrite ; ReadWrite ; Speculative ; filesRead ; filesWrote ; cmdRead ; cmdWrote ; cmdsRun ; FileInfo ; ∈-cmdWrote∷ ; ∈-cmdRead∷ ; ∃Hazard ; ¬SpeculativeHazard ; before?) renaming (save to rec)
 open import Data.List.Relation.Unary.AllPairs using (_∷_)
 open import Relation.Binary.PropositionalEquality using (cong ; trans ; sym ; subst ; _≢_)
 open import Data.List.Relation.Unary.All using (All ; lookup)
 open import Data.List.Relation.Binary.Disjoint.Propositional using (Disjoint)
 
 doRun : State -> Cmd -> State
-doRun (sys , mm) cmd = let sys₂ = St.run oracle cmd sys in
-                           (sys₂ , St.save cmd ((cmdReads sys cmd) ++ (cmdWrites sys cmd)) sys₂ mm)
+doRun (sys , mm) cmd = let sys₂ = St.run cmd sys in
+                           (sys₂ , save cmd ((cmdReadNames cmd sys) ++ (cmdWriteNames cmd sys)) sys₂ mm)
 
 {- check for hazards
 
@@ -92,35 +93,14 @@ required? x (x₁ ∷ b) ls bf | yes x≡x₁ with subset? bf ls
 ... | true = just (here x≡x₁)
 ... | false = nothing
 
-
-{- I shouldn't have to say x is in this list, but if I dont I have to deal with the case 
-   where b is empty and I can't seem to get agda to agree the empty list doesnt equal a
-   non empty list easily and I can't be bothered to figure this out right now. -}
-∃-¬Before : ∀ x x₁ b → Unique b → x₁ ∈ b → (¬ x before x₁ en b) ⊎ (x before x₁ en b)
-∃-¬Before x x₁ (x₂ ∷ b) (px ∷ u) x₁∈b with x₁ ≟ x₂
-... | yes x₁≡x₂ = inj₁ g₁
-  where g₁ : x before x₁ en (x₂ ∷ b) → ⊥
-        g₁ ([] , ys , ≡₁ , x₁∈ys) with ∷-injective ≡₁
-        ... | x₂≡x , b≡ys = lookup px (subst (λ x₃ → x₁ ∈ x₃) (sym b≡ys) x₁∈ys) (sym x₁≡x₂)
-        g₁ (x₃ ∷ xs , ys , ≡₁ , x₁∈ys) = lookup px (subst (λ x₄ → x₁ ∈ x₄) (sym (∷-injectiveʳ ≡₁)) (∈-++⁺ʳ xs (there x₁∈ys))) (sym x₁≡x₂)
-... | no ¬x₁≡x₂ with x₂ ≟ x
-... | yes x₂≡x = inj₂ ([] , b , cong (_∷ b) x₂≡x , tail ¬x₁≡x₂ x₁∈b)
-... | no ¬x≡x₂ with ∃-¬Before x x₁ b u (tail ¬x₁≡x₂ x₁∈b)
-... | inj₂ (xs , ys , ≡₁ , x₁∈ys) = inj₂ (x₂ ∷ xs , ys , cong (x₂ ∷_) ≡₁ , x₁∈ys)
-... | inj₁ ¬bf = inj₁ g₁
-  where g₁ : x before x₁ en (x₂ ∷ b) → ⊥
-        g₁ ([] , ys , ≡₁ , x₁∈ys) = ¬x≡x₂ (∷-injectiveˡ ≡₁)
-        g₁ (x₃ ∷ xs , ys , ≡₁ , x₁∈ys) = ¬bf (xs , ys , ∷-injectiveʳ ≡₁ , x₁∈ys)
-
-
 ∃Speculative2 : ∀ x₂ b ls rs → Unique (map proj₁ ls) → Unique b → x₂ ∈ b → Maybe (∃[ x₁ ](∃[ v ](x₁ ∈ (cmdsRun ls) × ¬ x₁ before x₂ en b × v ∈ rs × v ∈ cmdWrote ls x₁)))
 ∃Speculative2 x₂ b [] rs uls ub x₂∈b = nothing
-∃Speculative2 x₂ b (x ∷ ls) rs (px ∷ uls) ub x₂∈b with ∃-¬Before (proj₁ x) x₂ b ub x₂∈b
-... | inj₂ bf with ∃Speculative2 x₂ b ls rs uls ub x₂∈b
+∃Speculative2 x₂ b (x ∷ ls) rs (px ∷ uls) ub x₂∈b with before? (proj₁ x) x₂ b -- ∃-¬Before (proj₁ x) x₂ b ub x₂∈b
+... | yes bf with ∃Speculative2 x₂ b ls rs uls ub x₂∈b
 ... | nothing = nothing
 ... | just (x₁ , v , x₁∈ls , ¬bf , v∈rs , v∈ws)
   = just (x₁ , v , there x₁∈ls , ¬bf , v∈rs , ∈-cmdWrote∷ x x₁ ls v∈ws (lookup px x₁∈ls))
-∃Speculative2 x₂ b (x ∷ ls) rs (px ∷ uls) ub x₂∈b | inj₁ ¬bf with ∃Intersection rs (cmdWrote (x ∷ ls) (proj₁ x))
+∃Speculative2 x₂ b (x ∷ ls) rs (px ∷ uls) ub x₂∈b | no ¬bf with ∃Intersection rs (cmdWrote (x ∷ ls) (proj₁ x))
 ... | just (v , v∈rs , v∈ws) = just (proj₁ x , v , here refl , ¬bf , v∈rs , v∈ws)
 ... | nothing with ∃Speculative2 x₂ b ls rs uls ub x₂∈b
 ... | nothing = nothing
@@ -153,7 +133,7 @@ required? x (x₁ ∷ b) ls bf | yes x≡x₁ with subset? bf ls
 
 
 ∃Speculative : ∀ s x b ls → Unique (x ∷ (map proj₁ ls)) → Unique b → Maybe (Hazard s x b ls)
-∃Speculative s x b ls uls ub with ∃Speculative1 (save x (cmdReads s x) (cmdWrites s x) ls) b [] uls ub
+∃Speculative s x b ls uls ub with ∃Speculative1 (rec x (cmdReadNames x s) (cmdWriteNames x s) ls) b [] uls ub
 ... | nothing = nothing
 ... | just (x₁ , x₂ , v , bf , x₁∈b , ¬bf , v∈cr , v∈cw)
   = just (Speculative s x b ls x₁ x₂ v bf x₁∈b ¬bf v∈cr v∈cw)
@@ -161,12 +141,12 @@ required? x (x₁ ∷ b) ls bf | yes x≡x₁ with subset? bf ls
 
 {- is there a read/write or write/write hazard? -}
 ∃WriteWrite : ∀ s x b ls → Maybe (Hazard s x b ls)
-∃WriteWrite s x b ls with ∃Intersection (cmdWrites s x) (filesWrote ls)
+∃WriteWrite s x b ls with ∃Intersection (cmdWriteNames x s) (filesWrote ls)
 ... | nothing = nothing
 ... | just (v , v∈ws , v∈wrotes) = just (WriteWrite s x ls v v∈ws v∈wrotes)
 
 ∃ReadWrite : ∀ s x b ls → Maybe (Hazard s x b ls)
-∃ReadWrite s x b ls with ∃Intersection (cmdWrites s x) (filesRead ls)
+∃ReadWrite s x b ls with ∃Intersection (cmdWriteNames x s) (filesRead ls)
 ... | nothing = nothing
 ... | just (v , v∈ws , v∈reads) = just (ReadWrite s x ls v v∈ws v∈reads)
 
@@ -181,8 +161,8 @@ checkHazard s x b ls uls ub with ∃WriteWrite s x b ls
 doRunWError : ∀ b → (((s , mm) , ls) : State × FileInfo) → (x : Cmd) → Unique (x ∷ (map proj₁ ls)) → Unique b → Hazard s x b ls ⊎ ∃[ st ](Σ[ ls₁ ∈ FileInfo ](Unique (map proj₁ ls₁) × ((map proj₁ ls₁) ≡ (map proj₁ ls) ⊎ (map proj₁ ls₁) ≡ x ∷ (map proj₁ ls))))
 doRunWError b ((s , mm) , ls) x uls ub with checkHazard s x b ls uls ub
 ... | just hz = inj₁ hz
-... | nothing = let sys₁ = St.run oracle x s in
-                inj₂ ((sys₁ , St.save x ((cmdReads s x) ++ (cmdWrites s x)) sys₁ mm) , save x (cmdReads s x) (cmdWrites s x) ls , uls , inj₂ refl)
+... | nothing = let sys₁ = St.run x s in
+                inj₂ ((sys₁ , save x ((cmdReadNames x s) ++ (cmdWriteNames x s)) sys₁ mm) , rec x (cmdReadNames x s) (cmdWriteNames x s) ls , uls , inj₂ refl)
 
 
 run : State -> Cmd -> State
