@@ -227,7 +227,7 @@ we would have a speculative hazard if
 -}
 \end{code}
 
-\newcommand{\correct2}{%
+\newcommand{\correctS}{%
 \begin{code}
 correct2 : ∀ b₁ b₂ s mm ls → DisjointBuild s b₁ → MemoryProperty mm → (ue : UniqueEvidence b₁ b₂ (map proj₁ ls))
   → ¬ HazardFree s b₂ _ ls ⊎ ∃[ st₁ ](execWError ((s , mm) , ls) b₁ b₂ ue ≡ inj₂ st₁ × ∀ f₁ → proj₁ (proj₁ st₁) f₁ ≡ Script.exec s b₂ f₁)
@@ -264,10 +264,11 @@ correct2 b₁ b₂ s mm ls dsb mp ue with execWError ((s , mm) , ls) b₁ b₂ u
 
 goal: with speculation you get a hazard or you get the right answer.  partly correct.  b1 is hazardfree. 
 
-\newcommand{\correct3}{%
+\newcommand{\correctP}{%
 \begin{code}
 semi-correct : ∀ s mm ls b₁ b₂ → b₂ ↭ b₁ → HazardFree s b₂ [] ls → DisjointBuild s b₁ → MemoryProperty mm → (ue : UniqueEvidence b₁ b₂ (map proj₁ ls)) → ¬ HazardFree s b₁ b₂ ls ⊎ ∃[ st₁ ](execWError ((s , mm) , ls) b₁ b₂ ue ≡ inj₂ st₁ × ∀ f₁ → proj₁ (proj₁ st₁) f₁ ≡ Script.exec s b₂ f₁)
 \end{code}}
+
 \begin{code}[hide]
 semi-correct s mm ls b₁ b₂ b₂↭b₁ hf₁ dsb mp ue with hazardfree? s b₁ b₂ ls -- execWError ((s , mm) , ls) b₁ b₂ ue | inspect (execWError ((s , mm) , ls) b₁ b₂) ue
 ... | no hz = inj₁ hz
