@@ -232,7 +232,7 @@ we would have a speculative hazard if
 correct2 : ∀ b₁ b₂ s mm ls → DisjointBuild s b₁ → MemoryProperty mm → (ue : UniqueEvidence b₁ b₂ (map proj₁ ls))
   → ¬ HazardFree s b₂ _ ls ⊎ ∃[ st₁ ](execWError ((s , mm) , ls) b₁ b₂ ue ≡ inj₂ st₁ × ∀ f₁ → proj₁ (proj₁ st₁) f₁ ≡ Script.exec s b₂ f₁)
 \end{code}}
-\begin{code}
+\begin{code}[hide]
 correct2 b₁ b₂ s mm ls dsb mp ue with execWError ((s , mm) , ls) b₁ b₂ ue | inspect (execWError ((s , mm) , ls) b₁ b₂) ue
 ... | inj₁ hz | [ ≡₁ ] = {!!}
 {- proof plan:

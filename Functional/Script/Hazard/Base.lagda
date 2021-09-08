@@ -276,7 +276,7 @@ data Hazard : System → Cmd → Build → FileInfo → Set where
 data HazardFreeCmd : System → Cmd → Build → FileInfo → Set where
   HFC : ∀ {s} {ls} {x} {b₂} → ¬SpeculativeHazard b₂ (save x (cmdReadNames x s) (cmdWriteNames x s) ls) → Disjoint (cmdWriteNames x s) (files ls) → HazardFreeCmd s x b₂ ls
 \end{code}}
-\begin{code}
+\begin{code}[hide]
 hazardContradiction : ∀ s x b₂ ls → (hz : Hazard s x b₂ ls) → HazardFreeCmd s x b₂ ls → ⊥
 hazardContradiction s x b ls hz (HFC ¬sh dsj) with hz
 ... | ReadWrite .s .x .ls v v∈cw v∈rs = contradiction (v∈cw , ∈-++⁺ˡ v∈rs) dsj
