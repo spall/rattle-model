@@ -1,9 +1,10 @@
 
-open import Functional.State as St using (State ; F ; Cmd ; save ; System ; trace ; Memory ; extend)
+open import Functional.State using (State ; F ; Cmd ; save ; System ; Memory ; extend)
 
 module Functional.Forward.Exec (oracle : F) where
 
 open import Agda.Builtin.Equality
+open import Functional.State.Helpers (oracle) as St using (cmdReadNames)
 open import Data.Bool using (Bool ; if_then_else_)
 open import Data.List using (List ; [] ; _∷_ ; map ; filter ; foldr ; _++_)
 open import Data.String.Properties using (_≟_ ; _==_)
@@ -44,8 +45,8 @@ run? cmd (sys , mm) with cmd ∈? map proj₁ mm
 ... | yes cmd∈ = is-nothing (maybeAll {sys} (get cmd mm cmd∈))
 
 doRun : State -> Cmd -> State
-doRun (sys , mm) cmd = let sys₂ = St.run oracle cmd sys in
-                           (sys₂ , save cmd (proj₁ (trace oracle sys cmd)) sys₂ mm)
+doRun (sys , mm) cmd = let sys₂ = St.run cmd sys in
+                           (sys₂ , save cmd (cmdReadNames cmd sys) sys₂ mm)
 
 run : State -> Cmd -> State
 run st cmd = if (run? cmd st)

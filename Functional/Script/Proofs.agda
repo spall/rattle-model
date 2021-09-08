@@ -1,17 +1,19 @@
+{-# OPTIONS --allow-unsolved-metas #-}
 
-open import Functional.State as St using (F ; System ; trace ; Cmd ; run ; extend ; inputs ; read ; Memory)
+open import Functional.State as St using (F ; System ; Cmd ; extend ; read ; Memory)
 
 module Functional.Script.Proofs (oracle : F) where
 
 open import Agda.Builtin.Equality
-open import Functional.Script.Exec (oracle) using (exec)
+open import Functional.State.Helpers (oracle) using (cmdWriteNames ; run ; cmdReadNames)
+open import Functional.Script.Exec (oracle) using (exec ; buildWriteNames)
 open import Functional.Script.Hazard (oracle) using (HazardFree ; FileInfo)
 open import Functional.Script.Hazard.Properties (oracle) using (hf-∷ʳ-l ; hf-drop-mid)
 open import Data.Sum using (inj₁ ; inj₂)
-open import Data.List using (_∷ʳ_)
-open import Data.List.Properties using (unfold-reverse)
-open import Data.List.Relation.Binary.Permutation.Propositional using (_↭_ ; ↭-sym)
-open import Data.List.Relation.Binary.Permutation.Propositional.Properties using (Any-resp-↭ ; drop-mid ; ↭-length ; ∈-resp-↭)
+open import Data.List using (_∷ʳ_ ; List)
+open import Data.List.Properties using (unfold-reverse ; reverse-involutive ; ++-identityʳ ; length-reverse)
+open import Data.List.Relation.Binary.Permutation.Propositional using (_↭_ ; ↭-sym ; ↭-refl ; ↭-trans)
+open import Data.List.Relation.Binary.Permutation.Propositional.Properties using (Any-resp-↭ ; drop-mid ; ↭-length ; ∈-resp-↭ ; ++↭ʳ++)
 open import Data.List.Relation.Unary.Unique.Propositional using (Unique ; _∷_ ; head ; tail ; [])
 open import Data.List.Relation.Unary.Unique.Propositional.Properties using (++⁺)
 open import Data.List using (map ; reverse ; length ; [] ; _∷_ ; _++_ ; [_])
@@ -26,6 +28,8 @@ open import Data.List.Relation.Unary.All as All using (All ; _∷_)
 open import Data.List.Relation.Unary.All.Properties as AllP hiding (++⁺)
 open import Relation.Nullary using (¬_)
 open import Functional.Build using (Build)
+open import Functional.Script.Properties (oracle) using (exec-f₁≡ ; exec-≡f₁ ; writes≡)
+open import Functional.Rattle.Exec (oracle) using (UniqueEvidence)
 
 {- If we follow the concept of hazardfree, it doesn't make sense, for 
   a hazardfree build to contain duplicates because those commands would need to do the
@@ -54,17 +58,21 @@ unique-reverse [] u = []
 unique-reverse (x₁ ∷ xs) (px ∷ u) with ++⁺ (unique-reverse xs u) (All.[] ∷ []) (unique→disjoint (reverse xs) (all-reverse xs px))
 ... | u₁ = subst (λ ls → Unique ls) (sym (unfold-reverse x₁ xs)) u₁
 
+-- we are adding x back and we need to prove its still the same.
+-- how did we do this before??????????
 lemma1 : ∀ {s} {b₁} {xs} {ys} {x} → (∀ f₁ → exec s (reverse b₁) f₁ ≡ exec s (xs ++ ys) f₁) → (∀ f₁ → exec s (reverse (x ∷ b₁)) f₁ ≡ exec s (xs ++ x ∷ ys) f₁)
-lemma1 ∀₁ = {!!}
-
+lemma1 {s} {b₁} {xs} {ys} {x} ∀₁ f₁ = subst (λ x₁ → exec s x₁ f₁ ≡ exec s (xs ++ x ∷ ys) f₁)
+                                            (sym (unfold-reverse x b₁))
+                                            (exec-f₁≡ s f₁ x (reverse b₁) xs ys ∀₁ {!!} {!!} {!!})
 
 {- length equivalence just makes the proof smaller -}
-reordered-inner : ∀ {s} b₁ b₂ ls → {length b₁ ≡ length b₂} → b₁ ↭ b₂ → Unique b₁ → Unique b₂ → Unique (map proj₁ ls) → Disjoint b₂ (map proj₁ ls) → HazardFree s (reverse b₁) [] ls → HazardFree s b₂ (reverse b₁) ls → (∀ f₁ → exec s (reverse b₁) f₁ ≡ exec s b₂ f₁)
-reordered-inner [] [] ls ↭₁ ub₁ ub₂ uls dsj hf₁ hf₂ = λ f₁ → refl
+-- all of those unique and disjoint things are called UniqueEvidence now so replace to make it look better.
+reordered-inner : ∀ {s} b₁ b₂ ls → {length b₁ ≡ length b₂} → b₁ ↭ b₂ → UniqueEvidence b₂ b₁ (map proj₁ ls) → HazardFree s (reverse b₁) [] ls → HazardFree s b₂ (reverse b₁) ls → (∀ f₁ → exec s (reverse b₁) f₁ ≡ exec s b₂ f₁)
+reordered-inner [] [] ls ↭₁ (ub₂ , ub₁ , uls , dsj) hf₁ hf₂ = λ f₁ → refl
 {- we remove x from both builds ; 
    then show adding x back in gives us equivalent system still -}
-reordered-inner {s} (x ∷ b₁) b₂ ls ↭₁ (px ∷ ub₁) ub₂ uls dsj hf hf₂ with ∈-∃++ (Any-resp-↭ ↭₁ (here refl)) -- find x in b₂
-... | xs , ys , b₂≡xs++x∷ys with reordered-inner b₁ (xs ++ ys) ls {↭-length ↭₂} ↭₂ ub₁ (unique-drop-mid xs ub₃) uls dsj₂ hf₃ hf₄
+reordered-inner {s} (x ∷ b₁) b₂ ls ↭₁ (ub₂ , (px ∷ ub₁) , uls , dsj) hf hf₂ with ∈-∃++ (Any-resp-↭ ↭₁ (here refl)) -- find x in b₂
+... | xs , ys , b₂≡xs++x∷ys with reordered-inner b₁ (xs ++ ys) ls {↭-length ↭₂} ↭₂ ((unique-drop-mid xs ub₃) , ub₁ , uls , dsj₂) hf₃ hf₄
   where ↭₂ : b₁ ↭ xs ++ ys
         ↭₂ = drop-mid [] xs (subst (λ x₁ → x ∷ b₁ ↭ x₁) b₂≡xs++x∷ys ↭₁)
         ub₃ : Unique (xs ++ x ∷ ys)
@@ -84,6 +92,62 @@ reordered-inner {s} (x ∷ b₁) b₂ ls ↭₁ (px ∷ ub₁) ub₂ uls dsj hf 
                     ... | a with ∈-resp-↭ (↭-sym ↭₁) a
                     ... | a₂ with reverse⁺ a₂
                     ... | a₃ = subst (λ x₁ → _ ∈ x₁) (unfold-reverse x b₁) a₃
-        -- use reverse-involutive or something
-... | ∀₁ = lemma1 ∀₁
+        -- add back x.
+... | ∀₁ = λ f₁ → subst₂ (λ x₁ x₂ → exec s x₁ f₁ ≡ exec s x₂ f₁)
+                                            (sym (unfold-reverse x b₁)) (sym b₂≡xs++x∷ys)
+                                            (exec-f₁≡ s f₁ x (reverse b₁) xs ys ∀₁ ≡₁ {!!} dsj₁)
+          -- need to prove x does the same thing in both builds.
+    where dsj₁ : Disjoint (cmdWriteNames x (exec s xs)) (buildWriteNames (run x (exec s xs)) ys)
+          dsj₁ = {!!}
+          dsj₃ : Disjoint (cmdReadNames x (exec s xs)) (buildWriteNames (run x (exec s xs)) ys)
+          dsj₃ = {!!}
+          ≡₂ : buildWriteNames (run x (exec s xs)) ys ≡ buildWriteNames (exec s xs) ys
+          ≡₂ = writes≡ (run x (exec s xs)) (exec s xs) ys {!!}
+          dsj₂ : Disjoint (cmdReadNames x (exec s xs)) (buildWriteNames (exec s xs) ys)
+          dsj₂ = subst (λ x₁ → Disjoint (cmdReadNames x (exec s xs)) x₁) ≡₂ dsj₃
+          ≡₁ : proj₁ (oracle x) (exec s (reverse b₁)) ≡ proj₁ (oracle x) (exec s xs)
+          ≡₁ = sym (proj₂ (oracle x) (exec s xs) (exec s (reverse b₁))
+               λ f₁ x₁ → trans (exec-≡f₁ s f₁ xs ys λ x₂ → dsj₂ (x₁ , x₂)) (sym (∀₁ f₁)))
 
+{- Goal: Disjoint (cmdReadNames x (exec s xs)) (buildWriteNames (exec s xs) ys)
+ We know: Disjoint (cmdReadNames x (exec s xs)) (buildWriteNames (run x (exec s xs)) ys)
+          Disjoint (cmdWriteNames x (exec s xs)) (buildReadNames (run x (exec s xs)) ys)
+
+new Goal : buildWriteNames (run x (exec s xs)) ys ≡ buildWriteNames (exec s xs) ys
+
+Other goal: exec s xs f₁ ≡ exec s (xs ++ ys) f₁ ; where f₁ ∈ reads of x 
+-- this should be true if f₁ not in the writes of ys. 
+-- we know 
+
+-- deeply annoying that holes 5 and 6 are not filled by the same thing; since they are very similar
+-}
+
+{- 
+(exec-f₁≡ s f₁ x (reverse b) ls₁ ls₂ ∀₂ ≡₂ all₁ dsj)
+                       
+          where ∀₂ : (∀ f₂ → S.exec s (reverse b) f₂ ≡ S.exec s (ls₁ ++ ls₂) f₂)
+                ∀₂ = subst (λ x₁ → ∀ f₂ → _ ≡ S.exec s x₁ f₂) (reverse-involutive (ls₁ ++ ls₂)) ∀₁
+                hf₃ : {xs : List String} (s : System) (x : Cmd) (ls₁ ls₂ : Build) -> HazardFree s (ls₁ ++ x ∷ ls₂) xs -> HazardFree (S.exec s ls₁) (x ∷ ls₂) (S.build-rws s ls₁ xs)
+                hf₃ s x [] ls₂ hf = hf
+                hf₃ s x (x₁ ∷ ls₁) ls₂ (Cons _ .x₁ .(ls₁ ++ x ∷ ls₂) x₂ hf)
+                  = hf₃ (run oracle x₁ s) x ls₁ ls₂ hf
+                dsj : Disjoint (S.Cwrites (S.exec s ls₁) x) (writes (run oracle x (S.exec s ls₁)) ls₂)
+                dsj = hf→disjointWrites (S.exec s ls₁) x ls₂ (hf₃ s x ls₁ ls₂ (subst (λ x₄ → HazardFree s x₄ _) reverse-b₁≡ls₁++x∷ls₂ hf₂))
+                dsj₁ : Disjoint (S.Creads (S.exec s ls₁) x) (writes (S.exec s ls₁) ls₂)
+                dsj₁ = still-disjoint (S.exec s ls₁) x ls₂
+                       (hfr→disjoint s x (reverse b) ls₁ ls₂ hfr₁)
+                       (hf→disjointReads (S.exec s ls₁) x ls₂ (hf₃ s x ls₁ ls₂ (subst (λ x₄ → HazardFree s x₄ _) reverse-b₁≡ls₁++x∷ls₂ hf₂)))
+                ≡₂ : proj₁ (oracle x) (S.exec s (reverse b)) ≡ proj₁ (oracle x) (S.exec s ls₁)
+                ≡₂ = S.h₄ (S.exec s (reverse b)) (S.exec s ls₁) x (all≡ s (S.Creads (S.exec s ls₁) x) (reverse b) ls₁ ls₂ dsj₁ ∀₂)
+                all₁ : All (λ f₂ → S.exec s ls₁ f₂ ≡ run oracle x (S.exec s ls₁) f₂) (S.reads (run oracle x (S.exec s ls₁)) ls₂)
+                all₁ = St.lemma5 {S.exec s ls₁} (S.reads (run oracle x (S.exec s ls₁)) ls₂) (proj₂ (proj₁ (oracle x) (S.exec s ls₁))) (hfr→disjoint s x (reverse b) ls₁ ls₂ hfr₁)
+
+
+-}
+
+↭-reverse : ∀ (xs : Build) → xs ↭ reverse xs
+↭-reverse xs = subst (λ x → x ↭ reverse xs) (++-identityʳ xs) (++↭ʳ++ xs [])
+
+reordered : ∀ {s} b₁ b₂ ls → b₁ ↭ b₂ → UniqueEvidence b₂ b₁ (map proj₁ ls) → HazardFree s b₁ [] ls → HazardFree s b₂ b₁ ls → (∀ f₁ → exec s b₁ f₁ ≡ exec s b₂ f₁)
+reordered b₁ b₂ ls ↭₁ (ub₂ , ub₁ , uls , dsj) hf₁ hf₂ f₁ with reordered-inner (reverse b₁) b₂ ls {trans (length-reverse b₁) (↭-length ↭₁)} (↭-trans (↭-sym (↭-reverse b₁)) ↭₁) (ub₂ , (unique-reverse b₁ ub₁) , uls , dsj) (subst (λ x → HazardFree _ x [] ls) (sym (reverse-involutive b₁)) hf₁) (subst (λ x → HazardFree _ b₂ x ls) (sym (reverse-involutive b₁)) hf₂) f₁
+... | ≡₁ = subst (λ x → exec _ x f₁ ≡ exec _ b₂ f₁) (reverse-involutive b₁) ≡₁
