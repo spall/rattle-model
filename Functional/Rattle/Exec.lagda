@@ -184,9 +184,11 @@ runWError b (st , ls) x uls ub x∉ with (run? x st)
 \newcommand{\Rexec}{%
 \begin{code}
 exec : State -> Build -> State
+\end{code}}
+\begin{code}[hide]
 exec st [] = st
 exec st (x ∷ b) = exec (run st x) b
-\end{code}}
+\end{code}
 
 \begin{code}[hide]
 UniqueEvidence : Build → Build → List Cmd → Set
@@ -196,6 +198,8 @@ UniqueEvidence b₁ b₂ ls = Unique b₁ × Unique b₂ × Unique ls × Disjoin
 \newcommand{\execWError}{%
 \begin{code}
 execWError : ∀ (st@(_ , ls) : State × FileInfo) b₁ b₂ → UniqueEvidence b₁ b₂ (map proj₁ ls) → ∃Hazard b₂ ⊎ State × FileInfo
+\end{code}}
+\begin{code}[hide]
 execWError st [] b₂ (ub₁ , ub₂ , uls , dsj) = inj₂ st
 execWError st (x ∷ b₁) b₂ ((px ∷ ub₁) , ub₂ , uls , dsj) with runWError b₂ st x uls ub₂ λ x₁ → dsj (here refl , x₁)
 ... | inj₁ hz = inj₁ (proj₁ (proj₁ st) , x , proj₂ st , hz)
@@ -203,4 +207,4 @@ execWError st (x ∷ b₁) b₂ ((px ∷ ub₁) , ub₂ , uls , dsj) with runWEr
 ... | inj₂ (st₁ , ls₁ , uls₁ , inj₂ ≡₁) = execWError (st₁ , ls₁) b₁ b₂ (ub₁ , ub₂ , uls₁ , λ x₁ → dsj (there (proj₁ x₁) , g₁ (proj₂ x₁) ≡₁ λ v≡x → lookup px (proj₁ x₁) (sym v≡x)))
   where g₁ : ∀ {v} {ls₁} {ls₂} {x} → v ∈ ls₁ → ls₁ ≡ x ∷ ls₂ → ¬ v ≡ x → v ∈ ls₂
         g₁ v∈ls₁ ls₁≡x∷ls₂ ¬v≡x = tail ¬v≡x (subst (λ x₁ → _ ∈ x₁) ls₁≡x∷ls₂ v∈ls₁)
-\end{code}}
+\end{code}

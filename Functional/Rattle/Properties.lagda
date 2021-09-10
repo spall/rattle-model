@@ -172,13 +172,15 @@ script≡rattle {s₁} {s₂} mm (x ∷ b₁) ∀₁ (Cons .x dsj .b₁ dsb) mp 
 \newcommand{\correct}{%
 \begin{code}
 correct : ∀ b₁ b₂ s mm ls → DisjointBuild s b₁ → MemoryProperty mm → (ue : UniqueEvidence b₁ b₂ (map proj₁ ls)) → ¬ HazardFree s b₁ b₂ ls ⊎ ∃[ st₁ ](execWError ((s , mm) , ls) b₁ b₂ ue ≡ inj₂ st₁ × ∀ f₁ → proj₁ (proj₁ st₁) f₁ ≡ Script.exec s b₁ f₁)
+\end{code}}
+\begin{code}[hide]
 correct b₁ b₂ s mm ls dsb mp ue with execWError ((s , mm) , ls) b₁ b₂ ue | inspect (execWError ((s , mm) , ls) b₁ b₂) ue 
 ... | inj₁ hz | [ ≡₁ ] = inj₁ g₁
   where g₁ : HazardFree s b₁ b₂ ls → ⊥
         g₁ hf with completeness (s , mm) ls b₁ b₂ ue dsb hf mp
         ... | a , fst , ≡₂ = contradiction (trans (sym ≡₁) ≡₂) λ ()
 ... | inj₂ (st , _) | [ ≡₁ ] = inj₂ ((st , _) , refl , λ f₁ → sym (trans (script≡rattle mm b₁ (λ f₂ → refl) dsb mp f₁) (cong-app (cong proj₁ (soundness (s , mm) ls b₁ b₂ ue ≡₁)) f₁)))
-\end{code}}
+\end{code}
 
 \begin{code}[hide]
 -- want to prove if execWError original build produces a hazard then execWError of the reordered build will produce a hazard too.
