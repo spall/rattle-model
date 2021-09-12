@@ -93,76 +93,70 @@ required? x (x₁ ∷ b) ls bf | yes x≡x₁ with subset? bf ls
 ... | true = just (here x≡x₁)
 ... | false = nothing
 
-∃Speculative2 : ∀ x₂ b ls rs → Unique (map proj₁ ls) → Unique b → x₂ ∈ b → Maybe (∃[ x₁ ](∃[ v ](x₁ ∈ (cmdsRun ls) × ¬ x₁ before x₂ en b × v ∈ rs × v ∈ cmdWrote ls x₁)))
-∃Speculative2 x₂ b [] rs uls ub x₂∈b = nothing
-∃Speculative2 x₂ b (x ∷ ls) rs (px ∷ uls) ub x₂∈b with before? (proj₁ x) x₂ b -- ∃-¬Before (proj₁ x) x₂ b ub x₂∈b
-... | yes bf with ∃Speculative2 x₂ b ls rs uls ub x₂∈b
+∃Speculative2 : ∀ x₂ b ls₁ ls rs → Maybe (∃[ x₁ ](∃[ v ](x₁ ∈ ls₁ × ¬ x₁ before x₂ en b × v ∈ rs × v ∈ cmdWrote ls x₁)))
+∃Speculative2 x₂ b [] ls rs = nothing
+∃Speculative2 x₂ b (x ∷ ls₁) ls rs  with before? x x₂ b
+... | yes bf with ∃Speculative2 x₂ b ls₁ ls rs
 ... | nothing = nothing
 ... | just (x₁ , v , x₁∈ls , ¬bf , v∈rs , v∈ws)
-  = just (x₁ , v , there x₁∈ls , ¬bf , v∈rs , ∈-cmdWrote∷ x x₁ ls v∈ws (lookup px x₁∈ls))
-∃Speculative2 x₂ b (x ∷ ls) rs (px ∷ uls) ub x₂∈b | no ¬bf with ∃Intersection rs (cmdWrote (x ∷ ls) (proj₁ x))
-... | just (v , v∈rs , v∈ws) = just (proj₁ x , v , here refl , ¬bf , v∈rs , v∈ws)
-... | nothing with ∃Speculative2 x₂ b ls rs uls ub x₂∈b
+  = just (x₁ , v , there x₁∈ls , ¬bf , v∈rs , v∈ws) -- ∈-cmdWrote∷ x x₁ ls v∈ws (lookup px x₁∈ls))
+∃Speculative2 x₂ b (x ∷ ls₁) ls rs | no ¬bf with ∃Intersection rs (cmdWrote ls x)
+... | just (v , v∈rs , v∈ws) = just (x , v , here refl , ¬bf , v∈rs , v∈ws)
+... | nothing with ∃Speculative2 x₂ b ls₁ ls rs
 ... | nothing = nothing
 ... | just (x₁ , v , x₁∈ls , ¬bf₁ , v∈rs , v∈ws)
-  = just (x₁ , v , there x₁∈ls , ¬bf₁ , v∈rs , ∈-cmdWrote∷ x x₁ ls v∈ws (lookup px x₁∈ls))
+  = just (x₁ , v , there x₁∈ls , ¬bf₁ , v∈rs , v∈ws) -- ∈-cmdWrote∷ x x₁ ls v∈ws (lookup px x₁∈ls))
 
-∃Speculative1 : ∀ ls b (ran : Build) → Unique (map proj₁ ls) → Unique b → Maybe (∃[ x₁ ](∃[ x₂ ](∃[ v ](x₂ before x₁ en (cmdsRun ls) × x₂ ∈ b × ¬ x₁ before x₂ en b × v ∈ cmdRead ls x₂ × v ∈ cmdWrote ls x₁))))
-∃Speculative1 [] b ran uls ub = nothing
-∃Speculative1 (x ∷ ls) b ran (px ∷ uls) ub with required? (proj₁ x) b ((cmdsRun ls) ++ ran) []
-... | just x∈b with ∃Speculative2 (proj₁ x) b ls (cmdRead (x ∷ ls) (proj₁ x)) uls ub x∈b
+∃Speculative1 : ∀ ls₁ ls {b} (ran : Build) → Maybe (∃[ x₁ ](∃[ x₂ ](∃[ v ](x₂ before x₁ en ls₁ × x₂ ∈ b × ¬ x₁ before x₂ en b × v ∈ cmdRead ls x₂ × v ∈ cmdWrote ls x₁))))
+∃Speculative1 [] ls ran = nothing
+∃Speculative1 (x ∷ ls₁) ls {b} ran with required? x b (ls₁ ++ ran) []
+... | just x∈b with ∃Speculative2 x b ls₁ ls (cmdRead ls x)
 ... | just (x₁ , v , x₁∈ls , ¬bf , v∈rs , v∈ws)
-  = just (x₁ , proj₁ x , v , ([] , cmdsRun ls , refl , x₁∈ls) , x∈b , ¬bf , v∈rs
-         , ∈-cmdWrote∷ x x₁ ls v∈ws (lookup px x₁∈ls))
-... | nothing with ∃Speculative1 ls b ((proj₁ x) ∷ ran) uls ub
+  = just (x₁ , x , v , ([] , ls₁ , refl , x₁∈ls) , x∈b , ¬bf , v∈rs
+         , v∈ws)
+... | nothing with ∃Speculative1 ls₁ ls (x ∷ ran)
 ... | nothing = nothing
 ... | just (x₁ , x₂ , v , bf@(xs , ys , ≡₁ , x₁∈ys) , x₂∈b , ¬bf , v∈cr , v∈cw)
-  = just (x₁ , x₂ , v , before-∷ x₂ x₁ (proj₁ x) (cmdsRun ls) bf , x₂∈b , ¬bf
-         , ∈-cmdRead∷ x x₂ ls v∈cr
-           (lookup px (subst (λ x₃ → x₂ ∈ x₃) (sym ≡₁) (∈-++⁺ʳ xs (here refl))))
-         , ∈-cmdWrote∷ x x₁ ls v∈cw
-           (lookup px (subst (λ x₃ → x₁ ∈ x₃) (sym ≡₁) (∈-++⁺ʳ xs (there x₁∈ys)))))
-∃Speculative1 (x ∷ ls) b ran (px ∷ uls) ub | nothing with ∃Speculative1 ls b ((proj₁ x) ∷ ran) uls ub
+  = just (x₁ , x₂ , v , before-∷ x₂ x₁ x ls₁ bf , x₂∈b , ¬bf
+         , v∈cr
+         , v∈cw)
+∃Speculative1 (x ∷ ls₁) ls ran | nothing with ∃Speculative1 ls₁ ls (x ∷ ran)
 ... | nothing = nothing
 ... | just (x₁ , x₂ , v , bf@(xs , ys , ≡₁ , x₁∈ys) , x₂∈b , ¬bf , v∈cr , v∈cw)
-  = just (x₁ , x₂ , v , before-∷ x₂ x₁ (proj₁ x) (cmdsRun ls) bf , x₂∈b , ¬bf
-         , ∈-cmdRead∷ x x₂ ls v∈cr
-           (lookup px (subst (λ x₃ → x₂ ∈ x₃) (sym ≡₁) (∈-++⁺ʳ xs (here refl))))
-         , ∈-cmdWrote∷ x x₁ ls v∈cw
-           (lookup px (subst (λ x₃ → x₁ ∈ x₃) (sym ≡₁) (∈-++⁺ʳ xs (there x₁∈ys)))))
+  = just (x₁ , x₂ , v , before-∷ x₂ x₁ x ls₁ bf , x₂∈b , ¬bf
+         , v∈cr , v∈cw)
 
-
-∃Speculative : ∀ s x b ls → Unique (x ∷ (map proj₁ ls)) → Unique b → Maybe (Hazard s x b ls)
-∃Speculative s x b ls uls ub with ∃Speculative1 (rec x (cmdReadNames x s) (cmdWriteNames x s) ls) b [] uls ub
+∃Speculative : ∀ s x {b} ls → Maybe (Hazard s x b ls)
+∃Speculative s x {b} ls with ∃Speculative1 (x ∷ cmdsRun ls) (rec x (cmdReadNames x s) (cmdWriteNames x s) ls) []
 ... | nothing = nothing
 ... | just (x₁ , x₂ , v , bf , x₁∈b , ¬bf , v∈cr , v∈cw)
   = just (Speculative s x b ls x₁ x₂ v bf x₁∈b ¬bf v∈cr v∈cw)
 
 
 {- is there a read/write or write/write hazard? -}
-∃WriteWrite : ∀ s x b ls → Maybe (Hazard s x b ls)
-∃WriteWrite s x b ls with ∃Intersection (cmdWriteNames x s) (filesWrote ls)
+∃WriteWrite : ∀ s x {b} ls → Maybe (Hazard s x b ls)
+∃WriteWrite s x ls with ∃Intersection (cmdWriteNames x s) (filesWrote ls)
 ... | nothing = nothing
 ... | just (v , v∈ws , v∈wrotes) = just (WriteWrite s x ls v v∈ws v∈wrotes)
 
-∃ReadWrite : ∀ s x b ls → Maybe (Hazard s x b ls)
-∃ReadWrite s x b ls with ∃Intersection (cmdWriteNames x s) (filesRead ls)
+∃ReadWrite : ∀ s x {b} ls → Maybe (Hazard s x b ls)
+∃ReadWrite s x ls with ∃Intersection (cmdWriteNames x s) (filesRead ls)
 ... | nothing = nothing
 ... | just (v , v∈ws , v∈reads) = just (ReadWrite s x ls v v∈ws v∈reads)
 
-checkHazard : ∀ s x b ls → Unique (x ∷ (map proj₁ ls)) → Unique b → Maybe (Hazard s x b ls)
-checkHazard s x b ls uls ub with ∃WriteWrite s x b ls
+checkHazard : ∀ s x {b} ls → Maybe (Hazard s x b ls)
+checkHazard s x ls with ∃WriteWrite s x ls
 ... | just hz = just hz
-... | nothing with ∃Speculative s x b ls uls ub
+... | nothing with ∃Speculative s x ls
 ... | just hz = just hz
-... | nothing = ∃ReadWrite s x b ls
+... | nothing = ∃ReadWrite s x ls
 
 
-doRunWError : ∀ b → (((s , mm) , ls) : State × FileInfo) → (x : Cmd) → Unique (x ∷ (map proj₁ ls)) → Unique b → Hazard s x b ls ⊎ ∃[ st ](Σ[ ls₁ ∈ FileInfo ](Unique (map proj₁ ls₁) × ((map proj₁ ls₁) ≡ (map proj₁ ls) ⊎ (map proj₁ ls₁) ≡ x ∷ (map proj₁ ls))))
-doRunWError b ((s , mm) , ls) x uls ub with checkHazard s x b ls uls ub
+doRunWError : ∀ {b} → (((s , mm) , ls) : State × FileInfo) → (x : Cmd) → Hazard s x b ls ⊎ State × FileInfo
+doRunWError ((s , mm) , ls) x with checkHazard s x ls
 ... | just hz = inj₁ hz
 ... | nothing = let sys₁ = St.run x s in
-                inj₂ ((sys₁ , save x ((cmdReadNames x s) ++ (cmdWriteNames x s)) sys₁ mm) , rec x (cmdReadNames x s) (cmdWriteNames x s) ls , uls , inj₂ refl)
+                inj₂ ((sys₁ , save x ((cmdReadNames x s) ++ (cmdWriteNames x s)) sys₁ mm) , rec x (cmdReadNames x s) (cmdWriteNames x s) ls)
 
 
 run : State -> Cmd -> State
@@ -175,10 +169,10 @@ g₂ [] x∉xs = All.[]
 g₂ (x ∷ xs) x∉xs = (λ x₃ → x∉xs (here x₃)) All.∷ (g₂ xs λ x₃ → x∉xs (there x₃))
 
 
-runWError : ∀ b → (((s , mm) , ls) : State × FileInfo) → (x : Cmd) → Unique (map proj₁ ls) → Unique b → x ∉ (map proj₁ ls) → Hazard s x b ls ⊎ State × (Σ[ ls₁ ∈ FileInfo ](Unique (map proj₁ ls₁) × ((map proj₁ ls₁) ≡ (map proj₁ ls) ⊎ (map proj₁ ls₁) ≡ x ∷ (map proj₁ ls))))
-runWError b (st , ls) x uls ub x∉ with (run? x st)
-... | false = inj₂ (st , ls , uls , inj₁ refl)
-... | true = doRunWError b (st , ls) x (g₂ (map proj₁ ls) x∉ ∷ uls) ub
+runWError : ∀ {b} → (((s , mm) , ls) : State × FileInfo) → (x : Cmd) → Hazard s x b ls ⊎ State × FileInfo
+runWError (st , ls) x with (run? x st)
+... | false = inj₂ (st , ls)
+... | true = doRunWError (st , ls) x
 \end{code}
 
 \newcommand{\Rexec}{%
@@ -197,14 +191,11 @@ UniqueEvidence b₁ b₂ ls = Unique b₁ × Unique b₂ × Unique ls × Disjoin
 
 \newcommand{\execWError}{%
 \begin{code}
-execWError : ∀ (st@(_ , ls) : State × FileInfo) b₁ b₂ → UniqueEvidence b₁ b₂ (map proj₁ ls) → ∃Hazard b₂ ⊎ State × FileInfo
+execWError : ∀ st (b₁ : Build) b₂ → ∃Hazard b₂ ⊎ State × FileInfo
 \end{code}}
 \begin{code}[hide]
-execWError st [] b₂ (ub₁ , ub₂ , uls , dsj) = inj₂ st
-execWError st (x ∷ b₁) b₂ ((px ∷ ub₁) , ub₂ , uls , dsj) with runWError b₂ st x uls ub₂ λ x₁ → dsj (here refl , x₁)
+execWError st [] b₂ = inj₂ st
+execWError st (x ∷ b₁) b₂ with runWError st x
 ... | inj₁ hz = inj₁ (proj₁ (proj₁ st) , x , proj₂ st , hz)
-... | inj₂ (st₁ , ls₁ , uls₁ , inj₁ ≡₁) = execWError (st₁ , ls₁) b₁ b₂ (ub₁ , ub₂ , uls₁ , λ x₂ → dsj (there (proj₁ x₂) , subst (λ x₃ → _ ∈ x₃) ≡₁ (proj₂ x₂)))
-... | inj₂ (st₁ , ls₁ , uls₁ , inj₂ ≡₁) = execWError (st₁ , ls₁) b₁ b₂ (ub₁ , ub₂ , uls₁ , λ x₁ → dsj (there (proj₁ x₁) , g₁ (proj₂ x₁) ≡₁ λ v≡x → lookup px (proj₁ x₁) (sym v≡x)))
-  where g₁ : ∀ {v} {ls₁} {ls₂} {x} → v ∈ ls₁ → ls₁ ≡ x ∷ ls₂ → ¬ v ≡ x → v ∈ ls₂
-        g₁ v∈ls₁ ls₁≡x∷ls₂ ¬v≡x = tail ¬v≡x (subst (λ x₁ → _ ∈ x₁) ls₁≡x∷ls₂ v∈ls₁)
+... | inj₂ (st₁ , ls₁) = execWError (st₁ , ls₁) b₁ b₂
 \end{code}

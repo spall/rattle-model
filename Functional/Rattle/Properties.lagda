@@ -80,40 +80,36 @@ noEffect {s₁} {s₂} {mm} x ∀₁ mp x∈ all₁ f₁ with getProperty x mp x
         f₁∈₁ = subst (λ ls → f₁ ∈ ls) (sym (cong (map proj₁ ∘ proj₂) ≡₁)) f₁∈
 
 
-doRunSoundness : ∀ st ls {st₁} {ls₁} b x uls ub {uls₁} {≡₁} → doRunWError b (st , ls) x uls ub ≡ inj₂ (st₁ , ls₁ , uls₁ , ≡₁) → doRun st x ≡ st₁
-doRunSoundness st ls b x uls ub ≡₁ with checkHazard (proj₁ st) x b ls uls ub
+doRunSoundness : ∀ st ls {st₁} {ls₁} b x → doRunWError {b} (st , ls) x ≡ inj₂ (st₁ , ls₁) → doRun st x ≡ st₁
+doRunSoundness st ls b x ≡₁ with checkHazard (proj₁ st) x {b} ls
 ... | nothing = cong proj₁ (inj₂-injective ≡₁)
 
-runSoundness : ∀ st ls st₁ ls₁ b x uls ub x∉ls {uls₁} {≡₁} → runWError b (st , ls) x uls ub x∉ls ≡ inj₂ (st₁ , ls₁ , uls₁ , ≡₁) → run st x ≡ st₁
-runSoundness st ls st₁ ls₁ b x uls ub x∉ls ≡₁ with run? x st
+runSoundness : ∀ st ls st₁ ls₁ b x → runWError {b} (st , ls) x ≡ inj₂ (st₁ , ls₁) → run st x ≡ st₁
+runSoundness st ls st₁ ls₁ b x ≡₁ with run? x st
 ... | false = cong proj₁ (inj₂-injective ≡₁)
-... | true = doRunSoundness st ls b x (g₂ (map proj₁ ls) x∉ls ∷ uls) ub ≡₁
+... | true = doRunSoundness st ls b x ≡₁
 \end{code}
 
 \newcommand{\soundness}{%
 \begin{code}
-soundness : ∀ {st₁} {ls₁} st ls → (b₁ b₂ : Build) → (ue : UniqueEvidence b₁ b₂ (map proj₁ ls)) → execWError (st , ls) b₁ b₂ ue ≡ inj₂ (st₁ , ls₁) → exec st b₁ ≡ st₁
+soundness : ∀ {st₁} {ls₁} st ls → (b₁ b₂ : Build) → execWError (st , ls) b₁ b₂ ≡ inj₂ (st₁ , ls₁) → exec st b₁ ≡ st₁
 \end{code}}
 \begin{code}[hide]
-soundness st ls [] b₂ (ub₁ , ub₂ , uls , dsj) ≡₁ = cong proj₁ (inj₂-injective ≡₁)
-soundness st ls (x ∷ b₁) b₂ ((px ∷ ub₁) , ub₂ , uls , dsj) ≡₁ with runWError b₂ (st , ls) x uls ub₂ (λ x₁ → dsj (here refl , x₁)) | inspect (runWError b₂ (st , ls) x uls ub₂) (λ x₁ → dsj (here refl , x₁))
-... | inj₂ (st₂ , ls₂ , uls₂ , inj₁ ls₂≡ls) | [ ≡₂ ] with runSoundness st ls st₂ ls₂ b₂ x uls ub₂ (λ x₁ → dsj (here refl , x₁)) ≡₂
-... | ≡st₂ = subst (λ x₁ → exec x₁ b₁ ≡ _) (sym ≡st₂) (soundness st₂ ls₂ b₁ b₂ (ub₁ , ub₂ , uls₂ , λ x₁ → dsj (there (proj₁ x₁) , subst (λ x₂ → _ ∈ x₂) ls₂≡ls (proj₂ x₁))) ≡₁)
-soundness st ls (x ∷ b₁) b₂ ((px ∷ ub₁) , ub₂ , uls , dsj) ≡₁ | inj₂ (st₂ , ls₂ , uls₂ , inj₂ ls₂≡x∷ls) | [ ≡₂ ] with runSoundness st ls st₂ ls₂ b₂ x uls ub₂ (λ x₁ → dsj (here refl , x₁)) ≡₂
-... | ≡st₂ = subst (λ x₁ → exec x₁ b₁ ≡ _) (sym ≡st₂) (soundness st₂ ls₂ b₁ b₂ (ub₁ , ub₂ , uls₂ , λ x₁ → dsj (there (proj₁ x₁) , g₁ (proj₂ x₁) ls₂≡x∷ls λ v≡x → lookup px (proj₁ x₁) (sym v≡x))) ≡₁)
-  where g₁ : ∀ {v} {ls₁} {ls₂} {x} → v ∈ ls₁ → ls₁ ≡ x ∷ ls₂ → ¬ v ≡ x → v ∈ ls₂
-        g₁ v∈ls₁ ls₁≡x∷ls₂ ¬v≡x = tail ¬v≡x (subst (λ x₁ → _ ∈ x₁) ls₁≡x∷ls₂ v∈ls₁)
+soundness st ls [] b₂ ≡₁ = cong proj₁ (inj₂-injective ≡₁)
+soundness st ls (x ∷ b₁) b₂  ≡₁ with runWError {b₂} (st , ls) x | inspect (runWError {b₂} (st , ls)) x
+... | inj₂ (st₂ , ls₂) | [ ≡₂ ] with runSoundness st ls st₂ ls₂ b₂ x ≡₂
+... | ≡st₂ = subst (λ x₁ → exec x₁ b₁ ≡ _) (sym ≡st₂) (soundness st₂ ls₂ b₁ b₂ ≡₁)
 \end{code}
 
 \newcommand{\completeness}{%
 \begin{code}
-completeness : ∀ st₁ ls₁ b₁ b₂ → (ue : UniqueEvidence b₁ b₂ (map proj₁ ls₁)) → DisjointBuild (proj₁ st₁) b₁ → HazardFree (proj₁ st₁) b₁ b₂ ls₁ → MemoryProperty (proj₂ st₁) → ∃[ st ](∃[ ls ](execWError (st₁ , ls₁) b₁ b₂ ue ≡ inj₂ (st , ls)))
+completeness : ∀ st₁ ls₁ b₁ b₂ → (ue : UniqueEvidence b₁ b₂ (map proj₁ ls₁)) → DisjointBuild (proj₁ st₁) b₁ → HazardFree (proj₁ st₁) b₁ b₂ ls₁ → MemoryProperty (proj₂ st₁) → ∃[ st ](∃[ ls ](execWError (st₁ , ls₁) b₁ b₂ ≡ inj₂ (st , ls)))
 \end{code}}
 \begin{code}[hide]
 completeness st ls [] _ (ub₁ , ub₂ , uls , dsj) dsb hf mp = st , ls , refl
 completeness st@(s , mm) ls (x ∷ b₁) b₂ ((px ∷ ub₁) , ub₂ , uls , dsj₁) (Cons .x ds .b₁ dsb) (:: .s .ls .x .b₁ .b₂ (HFC ¬sh dsj) hf) mp with x ∈? map proj₁ mm
 ... | yes x∈ with maybeAll {s} (get x mm x∈)
-... | nothing with checkHazard s x b₂ ls (g₂ (map proj₁ ls) (λ x₁ → dsj₁ (here refl , x₁)) ∷ uls) ub₂
+... | nothing with checkHazard s x {b₂} ls
 ... | just hz = ⊥-elim (hazardContradiction s x b₂ ls hz (HFC ¬sh dsj))
 ... | nothing = completeness st₂ ls₂ b₁ b₂ (ub₁ , ub₂ , uls₂ , dsj₂) dsb hf mp₂
   where dsj₂ : Disjoint b₁ (x ∷ map proj₁ ls)
@@ -138,7 +134,7 @@ completeness st@(s , mm) ls (x ∷ b₁) b₂ ((px ∷ ub₁) , ub₂ , uls , ds
         hf₂ : HazardFree s b₁ b₂ ls
         hf₂ = hf-still b₁ [] ((x , cmdReadNames x s , cmdWriteNames x s) ∷ []) ls (λ f₁ x₂ → sym (∀₁ f₁)) ub₁ uls₂ dsj₂ hf
         
-completeness st@(s , mm) ls (x ∷ b₁) b₂ ((px ∷ ub₁) , ub₂ , uls , dsj₁) (Cons .x ds .b₁ dsb) (:: .s .ls .x .b₁ .b₂ (HFC ¬sh dsj) hf) mp | no x∉ with checkHazard s x b₂ ls (g₂ (map proj₁ ls) (λ x₁ → dsj₁ (here refl , x₁)) ∷ uls) ub₂
+completeness st@(s , mm) ls (x ∷ b₁) b₂ ((px ∷ ub₁) , ub₂ , uls , dsj₁) (Cons .x ds .b₁ dsb) (:: .s .ls .x .b₁ .b₂ (HFC ¬sh dsj) hf) mp | no x∉ with checkHazard s x {b₂} ls
 ... | just hz = ⊥-elim (hazardContradiction s x b₂ ls hz (HFC ¬sh dsj))
 ... | nothing = completeness (St.run x s , save x ((cmdReadNames x s) ++ (cmdWriteNames x s)) (St.run x s) mm) (rec x (cmdReadNames x s) (cmdWriteNames x s) ls) b₁ b₂ (ub₁ , ub₂ , (g₂ (map proj₁ ls) (λ x₁ → dsj₁ (here refl , x₁)) ∷ uls) , dsj₂) dsb hf (MemoryProperty.Cons x s (λ f₁ x₂ → lemma3 f₁ (proj₂ (proj₁ (oracle x) s)) λ x₃ → ds (x₂ , x₃)) mp)
   where dsj₂ : Disjoint b₁ (x ∷ map proj₁ ls)
@@ -171,15 +167,15 @@ script≡rattle {s₁} {s₂} mm (x ∷ b₁) ∀₁ (Cons .x dsj .b₁ dsb) mp 
 \end{code}
 \newcommand{\correct}{%
 \begin{code}
-correct : ∀ b₁ b₂ s mm ls → DisjointBuild s b₁ → MemoryProperty mm → (ue : UniqueEvidence b₁ b₂ (map proj₁ ls)) → ¬ HazardFree s b₁ b₂ ls ⊎ ∃[ st₁ ](execWError ((s , mm) , ls) b₁ b₂ ue ≡ inj₂ st₁ × ∀ f₁ → proj₁ (proj₁ st₁) f₁ ≡ Script.exec s b₁ f₁)
+correct : ∀ b₁ b₂ s mm ls → DisjointBuild s b₁ → MemoryProperty mm → (ue : UniqueEvidence b₁ b₂ (map proj₁ ls)) → ¬ HazardFree s b₁ b₂ ls ⊎ ∃[ st₁ ](execWError ((s , mm) , ls) b₁ b₂ ≡ inj₂ st₁ × ∀ f₁ → proj₁ (proj₁ st₁) f₁ ≡ Script.exec s b₁ f₁)
 \end{code}}
 \begin{code}[hide]
-correct b₁ b₂ s mm ls dsb mp ue with execWError ((s , mm) , ls) b₁ b₂ ue | inspect (execWError ((s , mm) , ls) b₁ b₂) ue 
+correct b₁ b₂ s mm ls dsb mp ue with execWError ((s , mm) , ls) b₁ b₂ | inspect (execWError ((s , mm) , ls) b₁) b₂
 ... | inj₁ hz | [ ≡₁ ] = inj₁ g₁
   where g₁ : HazardFree s b₁ b₂ ls → ⊥
         g₁ hf with completeness (s , mm) ls b₁ b₂ ue dsb hf mp
         ... | a , fst , ≡₂ = contradiction (trans (sym ≡₁) ≡₂) λ ()
-... | inj₂ (st , _) | [ ≡₁ ] = inj₂ ((st , _) , refl , λ f₁ → sym (trans (script≡rattle mm b₁ (λ f₂ → refl) dsb mp f₁) (cong-app (cong proj₁ (soundness (s , mm) ls b₁ b₂ ue ≡₁)) f₁)))
+... | inj₂ (st , _) | [ ≡₁ ] = inj₂ ((st , _) , refl , λ f₁ → sym (trans (script≡rattle mm b₁ (λ f₂ → refl) dsb mp f₁) (cong-app (cong proj₁ (soundness (s , mm) ls b₁ b₂ ≡₁)) f₁)))
 \end{code}
 
 \begin{code}[hide]
@@ -231,12 +227,12 @@ we would have a speculative hazard if
 
 \newcommand{\correctS}{%
 \begin{code}
-correct2 : ∀ b₁ b₂ s mm ls → DisjointBuild s b₁ → MemoryProperty mm → (ue : UniqueEvidence b₁ b₂ (map proj₁ ls))
-  → ¬ HazardFree s b₂ _ ls ⊎ ∃[ st₁ ](execWError ((s , mm) , ls) b₁ b₂ ue ≡ inj₂ st₁ × ∀ f₁ → proj₁ (proj₁ st₁) f₁ ≡ Script.exec s b₂ f₁)
+--correct2 : ∀ b₁ b₂ s mm ls → DisjointBuild s b₁ → MemoryProperty mm → (ue : UniqueEvidence b₁ b₂ (map proj₁ ls))
+--  → ¬ HazardFree s b₂ _ ls ⊎ ∃[ st₁ ](execWError ((s , mm) , ls) b₁ b₂ ue ≡ inj₂ st₁ × ∀ f₁ → proj₁ (proj₁ st₁) f₁ ≡ Script.exec s b₂ f₁)
 \end{code}}
 
 \begin{code}[hide]
-correct2 b₁ b₂ s mm ls dsb mp ue with execWError ((s , mm) , ls) b₁ b₂ ue | inspect (execWError ((s , mm) , ls) b₁ b₂) ue
+{-correct2 b₁ b₂ s mm ls dsb mp ue with execWError ((s , mm) , ls) b₁ b₂ ue | inspect (execWError ((s , mm) , ls) b₁ b₂) ue
 ... | inj₁ hz | [ ≡₁ ] = {!!}
 {- proof plan:
   we know the reorderd build produced a hazard. this doesnt mean the original build has a hazard.  
@@ -245,7 +241,7 @@ correct2 b₁ b₂ s mm ls dsb mp ue with execWError ((s , mm) , ls) b₁ b₂ u
   this says the systems are not exactly equivalent, but are equivalent for the outputs the build was MEANT to write.  
   for us to do both of these cases; we should change this lemma to say it only produces the same outputs for a certain set of files
 -}
-... | inj₂ (st , _) | [ ≡₁ ] = inj₂ ((st , _) , refl , λ f₁ → sym (trans {!!} {!!}))
+... | inj₂ (st , _) | [ ≡₁ ] = inj₂ ((st , _) , refl , λ f₁ → sym (trans {!!} {!!})) -}
 
 {-soundness : execwError b₁ = exec b₁ = script.exec b₁
                             exec b₂ = script.exec b₂ -}
@@ -267,12 +263,12 @@ correct2 b₁ b₂ s mm ls dsb mp ue with execWError ((s , mm) , ls) b₁ b₂ u
 
 \newcommand{\correctP}{%
 \begin{code}
-semi-correct : ∀ s mm ls b₁ b₂ → b₂ ↭ b₁ → HazardFree s b₂ [] ls → DisjointBuild s b₁ → MemoryProperty mm → (ue : UniqueEvidence b₁ b₂ (map proj₁ ls)) → ¬ HazardFree s b₁ b₂ ls ⊎ ∃[ st₁ ](execWError ((s , mm) , ls) b₁ b₂ ue ≡ inj₂ st₁ × ∀ f₁ → proj₁ (proj₁ st₁) f₁ ≡ Script.exec s b₂ f₁)
+semi-correct : ∀ s mm ls b₁ b₂ → b₂ ↭ b₁ → HazardFree s b₂ [] ls → DisjointBuild s b₁ → MemoryProperty mm → (ue : UniqueEvidence b₁ b₂ (map proj₁ ls)) → ¬ HazardFree s b₁ b₂ ls ⊎ ∃[ st₁ ](execWError ((s , mm) , ls) b₁ b₂ ≡ inj₂ st₁ × ∀ f₁ → proj₁ (proj₁ st₁) f₁ ≡ Script.exec s b₂ f₁)
 \end{code}}
 
 \begin{code}[hide]
 semi-correct s mm ls b₁ b₂ b₂↭b₁ hf₁ dsb mp ue with hazardfree? s b₁ b₂ ls -- execWError ((s , mm) , ls) b₁ b₂ ue | inspect (execWError ((s , mm) , ls) b₁ b₂) ue
 ... | no hz = inj₁ hz
 ... | yes hf with completeness (s , mm) ls b₁ b₂ ue dsb hf mp
-... | st₁ , ls₁ , ≡₁ = inj₂ ((st₁ , ls₁) , ≡₁ , λ f₁ → sym (trans (reordered b₂ b₁ ls b₂↭b₁ ue hf₁ hf f₁) (trans (script≡rattle mm b₁ (λ f₂ → refl) dsb mp f₁) (cong-app (cong proj₁ (soundness (s , mm) ls b₁ b₂ ue ≡₁)) f₁))))
+... | st₁ , ls₁ , ≡₁ = inj₂ ((st₁ , ls₁) , ≡₁ , λ f₁ → sym (trans (reordered b₂ b₁ ls b₂↭b₁ ue hf₁ hf f₁) (trans (script≡rattle mm b₁ (λ f₂ → refl) dsb mp f₁) (cong-app (cong proj₁ (soundness (s , mm) ls b₁ b₂ ≡₁)) f₁))))
 \end{code}
