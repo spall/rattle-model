@@ -57,8 +57,12 @@ F = Cmd -> Σ[ f ∈ CmdFunction ](CmdProof f)
 
 \newcommand{\mem}{%
 \begin{code}
+
+MaybeFile : Set
+MaybeFile = FileName × Maybe FileContent
+
 Memory : Set
-Memory = List (Cmd × List (FileName × Maybe FileContent))
+Memory = List (Cmd × List MaybeFile)
 \end{code}}
 
 \begin{code}[hide]
