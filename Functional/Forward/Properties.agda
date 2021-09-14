@@ -48,7 +48,7 @@ lemma1 f₁ ((f , v) ∷ ls) f₁∈ with f ≟ f₁
 
 
 cmdIdempotent : (sys : System) (x : Cmd) -> Disjoint (cmdReadNames x sys) (cmdWriteNames x sys) -> ∀ f₁ → St.run x (St.run x sys) f₁ ≡ St.run x sys f₁
-cmdIdempotent sys x dsj f₁ with proj₂ (oracle x) sys (St.run x sys) λ f₂ x₁ → (lemma3 {sys} f₂ (proj₂ (proj₁ (oracle x) sys)) λ x₂ → dsj (x₁ , x₂))
+cmdIdempotent sys x dsj f₁ with proj₂ (oracle x) sys (St.run x sys) (λ f₂ x₁ → (lemma3 {sys} f₂ (proj₂ (proj₁ (oracle x) sys)) λ x₂ → dsj (x₁ , x₂)))
 ... | ≡₁ with f₁ ∈? cmdWriteNames x sys
 ... | no f₁∉ = sym (lemma3 {foldr extend sys (proj₂ (proj₁ (oracle x) sys))} f₁ (proj₂ (proj₁ (oracle x) (foldr extend sys (proj₂ (proj₁ (oracle x) sys))))) (subst (λ x₁ → f₁ ∉ x₁) (cong ((map proj₁) ∘ proj₂) ≡₁) f₁∉))
 ... | yes f₁∈ with lemma1 f₁ (proj₂ (proj₁ (oracle x) sys)) f₁∈
@@ -92,7 +92,7 @@ preserves {sys} x dsj all₁ is = Cons ic (preserves2 x is all₁)
         g₁ (x ∷ xs) (x₁ ∷ ys) ≡₁ with ∷-injective ≡₁
         ... | x≡x₁ , xs≡ys = cong₂ _∷_ x≡x₁ (g₁ xs ys xs≡ys)
         g₂ : cmdReadNames x sys ≡ cmdReadNames x (St.run x sys)
-        g₂ with proj₂ (oracle x) sys (St.run x sys) λ f₁ x₁ → (lemma3 f₁ (proj₂ (proj₁ (oracle x) sys)) λ x₂ → dsj (x₁ , x₂))
+        g₂ with proj₂ (oracle x) sys (St.run x sys) (λ f₁ x₁ → (lemma3 f₁ (proj₂ (proj₁ (oracle x) sys)) λ x₂ → dsj (x₁ , x₂)))
         ... | ≡₁ = cong (map proj₁ ∘ proj₁) ≡₁
         ic : IdempotentCmd cmdReadNames x (map (λ f → f , St.run x sys f) (cmdReadNames x sys)) (St.run x sys)
         ic = IC x (map (λ f → f , St.run x sys f) (cmdReadNames x sys))
