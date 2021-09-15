@@ -61,7 +61,7 @@ lemma1 {s} {s₁} (f₁ ∷ ls) x all₁ (px All.∷ all₂) with proj₂ (oracl
 
 lemma1-sym : {s s₁ : System} (ls : FileNames) -> (x : Cmd) -> All (λ f₁ → s f₁ ≡ s₁ f₁) (cmdReadNames x s₁) -> All (λ f₁ → s f₁ ≡ s₁ f₁) ls -> All (λ f₁ → run x s f₁ ≡ run x s₁ f₁) ls
 lemma1-sym [] x all₁ all₂ = All.[]
-lemma1-sym {s} {s₁} (x₁ ∷ ls) x all₁ (px All.∷ all₂) with proj₂ (oracle x) s₁ s λ f₁ x₂ → sym (lookup all₁ x₂)
+lemma1-sym {s} {s₁} (x₁ ∷ ls) x all₁ (px All.∷ all₂) with proj₂ (oracle x) s₁ s (λ f₁ x₂ → sym (lookup all₁ x₂))
 ... | result≡ = (lemma2 {s} {s₁} (sym result≡) px) All.∷ (lemma1-sym {s} {s₁} ls x all₁ all₂)
 
 
