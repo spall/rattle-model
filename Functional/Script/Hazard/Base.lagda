@@ -93,8 +93,8 @@ FileInfo = List (Cmd × FileNames × FileNames)
 \end{code}}
 
 \begin{code}[hide]
-save : Cmd → List FileName → List FileName → FileInfo → FileInfo
-save x rs ws fi = (x , rs , ws) ∷ fi
+save : System → Cmd → FileInfo → FileInfo
+save s x fi = (x , (cmdReadNames x s) , (cmdWriteNames x s)) ∷ fi
 
 cmdsRun : FileInfo → List Cmd
 cmdsRun = map proj₁
@@ -145,6 +145,11 @@ cmdWrote∷-≡ : ∀ x ls → cmdWrote (x ∷ ls) (proj₁ x) ≡ proj₂ (proj
 cmdWrote∷-≡ x ls with (proj₁ x) ≟ (proj₁ x)
 ... | yes x≡x = refl
 ... | no ¬x≡x = contradiction refl ¬x≡x
+
+∈-cmdWrote∷l : ∀ {v} x ls → v ∈ proj₂ (proj₂ x) → v ∈ cmdWrote (x ∷ ls) (proj₁ x)
+∈-cmdWrote∷l x ls v∈ with (proj₁ x) ≟ (proj₁ x)
+... | no ¬x≡x = contradiction refl ¬x≡x
+... | yes x≡x = v∈
 
 ∈-cmdWrote∷ : ∀ {v} x x₁ ls → v ∈ cmdWrote ls x₁ → ¬ (proj₁ x) ≡ x₁ → v ∈ cmdWrote (x ∷ ls) x₁
 ∈-cmdWrote∷ x x₁ ls v∈ ¬≡ with (proj₁ x) ≟ x₁
@@ -209,20 +214,7 @@ lemma1 x (x₁ ∷ xs) v∈ with (proj₁ x₁) ≟ x
 ... | yes x₁≡x = v∈
 ... | no ¬x₁≡x = ∈-cmdRead++mid x xs ys zs u v∈
 
-{- We want to say that if commands read/wrote to the same files then they ran in the order the build says is ok.
- Aka If the 0th or 1st or 2nd x₁ doesn't appear before the 0th or 1st or 2nd x₂ then the
--}
-
-
-{- ls is reversed; so last in ls was first run
-  so if the command is later in ls it means it ran earlier.
-  so if the reader is before the writer in ls, then the writer happened first
-  
-  The writer ran before the reader, but the write doesn't exist or the writer was after the reader in the original list. So 
-
-
-Write ran before read, but Writer should have run AFTER reader.  
--}
+--  ¬speculativehazard def only makes sense with unique FileINfo and build
 \end{code}
 
 \newcommand{\speculative}{%
@@ -232,30 +224,17 @@ Write ran before read, but Writer should have run AFTER reader.
 \end{code}}
 
 \begin{code}[hide]
-{- if ; reader is after the writer (in the run)
-
-   but the reader is before the writer in the real build; then the reads/writes must be disjoint. 
-
-   reader is before the writer; or the writer is not in the build.
-
- -- 
-  
-(A , 3) (C , 0) (A , 2) (B , 0) (A , 1)  (D, 0) (A , 0)   
-
-what if we end up not running (A , 1)
-
-
-
-
-
--}
-
 {- we have a Speculative hazard if a required command read something a speculative command wrote to. 
  So we need to be able to determine: 
 1. when a command is required : a command is required if its the first command in the list?
 
 2. when a command is speculated
 -}
+-- (cmdsRun (save x (cmdReadNames x s) (cmdWriteNames x s) ls))
+-- (save x (cmdReadNames x s) (cmdWriteNames x s) ls)
+-- (save x (cmdReadNames x s) (cmdWriteNames x s) ls)
+
+
 \end{code}
 
 \newcommand{\hazard}{%
@@ -263,7 +242,8 @@ what if we end up not running (A , 1)
 data Hazard : System → Cmd → Build → FileInfo → Set where
   ReadWrite   : ∀ s x {b} ls v → v ∈ (cmdWriteNames x s) → v ∈ (filesRead ls) → Hazard s x b ls
   WriteWrite  : ∀ s x {b} ls v → v ∈ (cmdWriteNames x s) → v ∈ (filesWrote ls) → Hazard s x b ls
-  Speculative : ∀ s x b ls x₁ x₂ v → x₂ before x₁ en (cmdsRun (save x (cmdReadNames x s) (cmdWriteNames x s) ls)) → x₂ ∈ b → ¬ x₁ before x₂ en b → v ∈ cmdRead (save x (cmdReadNames x s) (cmdWriteNames x s) ls) x₂ → v ∈ cmdWrote (save x (cmdReadNames x s) (cmdWriteNames x s) ls) x₁ → Hazard s x b ls
+  Speculative : ∀ s x b ls x₁ x₂ v → x₂ before x₁ en (x ∷ (cmdsRun ls)) → x₂ ∈ b → ¬ x₁ before x₂ en b
+                → v ∈ cmdRead (save s x ls) x₂ → v ∈ cmdWrote (save s x ls) x₁ → Hazard s x b ls
 \end{code}}
 
 \begin{code}[hide]
@@ -274,7 +254,8 @@ data Hazard : System → Cmd → Build → FileInfo → Set where
 \newcommand{\hfcmd}{%
 \begin{code}
 data HazardFreeCmd : System → Cmd → Build → FileInfo → Set where
-  HFC : ∀ {s} {ls} {x} {b₂} → ¬SpeculativeHazard b₂ (save x (cmdReadNames x s) (cmdWriteNames x s) ls) → Disjoint (cmdWriteNames x s) (files ls) → HazardFreeCmd s x b₂ ls
+  HFC : ∀ {s} {ls} {x} {b₂} → ¬SpeculativeHazard b₂ (save s x ls) → Disjoint (cmdWriteNames x s) (files ls)
+        → HazardFreeCmd s x b₂ ls
 \end{code}}
 \begin{code}[hide]
 hazardContradiction : ∀ s x b₂ ls → (hz : Hazard s x b₂ ls) → HazardFreeCmd s x b₂ ls → ⊥
@@ -288,7 +269,8 @@ hazardContradiction s x b ls hz (HFC ¬sh dsj) with hz
 \begin{code}
 data HazardFree : System → Build → Build → FileInfo → Set where
   [] : ∀ {s} {b} {ls} → HazardFree s [] b ls
-  :: : ∀ s ls x b₁ b₂ → HazardFreeCmd s x b₂ ls → HazardFree (run x s) b₁ b₂ (save x (cmdReadNames x s) (cmdWriteNames x s) ls) → HazardFree s (x ∷ b₁) b₂ ls
+  :: : ∀ s ls x b₁ b₂ → HazardFreeCmd s x b₂ ls → HazardFree (run x s) b₁ b₂ (save s x ls)
+       → HazardFree s (x ∷ b₁) b₂ ls
 \end{code}}
 
 \begin{code}[hide]
@@ -419,11 +401,11 @@ hazardfree? s (x ∷ b₁) b₂ ls with intersection? (cmdWriteNames x s) (files
 ... | no ¬dsj  = false Relation.Nullary.because Relation.Nullary.ofⁿ g₁
   where g₁ : HazardFree s (x ∷ b₁) b₂ ls → ⊥
         g₁ (:: .s .ls _ .b₁ .b₂ (HFC x x₁) hf) = ¬dsj x₁
-... | yes dsj with ¬speculativeHazard? b₂ (save x (cmdReadNames x s) (cmdWriteNames x s) ls)
+... | yes dsj with ¬speculativeHazard? b₂ (save s x ls)
 ... | no sh = false Relation.Nullary.because Relation.Nullary.ofⁿ g₁
   where g₁ : HazardFree s (x ∷ b₁) b₂ ls → ⊥
         g₁ (:: .s .ls _ .b₁ .b₂ (HFC ¬sh _) hf) = sh ¬sh
-... | yes ¬sh with hazardfree? (run x s) b₁ b₂ (save x (cmdReadNames x s) (cmdWriteNames x s) ls)
+... | yes ¬sh with hazardfree? (run x s) b₁ b₂ (save s x ls)
 ... | yes hf = true Relation.Nullary.because (Relation.Nullary.ofʸ (:: s ls x b₁ b₂ (HFC ¬sh dsj) hf))
 ... | no ¬hf = false Relation.Nullary.because Relation.Nullary.ofⁿ g₁
   where g₁ : HazardFree s (x ∷ b₁) b₂ ls → ⊥

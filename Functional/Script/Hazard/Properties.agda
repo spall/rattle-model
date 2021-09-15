@@ -9,7 +9,7 @@ open import Functional.Build using (Build)
 open import Common.List.Properties using (_before_en_)
 open import Agda.Builtin.Equality
 open import Functional.File using (FileName)
-open import Functional.Script.Hazard.Base (oracle) using (HazardFree ; [] ; :: ; files ; cmdsRun ; cmdWrote ; FileInfo ; save ; filesRead ; ¬SpeculativeHazard ; ∈-files-++ ; ∈-cmdRead++mid ; ∈-cmdWrote++mid ; ∈-cmdWrote∷ ; ∈-cmdRead∷l ; lemma2 ; cmdWrote∷-≡ ; HFC)
+open import Functional.Script.Hazard.Base (oracle) using (HazardFree ; [] ; :: ; files ; cmdsRun ; cmdWrote ; FileInfo ; save ; filesRead ; ¬SpeculativeHazard ; ∈-files-++ ; ∈-cmdRead++mid ; ∈-cmdWrote++mid ; ∈-cmdWrote∷ ; ∈-cmdRead∷l ; lemma2 ; cmdWrote∷-≡ ; HFC ; HazardFreeCmd ; ∈-cmdWrote∷l)
 open import Data.List as L using (_∷_ ; _++_ ; map ; foldr ; List ; foldl ; _∷ʳ_ ; [] ; reverse ; [_])
 open import Data.Product using (_,_ ; proj₁ ; proj₂ ; _×_ ; Σ-syntax ; ∃-syntax)
 open import Relation.Binary.PropositionalEquality using (subst ; subst₂ ; cong ; sym ; trans ; cong₂)
@@ -19,7 +19,7 @@ open import Data.List.Membership.Propositional using (_∈_ ; _∉_)
 open import Data.List.Membership.Propositional.Properties using (∈-++⁻ ; ∈-++⁺ˡ ; ∈-++⁺ʳ ; ∈-∃++)
 open import Data.String using (String)
 open import Data.Sum using (inj₁ ; inj₂)
-open import Data.List.Properties using (map-++-commute ; ++-assoc ; reverse-involutive ; ∷-injectiveˡ ; ∷-injectiveʳ ; reverse-++-commute ; unfold-reverse)
+open import Data.List.Properties using (map-++-commute ; ++-assoc ; reverse-involutive ; ∷-injectiveˡ ; ∷-injectiveʳ ; reverse-++-commute ; unfold-reverse ; ++-identityˡ)
 open import Data.List.Relation.Binary.Subset.Propositional using (_⊆_)
 open import Data.List.Relation.Binary.Subset.Propositional.Properties using (Any-resp-⊆ ; ++⁺ ; ⊆-refl ; xs⊆ys++xs)
 open import Data.List.Relation.Unary.AllPairs using (AllPairs ; _∷_)
@@ -32,6 +32,7 @@ open import Data.List.Relation.Unary.Unique.Propositional using (Unique)
 open import Data.String.Properties using (_≟_)
 open import Data.List.Membership.DecPropositional _≟_ using (_∈?_)
 open import Data.Empty using (⊥)
+open import Data.List.Relation.Binary.Permutation.Propositional using (_↭_)
 
 {- what does memoize do about duplicates? 
 
@@ -113,7 +114,7 @@ hf-still : ∀ {s₁} {s} b₁ {b₂} xs ys zs → (∀ f₁ → f₁ ∈ buildR
 hf-still [] xs ys zs ∀₁ ub₁ u dsj hf = []
 hf-still {s₁} {s} (x ∷ b₁) xs ys zs ∀₁ (px ∷ ub₁) u dsj (:: _ .(xs ++ ys ++ zs) .x .b₁ _ (HFC ¬sh x₂) hf)
   = :: _ (xs ++ zs) x b₁ _ (HFC ¬sh₂ (subst (λ x₃ → Disjoint x₃ (files (xs ++ zs))) ≡₁ (disjoint-drop-mid (cmdWriteNames x _) xs ys zs x₂)))
-         (hf-still b₁ (save x (cmdReadNames x s) (cmdWriteNames x s) xs) ys zs ∀₂ ub₁ u₂ dsj₁ hf₂) 
+         (hf-still b₁ (save s x xs) ys zs ∀₂ ub₁ u₂ dsj₁ hf₂) 
     where dsj₁ : Disjoint b₁ (x ∷ map proj₁ (xs ++ ys ++ zs))
           dsj₁ = λ x₁ → dsj (there (proj₁ x₁) , tail (λ v≡x → lookup px (proj₁ x₁) (sym v≡x)) (proj₂ x₁))
           ≡₀ : proj₁ (oracle x) s₁ ≡ proj₁ (oracle x) s
@@ -130,9 +131,9 @@ hf-still {s₁} {s} (x ∷ b₁) xs ys zs ∀₁ (px ∷ ub₁) u dsj (:: _ .(xs
           ... | s₁f₁≡sf₁ = St.lemma2 ≡₀ s₁f₁≡sf₁
           u₂ : Unique (x ∷ (map proj₁ (xs ++ ys ++ zs)))
           u₂ = (g₂ (map proj₁ (xs ++ ys ++ zs)) λ x₁ → dsj (here refl , x₁)) ∷ u
-          ¬sh₂ : ¬SpeculativeHazard _ (save x (cmdReadNames x s) (cmdWriteNames x s) (xs ++ zs))
+          ¬sh₂ : ¬SpeculativeHazard _ (save s x (xs ++ zs))
           ¬sh₂ = ¬sh-drop-mid _ ((x , (cmdReadNames x s) , (cmdWriteNames x s)) ∷ xs) ys zs u₂
-                              (subst₂ (λ x₁ x₃ → ¬SpeculativeHazard _ (save x x₁ x₃ (xs ++ ys ++ zs))) ≡₂ ≡₁ ¬sh)
+                              (subst₂ (λ x₁ x₃ → ¬SpeculativeHazard _ ((x , x₁ , x₃) ∷ (xs ++ ys ++ zs))) ≡₂ ≡₁ ¬sh)
 
 lemma3 : ∀ {s} {x} {ls} → Disjoint (cmdWriteNames x s) ls → (∀ f₁ → f₁ ∈ ls → run x s f₁ ≡ s f₁)
 lemma3 {s} {x} dsj f₁ f₁∈ls with f₁ ∈? cmdWriteNames x s
@@ -196,5 +197,66 @@ hf-drop-mid (x₁ ∷ xs) ys b₁ {x} ⊆₁ (px₁ ∷ u₁) u uls dsj (:: _ _ 
           uls₂ : Unique (x₁ ∷ map proj₁ _)
           uls₂ = g₂ (map proj₁ _) (λ x₃ → dsj (here refl , x₃)) ∷ uls
 
-hf=>disjoint : ∀ s x xs ys → Disjoint (cmdReadNames x (exec s xs)) (buildWriteNames (run x (exec s xs)) ys)
-hf=>disjoint s x xs ys = {!!}
+{- show 1. x₁ before x en ls     
+        2. x₁ ∈ b
+        3. ¬ x before x₁ en b
+
+  What if we have: 
+  HazardFree s₂ ys (zs ∷ x)
+  if we match on ys. we can prove 
+-}
+
+¬bf : ∀ {x : Cmd} {x₁} zs → x ∉ zs → ¬ (x before x₁ en (zs ∷ʳ x))
+{- need to prove ys is empty. then x₁ cannot be in empty list -}
+¬bf {x} [] x∉zs ([] , ys , ≡₁ , x₁∈ys) with ++-identityˡ (x ∷ [])
+... | a with ∷-injectiveʳ ≡₁
+... | refl = contradiction x₁∈ys (λ ())
+¬bf {x} [] x∉zs (x₂ ∷ xs , ys , ≡₁ , x₁∈ys) with ++-identityˡ (x ∷ [])
+... | _ with ∷-injectiveʳ ≡₁
+... | ≡₂ = contradiction (subst (λ x₃ → _ ∈ x₃) (sym ≡₂) (∈-++⁺ʳ xs (there x₁∈ys))) (λ ())
+¬bf (x₂ ∷ zs) x∉zs ([] , ys , ≡₁ , x₁∈ys) = contradiction (here (sym (∷-injectiveˡ ≡₁))) x∉zs
+¬bf (x₂ ∷ zs) x∉zs (x₃ ∷ xs , ys , ≡₁ , x₁∈ys) with ¬bf zs λ x₄ → x∉zs (there x₄)
+... | ¬bf₁ = ¬bf₁ (xs , ys , ∷-injectiveʳ ≡₁ , x₁∈ys)
+
+{- prove the writes of x are disjoint from the reads of x₁ using evidence of no speculative hazard
+-}
+disjoint3 : ∀ s x₁ zs x ls → x ∈ map proj₁ ls → x₁ ∈ zs → x ∉ zs → HazardFreeCmd s x₁ (zs ∷ʳ x) ls → Disjoint (cmdWrote ls x) (cmdReadNames x₁ s)
+disjoint3 s x₁ zs x ls x∈ls x₁∈zs x∉zs (HFC ¬sh x₃) = λ x₄ → ¬sh x x₁ bf (∈-++⁺ˡ x₁∈zs) (¬bf zs x∉zs) (∈-cmdRead∷l (x₁ , _) ls (proj₂ x₄) , ∈-cmdWrote∷ (x₁ , _) x ls (proj₁ x₄) λ x₁≡x → x∉zs (subst (λ x₅ → x₅ ∈ zs) x₁≡x x₁∈zs))
+  where bf : x₁ before x en (x₁ ∷ map proj₁ ls)
+        bf = [] , map proj₁ ls , refl , x∈ls
+
+
+hf=>disjoint2 : ∀ s ls ys zs x → ys ⊆ zs → x ∉ zs → x ∈ map proj₁ ls → HazardFree s ys (zs ∷ʳ x) ls → Disjoint (cmdWrote ls x) (buildReadNames s ys)
+hf=>disjoint2 s ls [] zs x ys⊆zs x∉zs x∈ls hf = g₁
+  where g₁ : Disjoint (cmdWrote ls x) (buildReadNames s [])
+        g₁ ()
+hf=>disjoint2 s ls (x₁ ∷ ys) zs x ys⊆zs x∉zs x∈ls (:: .s .ls .x₁ .ys .(zs ++ x ∷ []) hfc hf) with hf=>disjoint2 (run x₁ s) (save s x₁ ls) ys zs x (λ x₃ → ys⊆zs (there x₃)) x∉zs (there x∈ls) hf
+... | dsj₁ = g₁
+  where g₁ : Disjoint (cmdWrote ls x) (buildReadNames s (x₁ ∷ ys))
+        g₁ (∈₁ , ∈₂) with ∈-++⁻ (cmdReadNames x₁ s) ∈₂
+        ... | inj₁ ∈cmd = disjoint3 s x₁ zs x ls x∈ls (ys⊆zs (here refl)) x∉zs hfc (∈₁ , ∈cmd)
+        ... | inj₂ ∈build = dsj₁ ((∈-cmdWrote∷ (x₁ , _) x ls ∈₁ λ x₁≡x → x∉zs (ys⊆zs (here (sym x₁≡x)))) , ∈build)
+
+{- proof plan:
+  via a speculative hazard; show the writes of x are disjoint from the reads of ys.
+  ; because we know all of ys. are before x in the correct build.
+
+  for each cmd in ys; we can produce a hazard contradiction?
+ ; via the contradiction we can show each command in ys's reads are disjoint from the writes of x.
+
+ let's get a helper lemma that says; (writes ls x) are disjoint from the reads of a command in ls.
+-}
+hf=>disjoint1 : ∀ s x ys zs ls → ys ⊆ zs → x ∉ zs → HazardFree s (x ∷ ys) (zs ∷ʳ x) ls → Disjoint (cmdWriteNames x s) (buildReadNames (run x s) ys)
+hf=>disjoint1 s x ys zs ls ys⊆zs x∉zs (:: .s .ls .x .ys .(zs ++ x ∷ []) x₁ hf) with hf=>disjoint2 (run x s) (save s x ls) ys zs x ys⊆zs x∉zs (here refl) hf
+... | dsj = λ x₁ → dsj (∈-cmdWrote∷l (x , _) ls (proj₁ x₁) , (proj₂ x₁))
+
+hf=>disjoint : ∀ s x xs ys zs ls → ys ⊆ zs → x ∉ zs → HazardFree s (xs ++ x ∷ ys) (zs ∷ʳ x) ls → Disjoint (cmdWriteNames x (exec s xs)) (buildReadNames (run x (exec s xs)) ys)
+hf=>disjoint s x [] ys zs ls ys⊆zs x∉zs hf = hf=>disjoint1 s x ys zs ls ys⊆zs x∉zs hf
+hf=>disjoint s x (x₁ ∷ xs) ys zs ls ys⊆zs x∉zs (:: .s .ls .x₁ .(xs ++ x ∷ ys) .(zs ++ x ∷ []) x₂ hf)
+  = hf=>disjoint (run x₁ s) x xs ys zs _ ys⊆zs x∉zs hf
+
+{- 1. loop over the commands in ys.
+   2. for each command in ys, show it is disjoint from the writes of x.
+    -- 
+
+-}
