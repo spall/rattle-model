@@ -106,7 +106,8 @@ OKBuild (s , mm) ls b₁ b₂ = DisjointBuild s b₁ × MemoryProperty mm × Uni
 
 \newcommand{\completeness}{%
 \begin{code}
-completeness : ∀ st ls b₁ b₂ → OKBuild st ls b₁ b₂ → HazardFree (proj₁ st) b₁ b₂ ls → ∃[ st₁ ](∃[ ls₁ ](execWError (st , ls) b₁ b₂ ≡ inj₂ (st₁ , ls₁)))
+completeness : ∀ st ls b₁ b₂ → OKBuild st ls b₁ b₂ → HazardFree (proj₁ st) b₁ b₂ ls
+             → ∃[ st₁ ](∃[ ls₁ ](execWError (st , ls) b₁ b₂ ≡ inj₂ (st₁ , ls₁)))
 \end{code}}
 \begin{code}[hide]
 completeness st ls [] _ (dsb , mp , (ub₁ , ub₂ , uls , dsj)) hf = st , ls , refl
@@ -120,7 +121,7 @@ completeness st@(s , mm) ls (x ∷ b₁) b₂ ((Cons .x ds .b₁ dsb) , mp , ((p
         st₂ : State
         st₂ = St.run x s , save x ((cmdReadNames x s) ++ (cmdWriteNames x s)) (St.run x s) mm
         ls₂ : FileInfo
-        ls₂ = rec x (cmdReadNames x s) (cmdWriteNames x s) ls
+        ls₂ = rec s x ls
         uls₂ : Unique (x ∷ map proj₁ ls)
         uls₂ = g₂ (map proj₁ ls) (λ x₁ → dsj₁ (here refl , x₁)) ∷ uls
         mp₂ : MemoryProperty (proj₂ st₂)
@@ -139,14 +140,15 @@ completeness st@(s , mm) ls (x ∷ b₁) b₂ ((Cons .x x₁ .b₁ dsb) , mp , (
         
 completeness st@(s , mm) ls (x ∷ b₁) b₂ ((Cons .x ds .b₁ dsb) , mp , ((px ∷ ub₁) , ub₂ , uls , dsj₁))  (:: .s .ls .x .b₁ .b₂ (HFC ¬sh dsj) hf) |  no x∉ with checkHazard s x {b₂} ls
 ... | just hz = ⊥-elim (hazardContradiction s x b₂ ls hz (HFC ¬sh dsj))
-... | nothing = completeness (St.run x s , save x ((cmdReadNames x s) ++ (cmdWriteNames x s)) (St.run x s) mm) (rec x (cmdReadNames x s) (cmdWriteNames x s) ls) b₁ b₂ (dsb , (MemoryProperty.Cons x s (λ f₁ x₂ → lemma3 f₁ (proj₂ (proj₁ (oracle x) s)) λ x₃ → ds (x₂ , x₃)) mp) , (ub₁ , ub₂ , (g₂ (map proj₁ ls) (λ x₁ → dsj₁ (here refl , x₁)) ∷ uls) , dsj₂)) hf 
+... | nothing = completeness (St.run x s , save x ((cmdReadNames x s) ++ (cmdWriteNames x s)) (St.run x s) mm) (rec s x ls) b₁ b₂ (dsb , (MemoryProperty.Cons x s (λ f₁ x₂ → lemma3 f₁ (proj₂ (proj₁ (oracle x) s)) λ x₃ → ds (x₂ , x₃)) mp) , (ub₁ , ub₂ , (g₂ (map proj₁ ls) (λ x₁ → dsj₁ (here refl , x₁)) ∷ uls) , dsj₂)) hf 
   where dsj₂ : Disjoint b₁ (x ∷ map proj₁ ls)
         dsj₂ = λ x₁ → dsj₁ (there (proj₁ x₁) , tail (λ v≡x → lookup px (proj₁ x₁) (sym v≡x)) (proj₂ x₁))
 \end{code}
 
 \newcommand{\lemmasr}{%
 \begin{code}
-script≡rattle : ∀ {s₁} {s₂} mm b₁ → (∀ f₁ → s₁ f₁ ≡ s₂ f₁) → DisjointBuild s₂ b₁ → MemoryProperty mm → (∀ f₁ → Script.exec s₁ b₁ f₁ ≡ proj₁ (exec (s₂ , mm) b₁) f₁)
+script≡rattle : ∀ {s₁} {s₂} m b₁ → (∀ f₁ → s₁ f₁ ≡ s₂ f₁) → DisjointBuild s₂ b₁ → MemoryProperty m
+              → (∀ f₁ → Script.exec s₁ b₁ f₁ ≡ proj₁ (exec (s₂ , m) b₁) f₁)
 \end{code}}
 \begin{code}[hide]
 script≡rattle mm [] ∀₁ dsb mp = ∀₁ 
@@ -173,7 +175,7 @@ script≡rattle {s₁} {s₂} mm (x ∷ b₁) ∀₁ (Cons .x dsj .b₁ dsb) mp 
 \end{code}
 \newcommand{\correct}{%
 \begin{code}
-correct : ∀ b₁ b₂ s mm ls → OKBuild (s , mm) ls b₁ b₂ → ¬ HazardFree s b₁ b₂ ls ⊎ ≡toScript (s , mm) ls b₁ b₂ b₁
+correct : ∀ b₁ b₂ s m ls → OKBuild (s , m) ls b₁ b₂ → ¬ HazardFree s b₁ b₂ ls ⊎ ≡toScript (s , m) ls b₁ b₂ b₁
 \end{code}}
 \begin{code}[hide]
 correct b₁ b₂ s mm ls (dsb , mp , ue) with execWError ((s , mm) , ls) b₁ b₂ | inspect (execWError ((s , mm) , ls) b₁) b₂
@@ -234,7 +236,7 @@ we would have a speculative hazard if
 
 \newcommand{\correctS}{%
 \begin{code}
-correct2 : ∀ b₁ b₂ s mm ls → OKBuild (s , mm) ls b₁ b₂ → b₂ ↭ b₁ → ¬ HazardFree s b₂ _ ls ⊎ ≡toScript (s , mm) ls b₁ b₂ b₂
+correct2 : ∀ b₁ b₂ s m ls → OKBuild (s , m) ls b₁ b₂ → b₂ ↭ b₁ → ¬ HazardFree s b₂ [] ls ⊎ ≡toScript (s , m) ls b₁ b₂ b₂
 \end{code}}
 
 \begin{code}[hide]
@@ -268,7 +270,8 @@ correct2 b₁ b₂ s mm ls (dsb , mp , ue) p with execWError ((s , mm) , ls) b�
 
 \newcommand{\correctP}{%
 \begin{code}
-semi-correct : ∀ s mm ls b₁ b₂ → OKBuild (s , mm) ls b₁ b₂ → b₂ ↭ b₁ → HazardFree s b₂ [] ls → ¬ HazardFree s b₁ b₂ ls ⊎ ≡toScript (s , mm) ls b₁ b₂ b₂
+semi-correct : ∀ s m ls b₁ b₂ → OKBuild (s , m) ls b₁ b₂ → b₂ ↭ b₁ → HazardFree s b₂ [] ls
+             → ¬ HazardFree s b₁ b₂ ls ⊎ ≡toScript (s , m) ls b₁ b₂ b₂
 \end{code}}
 
 \begin{code}[hide]

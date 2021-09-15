@@ -127,7 +127,7 @@ required? x (x₁ ∷ b) ls bf | yes x≡x₁ with subset? bf ls
          , v∈cr , v∈cw)
 
 ∃Speculative : ∀ s x {b} ls → Maybe (Hazard s x b ls)
-∃Speculative s x {b} ls with ∃Speculative1 (x ∷ cmdsRun ls) (rec x (cmdReadNames x s) (cmdWriteNames x s) ls) []
+∃Speculative s x {b} ls with ∃Speculative1 (x ∷ cmdsRun ls) (rec s x ls) []
 ... | nothing = nothing
 ... | just (x₁ , x₂ , v , bf , x₁∈b , ¬bf , v∈cr , v∈cw)
   = just (Speculative s x b ls x₁ x₂ v bf x₁∈b ¬bf v∈cr v∈cw)
@@ -156,7 +156,7 @@ doRunWError : ∀ {b} → (((s , mm) , ls) : State × FileInfo) → (x : Cmd) �
 doRunWError ((s , mm) , ls) x with checkHazard s x ls
 ... | just hz = inj₁ hz
 ... | nothing = let sys₁ = St.run x s in
-                inj₂ ((sys₁ , save x ((cmdReadNames x s) ++ (cmdWriteNames x s)) sys₁ mm) , rec x (cmdReadNames x s) (cmdWriteNames x s) ls)
+                inj₂ ((sys₁ , save x ((cmdReadNames x s) ++ (cmdWriteNames x s)) sys₁ mm) , rec s x ls)
 
 
 run : State -> Cmd -> State
