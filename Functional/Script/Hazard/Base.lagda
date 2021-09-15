@@ -254,8 +254,7 @@ data Hazard : System → Cmd → Build → FileInfo → Set where
 \newcommand{\hfcmd}{%
 \begin{code}
 data HazardFreeCmd : System → Cmd → Build → FileInfo → Set where
-  HFC : ∀ {s} {ls} {x} {b₂} → ¬SpeculativeHazard b₂ (save s x ls) → Disjoint (cmdWriteNames x s) (files ls)
-        → HazardFreeCmd s x b₂ ls
+  HFC : ∀ {s} {ls} {x} {b₂} → ¬SpeculativeHazard b₂ (save s x ls) → Disjoint (cmdWriteNames x s) (files ls) → HazardFreeCmd s x b₂ ls
 \end{code}}
 \begin{code}[hide]
 hazardContradiction : ∀ s x b₂ ls → (hz : Hazard s x b₂ ls) → HazardFreeCmd s x b₂ ls → ⊥
@@ -269,8 +268,7 @@ hazardContradiction s x b ls hz (HFC ¬sh dsj) with hz
 \begin{code}
 data HazardFree : System → Build → Build → FileInfo → Set where
   [] : ∀ {s} {b} {ls} → HazardFree s [] b ls
-  :: : ∀ s ls x b₁ b₂ → HazardFreeCmd s x b₂ ls → HazardFree (run x s) b₁ b₂ (save s x ls)
-       → HazardFree s (x ∷ b₁) b₂ ls
+  :: : ∀ s ls x b₁ b₂ → HazardFreeCmd s x b₂ ls → HazardFree (run x s) b₁ b₂ (save s x ls) → HazardFree s (x ∷ b₁) b₂ ls
 \end{code}}
 
 \begin{code}[hide]
