@@ -2,6 +2,9 @@
 latex/Functional/State.tex : Functional/State.lagda
 	agda --latex --only-scope-checking Functional/State.lagda
 
+latex/Functional/State/Helpers.tex : Functional/State/Helpers.lagda
+	agda --latex --only-scope-checking Functional/State/Helpers.lagda
+
 latex/Functional/Build.tex : Functional/Build.lagda
 	agda --latex --only-scope-checking Functional/Build.lagda
 
