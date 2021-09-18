@@ -1,4 +1,5 @@
 
+\begin{code}[hide]
 open import Functional.State using (State ; F ; Cmd ; save ; System ; Memory ; extend)
 
 module Functional.Forward.Exec (oracle : F) where
@@ -47,13 +48,17 @@ run? cmd (sys , mm) with cmd ∈? map proj₁ mm
 doRun : State -> Cmd -> State
 doRun (sys , mm) cmd = let sys₂ = St.run cmd sys in
                            (sys₂ , save cmd (cmdReadNames cmd sys) sys₂ mm)
+\end{code}
 
+\newcommand{\runF}{%
+\begin{code}
 run : State -> Cmd -> State
 run st cmd = if (run? cmd st)
                then doRun st cmd
                else st
+\end{code}}
 
-
+\begin{code}[hide]
 exec : State -> Build -> State
 exec st [] = st
 exec st (x ∷ b) = exec (run st x) b
@@ -66,8 +71,5 @@ exec st (x ∷ b) = exec (run st x) b
 What does it mean for the command to be in the memory? The command is in the memory list, so it has
 a corresponding list of files and maybe file contents, which in the case of the forward build, are
 the files and their values read by the ocmmand when it was recorded as being run.  
-
-
-
-
 -}
+\end{code}

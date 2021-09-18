@@ -1,16 +1,18 @@
 
+\begin{code}[hide]
 open import Functional.State using (F ; System ; Memory ; Cmd ; extend ; save)
 
 module Functional.Forward.Properties (oracle : F) where
 
 open import Functional.State.Helpers (oracle) as St hiding (run)
-open import Functional.State.Properties (oracle) as StP using (lemma3 ; lemma4)
+open import Functional.State.Properties (oracle) as StP using (lemma3 ; lemma4 ; run-≡)
 open import Data.Bool using (false ; if_then_else_)
 open import Data.Product using (proj₁ ; proj₂ ; _,_)
 open import Data.String using (String)
 open import Agda.Builtin.Equality
 open import Functional.File using (FileName ; FileContent ; Files)
-open import Functional.Forward.Exec (oracle) using (run ; run? ; maybeAll ; get)
+open import Functional.Script.Exec (oracle) as Script hiding (exec)
+open import Functional.Forward.Exec (oracle) using (run ; run? ; maybeAll ; get ; exec)
 open import Data.Maybe as Maybe using (Maybe ; just ; nothing)
 open import Data.Maybe.Relation.Binary.Pointwise using (dec ; Pointwise)
 open import Data.String.Properties using (_≟_ ; _==_)
@@ -26,6 +28,8 @@ open import Data.List.Relation.Binary.Disjoint.Propositional using (Disjoint)
 open import Function.Base using (_∘_)
 open import Data.List.Membership.Propositional.Properties using (∈-++⁺ˡ ; ∈-++⁺ʳ)
 open import Data.List.Properties using (∷-injective)
+open import Functional.Script.Hazard (oracle) using (HazardFree ; ::)
+open import Functional.Script.Hazard.Properties (oracle) using (hf-still)
 
 open import Relation.Nullary.Negation using (contradiction)
 
@@ -114,3 +118,27 @@ run≡ sys₁ sys₂ mm x ∀₁ is f₁ with x ∈? map proj₁ mm
 ... | just all₁ with getCmdIdempotent mm x is x∈
 ... | ci = trans (StP.lemma2 {sys₁} {sys₂} (proj₂ (oracle x) sys₁ sys₂ λ f₂ _ → ∀₁ f₂) (∀₁ f₁))
                         (ci all₁ f₁)
+
+correct-inner : ∀ {s₁} {s₂} m b {b₁} {ls} → (∀ f₁ → s₁ f₁ ≡ s₂ f₁) → HazardFree s₁ b b₁ ls → (∀ f₁ → proj₁ (exec (s₁ , m) b) f₁ ≡ Script.exec s₂ b f₁)
+correct-inner m [] ∀₁ hf = ∀₁
+correct-inner {s₁} {s₂} m (x ∷ b) ∀₁ (:: _ _ .x .b _ x₁ hf) f₁ with x ∈? map proj₁ m
+... | no x∉mem = correct-inner (save x (cmdReadNames x s₁) (St.run x s₁) m) b (run-≡ x ∀₁) hf f₁
+
+... | yes x∈mem with maybeAll {s₁} (get x m x∈mem)
+... | nothing = correct-inner (save x (cmdReadNames x s₁) (St.run x s₁) m) b (run-≡ x ∀₁) hf f₁
+... | just all₁ = correct-inner m b ∀₂ hf₂ f₁
+  where ∀₂ : ∀ f₁ → s₁ f₁ ≡ St.run x s₂ f₁
+        ∀₂ = {!!}
+        ∀₃ : ∀ f₁ → s₁ f₁ ≡ St.run x s₁ f₁
+        ∀₃ = {!!}
+        hf₂ : HazardFree s₁ b _ _
+        hf₂ = hf-still b [] ((x , cmdReadNames x s₁ , cmdWriteNames x s₁) ∷ []) _ (λ f₂ x₂ → sym (∀₃ f₂)) {!!} {!!} {!!} hf
+\end{code}
+
+\newcommand{\correctF}{%
+\begin{code}
+correct : ∀ s b ls → HazardFree s b [] ls → (∀ f₁ → proj₁ (exec (s , _) b) f₁ ≡ Script.exec s b f₁)
+\end{code}}
+\begin{code}[hide]
+correct s b ls hf f₁ = {!!}
+\end{code}

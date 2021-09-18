@@ -23,3 +23,10 @@ latex/Functional/Rattle/Exec.tex : Functional/Rattle/Exec.lagda
 latex/Functional/Rattle/Properties.tex : Functional/Rattle/Properties.lagda
 	agda --latex --only-scope-checking Functional/Rattle/Properties.lagda
 
+latex/Functional/Forward/Exec.tex : Functional/Forward/Exec.lagda
+	agda --latex --only-scope-checking Functional/Forward/Exec.lagda
+
+latex/Functional/Forward/Properties.tex : Functional/Forward/Properties.lagda
+	agda --latex --only-scope-checking Functional/Forward/Properties.lagda
+
+
