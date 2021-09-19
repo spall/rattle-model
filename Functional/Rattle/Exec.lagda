@@ -21,7 +21,7 @@ open import Data.Product.Properties using (≡-dec ; ,-injectiveˡ ; ,-injective
 open import Data.Product.Relation.Binary.Pointwise.NonDependent using (×-decidable ; ≡×≡⇒≡ ; ≡⇒≡×≡ )
 open import Function.Base using (_∘_)
 open import Functional.File using (FileName ; FileContent)
-open import Functional.Build using (Build)
+open import Functional.Build using (Build ; UniqueEvidence)
 open import Relation.Binary using (Decidable)
 open import Relation.Nullary.Decidable as Dec using (isYes ; map′)
 open import Relation.Nullary.Negation using (¬? ; contradiction)
@@ -33,7 +33,6 @@ open import Data.List.Relation.Unary.Unique.Propositional using (Unique)
 open import Data.Empty using (⊥)
 open import Relation.Nullary using (yes ; no ; ¬_)
 open import Data.List.Relation.Unary.Any using (tail ; here ; there)
-open import Functional.Script.Exec (oracle)  as S hiding (exec)
 open import Common.List.Properties using (_before_en_ ; before-∷)
 open import Functional.Script.Hazard (oracle) using (Hazard ; WriteWrite ; ReadWrite ; Speculative ; filesRead ; filesWrote ; cmdRead ; cmdWrote ; cmdsRun ; FileInfo ; ∈-cmdWrote∷ ; ∈-cmdRead∷ ; ∃Hazard ; ¬SpeculativeHazard ; before?) renaming (save to rec)
 open import Data.List.Relation.Unary.AllPairs using (_∷_)
@@ -184,18 +183,13 @@ exec st [] = st
 exec st (x ∷ b) = exec (run st x) b
 \end{code}
 
-\begin{code}[hide]
-UniqueEvidence : Build → Build → List Cmd → Set
-UniqueEvidence b₁ b₂ ls = Unique b₁ × Unique b₂ × Unique ls × Disjoint b₁ ls
-\end{code}
-
-\newcommand{\execWError}{%
+\newcommand{\rattle}{%
 \begin{code}
-execWError : ∀ st (b₁ : Build) b₂ → ∃Hazard b₂ ⊎ State × FileInfo
+rattle : ∀ st (b₁ : Build) b₂ → ∃Hazard b₂ ⊎ State × FileInfo
 \end{code}}
 \begin{code}[hide]
-execWError st [] b₂ = inj₂ st
-execWError st (x ∷ b₁) b₂ with runWError st x
+rattle st [] b₂ = inj₂ st
+rattle st (x ∷ b₁) b₂ with runWError st x
 ... | inj₁ hz = inj₁ (proj₁ (proj₁ st) , x , proj₂ st , hz)
-... | inj₂ (st₁ , ls₁) = execWError (st₁ , ls₁) b₁ b₂
+... | inj₂ (st₁ , ls₁) = rattle (st₁ , ls₁) b₁ b₂
 \end{code}

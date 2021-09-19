@@ -58,11 +58,14 @@ run st cmd = if (run? cmd st)
                else st
 \end{code}}
 
-\begin{code}[hide]
-exec : State -> Build -> State
-exec st [] = st
-exec st (x ∷ b) = exec (run st x) b
+\newcommand{\forward}{%
+\begin{code}
+forward : State -> Build -> State
+forward st [] = st
+forward st (x ∷ b) = forward (run st x) b
+\end{code}}
 
+\begin{code}[hide]
 {- Goal: prove if a command is in the memory, and the recorded files and the values of the files in the system are the same as the values in the memory, then
    running the command is equivalent to not running the command. 
 

@@ -28,11 +28,11 @@ open import Data.List.Membership.DecSetoid (decSetoid _≟_) using (_∈_ ; _∈
 open import Relation.Nullary using (yes ; no ; ¬_)
 open import Relation.Nullary.Negation using (contradiction)
 open import Data.List.Relation.Unary.Any using (tail ; here ; there)
-open import Functional.Rattle.Exec (oracle) using (execWError ; runWError ; run ; doRun ; exec ; doRunWError ; checkHazard ; g₂ ; UniqueEvidence)
-open import Functional.Build using (Build)
+open import Functional.Rattle.Exec (oracle) using (rattle ; runWError ; run ; doRun ; exec ; doRunWError ; checkHazard ; g₂)
+open import Functional.Build using (Build ; UniqueEvidence)
 open import Data.Sum using (inj₂ ; from-inj₂ ; inj₁ ; _⊎_)
 open import Data.Sum.Properties using (inj₂-injective)
-open import Functional.Script.Exec (oracle) as Script hiding (exec)
+open import Functional.Script.Exec (oracle) as Script
 open import Functional.Script.Properties (oracle) using (DisjointBuild ; Cons ; dsj-≡)
 open import Functional.Script.Proofs (oracle) using (reordered)
 
@@ -92,7 +92,7 @@ runSoundness st ls st₁ ls₁ b x ≡₁ with run? x st
 
 \newcommand{\soundness}{%
 \begin{code}
-soundness : ∀ {st₁} {ls₁} st ls b₁ b₂ → execWError (st , ls) b₁ b₂ ≡ inj₂ (st₁ , ls₁) → exec st b₁ ≡ st₁
+soundness : ∀ {st₁} {ls₁} st ls b₁ b₂ → rattle (st , ls) b₁ b₂ ≡ inj₂ (st₁ , ls₁) → exec st b₁ ≡ st₁
 \end{code}}
 \begin{code}[hide]
 soundness st ls [] b₂ ≡₁ = cong proj₁ (inj₂-injective ≡₁)
@@ -107,7 +107,7 @@ OKBuild (s , mm) ls b₁ b₂ = DisjointBuild s b₁ × MemoryProperty mm × Uni
 \newcommand{\completeness}{%
 \begin{code}
 completeness : ∀ st ls b₁ b₂ → OKBuild st ls b₁ b₂ → HazardFree (proj₁ st) b₁ b₂ ls
-             → ∃[ st₁ ](∃[ ls₁ ](execWError (st , ls) b₁ b₂ ≡ inj₂ (st₁ , ls₁)))
+             → ∃[ st₁ ](∃[ ls₁ ](rattle (st , ls) b₁ b₂ ≡ inj₂ (st₁ , ls₁)))
 \end{code}}
 \begin{code}[hide]
 completeness st ls [] _ (dsb , mp , (ub₁ , ub₂ , uls , dsj)) hf = st , ls , refl
@@ -148,7 +148,7 @@ completeness st@(s , mm) ls (x ∷ b₁) b₂ ((Cons .x ds .b₁ dsb) , mp , ((p
 \newcommand{\lemmasr}{%
 \begin{code}
 script≡rattle : ∀ {s₁} {s₂} m b₁ → (∀ f₁ → s₁ f₁ ≡ s₂ f₁) → DisjointBuild s₂ b₁ → MemoryProperty m
-              → (∀ f₁ → Script.exec s₁ b₁ f₁ ≡ proj₁ (exec (s₂ , m) b₁) f₁)
+              → (∀ f₁ → script s₁ b₁ f₁ ≡ proj₁ (exec (s₂ , m) b₁) f₁)
 \end{code}}
 \begin{code}[hide]
 script≡rattle mm [] ∀₁ dsb mp = ∀₁ 
@@ -166,8 +166,9 @@ script≡rattle {s₁} {s₂} mm (x ∷ b₁) ∀₁ (Cons .x dsj .b₁ dsb) mp 
         ∀₃ : ∀ f₁ → s₂ f₁ ≡ St.run x s₂ f₁
         ∀₃ = noEffect x (λ f₂ → refl) mp x∈ all₁
 
+-- rattle produces a State and the System in that state is equivalent to the one produced by script
 ≡toScript : State → FileInfo → Build → Build → Build → Set
-≡toScript st₁@(s₁ , mm₁) ls₁ b₁ b₂ b₃ = ∃[ s ](∃[ mm ](∃[ ls ](execWError (st₁ , ls₁) b₁ b₂ ≡ inj₂ ((s , mm) , ls) × ∀ f₁ → s f₁ ≡ Script.exec s₁ b₃ f₁)))
+≡toScript st₁@(s₁ , mm₁) ls₁ b₁ b₂ b₃ = ∃[ s ](∃[ mm ](∃[ ls ](rattle (st₁ , ls₁) b₁ b₂ ≡ inj₂ ((s , mm) , ls) × ∀ f₁ → s f₁ ≡ script s₁ b₃ f₁)))
 \end{code}
 
 \begin{code}[hide]
@@ -178,7 +179,7 @@ script≡rattle {s₁} {s₂} mm (x ∷ b₁) ∀₁ (Cons .x dsj .b₁ dsb) mp 
 correct : ∀ b₁ b₂ s m ls → OKBuild (s , m) ls b₁ b₂ → ¬ HazardFree s b₁ b₂ ls ⊎ ≡toScript (s , m) ls b₁ b₂ b₁
 \end{code}}
 \begin{code}[hide]
-correct b₁ b₂ s mm ls (dsb , mp , ue) with execWError ((s , mm) , ls) b₁ b₂ | inspect (execWError ((s , mm) , ls) b₁) b₂
+correct b₁ b₂ s mm ls (dsb , mp , ue) with rattle ((s , mm) , ls) b₁ b₂ | inspect (rattle ((s , mm) , ls) b₁) b₂
 ... | inj₁ hz | [ ≡₁ ] = inj₁ g₁
   where g₁ : HazardFree s b₁ b₂ ls → ⊥
         g₁ hf with completeness (s , mm) ls b₁ b₂ (dsb , mp , ue) hf
@@ -240,7 +241,7 @@ correct2 : ∀ b₁ b₂ s m ls → OKBuild (s , m) ls b₁ b₂ → b₂ ↭ b�
 \end{code}}
 
 \begin{code}[hide]
-correct2 b₁ b₂ s mm ls (dsb , mp , ue) p with execWError ((s , mm) , ls) b₁ b₂ | inspect (execWError ((s , mm) , ls) b₁) b₂
+correct2 b₁ b₂ s mm ls (dsb , mp , ue) p with rattle ((s , mm) , ls) b₁ b₂ | inspect (rattle ((s , mm) , ls) b₁) b₂
 ... | inj₁ hz | [ ≡₁ ] = {!!}
 {- proof plan:
   we know the reorderd build produced a hazard. this doesnt mean the original build has a hazard.  

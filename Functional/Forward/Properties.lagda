@@ -1,5 +1,6 @@
 
 \begin{code}[hide]
+{-# OPTIONS --allow-unsolved-metas #-}
 open import Functional.State using (F ; System ; Memory ; Cmd ; extend ; save)
 
 module Functional.Forward.Properties (oracle : F) where
@@ -11,8 +12,8 @@ open import Data.Product using (proj₁ ; proj₂ ; _,_)
 open import Data.String using (String)
 open import Agda.Builtin.Equality
 open import Functional.File using (FileName ; FileContent ; Files)
-open import Functional.Script.Exec (oracle) as Script hiding (exec)
-open import Functional.Forward.Exec (oracle) using (run ; run? ; maybeAll ; get ; exec)
+open import Functional.Script.Exec (oracle) using (script)
+open import Functional.Forward.Exec (oracle) using (run ; run? ; maybeAll ; get ; forward)
 open import Data.Maybe as Maybe using (Maybe ; just ; nothing)
 open import Data.Maybe.Relation.Binary.Pointwise using (dec ; Pointwise)
 open import Data.String.Properties using (_≟_ ; _==_)
@@ -119,7 +120,7 @@ run≡ sys₁ sys₂ mm x ∀₁ is f₁ with x ∈? map proj₁ mm
 ... | ci = trans (StP.lemma2 {sys₁} {sys₂} (proj₂ (oracle x) sys₁ sys₂ λ f₂ _ → ∀₁ f₂) (∀₁ f₁))
                         (ci all₁ f₁)
 
-correct-inner : ∀ {s₁} {s₂} m b {b₁} {ls} → (∀ f₁ → s₁ f₁ ≡ s₂ f₁) → HazardFree s₁ b b₁ ls → (∀ f₁ → proj₁ (exec (s₁ , m) b) f₁ ≡ Script.exec s₂ b f₁)
+correct-inner : ∀ {s₁} {s₂} m b {b₁} {ls} → (∀ f₁ → s₁ f₁ ≡ s₂ f₁) → HazardFree s₁ b b₁ ls → (∀ f₁ → proj₁ (forward (s₁ , m) b) f₁ ≡ script s₂ b f₁)
 correct-inner m [] ∀₁ hf = ∀₁
 correct-inner {s₁} {s₂} m (x ∷ b) ∀₁ (:: _ _ .x .b _ x₁ hf) f₁ with x ∈? map proj₁ m
 ... | no x∉mem = correct-inner (save x (cmdReadNames x s₁) (St.run x s₁) m) b (run-≡ x ∀₁) hf f₁
@@ -137,7 +138,7 @@ correct-inner {s₁} {s₂} m (x ∷ b) ∀₁ (:: _ _ .x .b _ x₁ hf) f₁ wit
 
 \newcommand{\correctF}{%
 \begin{code}
-correct : ∀ s b ls → HazardFree s b [] ls → (∀ f₁ → proj₁ (exec (s , _) b) f₁ ≡ Script.exec s b f₁)
+correct : ∀ s b ls → HazardFree s b [] ls → (∀ f₁ → proj₁ (forward (s , _) b) f₁ ≡ script s b f₁)
 \end{code}}
 \begin{code}[hide]
 correct s b ls hf f₁ = {!!}

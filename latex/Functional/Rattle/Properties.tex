@@ -257,13 +257,15 @@
 \AgdaModule{Functional.Rattle.Exec}\AgdaSpace{}%
 \AgdaSymbol{(}\AgdaBound{oracle}\AgdaSymbol{)}\AgdaSpace{}%
 \AgdaKeyword{using}\AgdaSpace{}%
-\AgdaSymbol{(}execWError \AgdaSymbol{;} runWError \AgdaSymbol{;} run \AgdaSymbol{;} doRun \AgdaSymbol{;} exec \AgdaSymbol{;} doRunWError \AgdaSymbol{;} checkHazard \AgdaSymbol{;} g₂ \AgdaSymbol{;} UniqueEvidence\AgdaSymbol{)}\<%
+\AgdaSymbol{(}rattle \AgdaSymbol{;} runWError \AgdaSymbol{;} run \AgdaSymbol{;} doRun \AgdaSymbol{;} exec \AgdaSymbol{;} doRunWError \AgdaSymbol{;} checkHazard \AgdaSymbol{;} g₂\AgdaSymbol{)}\<%
 \\
 \>[0]\AgdaKeyword{open}\AgdaSpace{}%
 \AgdaKeyword{import}\AgdaSpace{}%
 \AgdaModule{Functional.Build}\AgdaSpace{}%
 \AgdaKeyword{using}\AgdaSpace{}%
-\AgdaSymbol{(}\AgdaFunction{Build}\AgdaSymbol{)}\<%
+\AgdaSymbol{(}\AgdaFunction{Build}\AgdaSpace{}%
+\AgdaSymbol{;}\AgdaSpace{}%
+\AgdaFunction{UniqueEvidence}\AgdaSymbol{)}\<%
 \\
 \>[0]\AgdaKeyword{open}\AgdaSpace{}%
 \AgdaKeyword{import}\AgdaSpace{}%
@@ -288,9 +290,7 @@
 \AgdaModule{Functional.Script.Exec}\AgdaSpace{}%
 \AgdaSymbol{(}\AgdaBound{oracle}\AgdaSymbol{)}\AgdaSpace{}%
 \AgdaSymbol{as}\AgdaSpace{}%
-\AgdaModule{Script}\AgdaSpace{}%
-\AgdaKeyword{hiding}\AgdaSpace{}%
-\AgdaSymbol{(}\AgdaPostulate{exec}\AgdaSymbol{)}\<%
+\AgdaModule{Script}\<%
 \\
 \>[0]\AgdaKeyword{open}\AgdaSpace{}%
 \AgdaKeyword{import}\AgdaSpace{}%
@@ -1058,7 +1058,7 @@
 \AgdaBound{b₁}\AgdaSpace{}%
 \AgdaBound{b₂}\AgdaSpace{}%
 \AgdaSymbol{→}\AgdaSpace{}%
-\AgdaPostulate{execWError}\AgdaSpace{}%
+\AgdaPostulate{rattle}\AgdaSpace{}%
 \AgdaSymbol{(}\AgdaBound{st}\AgdaSpace{}%
 \AgdaOperator{\AgdaInductiveConstructor{,}}\AgdaSpace{}%
 \AgdaBound{ls}\AgdaSymbol{)}\AgdaSpace{}%
@@ -1184,7 +1184,7 @@
 \AgdaDatatype{MemoryProperty}\AgdaSpace{}%
 \AgdaBound{mm}\AgdaSpace{}%
 \AgdaOperator{\AgdaFunction{×}}\AgdaSpace{}%
-\AgdaPostulate{UniqueEvidence}\AgdaSpace{}%
+\AgdaFunction{UniqueEvidence}\AgdaSpace{}%
 \AgdaBound{b₁}\AgdaSpace{}%
 \AgdaBound{b₂}\AgdaSpace{}%
 \AgdaSymbol{(}\AgdaFunction{map}\AgdaSpace{}%
@@ -1221,7 +1221,7 @@
 \AgdaBound{st₁}\AgdaSpace{}%
 \AgdaFunction{]}\AgdaSymbol{(}\AgdaFunction{∃[}\AgdaSpace{}%
 \AgdaBound{ls₁}\AgdaSpace{}%
-\AgdaFunction{]}\AgdaSymbol{(}\AgdaPostulate{execWError}\AgdaSpace{}%
+\AgdaFunction{]}\AgdaSymbol{(}\AgdaPostulate{rattle}\AgdaSpace{}%
 \AgdaSymbol{(}\AgdaBound{st}\AgdaSpace{}%
 \AgdaOperator{\AgdaInductiveConstructor{,}}\AgdaSpace{}%
 \AgdaBound{ls}\AgdaSymbol{)}\AgdaSpace{}%
@@ -1914,7 +1914,7 @@
 \AgdaSymbol{(∀}\AgdaSpace{}%
 \AgdaBound{f₁}\AgdaSpace{}%
 \AgdaSymbol{→}\AgdaSpace{}%
-\AgdaPostulate{Script.exec}\AgdaSpace{}%
+\AgdaPostulate{script}\AgdaSpace{}%
 \AgdaBound{s₁}\AgdaSpace{}%
 \AgdaBound{b₁}\AgdaSpace{}%
 \AgdaBound{f₁}\AgdaSpace{}%
@@ -2207,6 +2207,8 @@
 \\
 %
 \\[\AgdaEmptyExtraSkip]%
+\>[0]\AgdaComment{-- rattle produces a State and the System in that state is equivalent to the one produced by script}\<%
+\\
 \>[0]\AgdaFunction{≡toScript}\AgdaSpace{}%
 \AgdaSymbol{:}\AgdaSpace{}%
 \AgdaFunction{State}\AgdaSpace{}%
@@ -2236,7 +2238,7 @@
 \AgdaBound{mm}\AgdaSpace{}%
 \AgdaFunction{]}\AgdaSymbol{(}\AgdaFunction{∃[}\AgdaSpace{}%
 \AgdaBound{ls}\AgdaSpace{}%
-\AgdaFunction{]}\AgdaSymbol{(}\AgdaPostulate{execWError}\AgdaSpace{}%
+\AgdaFunction{]}\AgdaSymbol{(}\AgdaPostulate{rattle}\AgdaSpace{}%
 \AgdaSymbol{(}\AgdaBound{st₁}\AgdaSpace{}%
 \AgdaOperator{\AgdaInductiveConstructor{,}}\AgdaSpace{}%
 \AgdaBound{ls₁}\AgdaSymbol{)}\AgdaSpace{}%
@@ -2256,7 +2258,7 @@
 \AgdaBound{s}\AgdaSpace{}%
 \AgdaBound{f₁}\AgdaSpace{}%
 \AgdaOperator{\AgdaDatatype{≡}}\AgdaSpace{}%
-\AgdaPostulate{Script.exec}\AgdaSpace{}%
+\AgdaPostulate{script}\AgdaSpace{}%
 \AgdaBound{s₁}\AgdaSpace{}%
 \AgdaBound{b₃}\AgdaSpace{}%
 \AgdaBound{f₁}\AgdaSymbol{)))}\<%
@@ -2313,7 +2315,7 @@
 \AgdaOperator{\AgdaInductiveConstructor{,}}\AgdaSpace{}%
 \AgdaBound{ue}\AgdaSymbol{)}\AgdaSpace{}%
 \AgdaKeyword{with}\AgdaSpace{}%
-\AgdaPostulate{execWError}\AgdaSpace{}%
+\AgdaPostulate{rattle}\AgdaSpace{}%
 \AgdaSymbol{((}\AgdaBound{s}\AgdaSpace{}%
 \AgdaOperator{\AgdaInductiveConstructor{,}}\AgdaSpace{}%
 \AgdaBound{mm}\AgdaSymbol{)}\AgdaSpace{}%
@@ -2323,7 +2325,7 @@
 \AgdaBound{b₂}\AgdaSpace{}%
 \AgdaSymbol{|}\AgdaSpace{}%
 \AgdaFunction{inspect}\AgdaSpace{}%
-\AgdaSymbol{(}\AgdaPostulate{execWError}\AgdaSpace{}%
+\AgdaSymbol{(}\AgdaPostulate{rattle}\AgdaSpace{}%
 \AgdaSymbol{((}\AgdaBound{s}\AgdaSpace{}%
 \AgdaOperator{\AgdaInductiveConstructor{,}}\AgdaSpace{}%
 \AgdaBound{mm}\AgdaSymbol{)}\AgdaSpace{}%
@@ -2698,7 +2700,7 @@ we would have a speculative hazard if
 \AgdaBound{ue}\AgdaSymbol{)}\AgdaSpace{}%
 \AgdaBound{p}\AgdaSpace{}%
 \AgdaKeyword{with}\AgdaSpace{}%
-\AgdaPostulate{execWError}\AgdaSpace{}%
+\AgdaPostulate{rattle}\AgdaSpace{}%
 \AgdaSymbol{((}\AgdaBound{s}\AgdaSpace{}%
 \AgdaOperator{\AgdaInductiveConstructor{,}}\AgdaSpace{}%
 \AgdaBound{mm}\AgdaSymbol{)}\AgdaSpace{}%
@@ -2708,7 +2710,7 @@ we would have a speculative hazard if
 \AgdaBound{b₂}\AgdaSpace{}%
 \AgdaSymbol{|}\AgdaSpace{}%
 \AgdaFunction{inspect}\AgdaSpace{}%
-\AgdaSymbol{(}\AgdaPostulate{execWError}\AgdaSpace{}%
+\AgdaSymbol{(}\AgdaPostulate{rattle}\AgdaSpace{}%
 \AgdaSymbol{((}\AgdaBound{s}\AgdaSpace{}%
 \AgdaOperator{\AgdaInductiveConstructor{,}}\AgdaSpace{}%
 \AgdaBound{mm}\AgdaSymbol{)}\AgdaSpace{}%

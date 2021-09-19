@@ -4,7 +4,7 @@ open import Functional.State using (F ;  System ; Cmd)
 module Functional.Script.Hazard.Properties (oracle : F) where
 open import Functional.State.Properties (oracle) as St hiding (lemma3 ; lemma4 ; lemma2)
 open import Functional.State.Helpers (oracle) using (run ; cmdWriteNames ; cmdReadNames)
-open import Functional.Script.Exec (oracle) using (exec ; buildReadNames ; buildWriteNames)
+open import Functional.Script.Exec (oracle) using (script ; buildReadNames ; buildWriteNames)
 open import Functional.Build using (Build)
 open import Common.List.Properties using (_before_en_)
 open import Agda.Builtin.Equality
@@ -250,7 +250,7 @@ hf=>disjoint1 : ∀ s x ys zs ls → ys ⊆ zs → x ∉ zs → HazardFree s (x 
 hf=>disjoint1 s x ys zs ls ys⊆zs x∉zs (:: .s .ls .x .ys .(zs ++ x ∷ []) x₁ hf) with hf=>disjoint2 (run x s) (save s x ls) ys zs x ys⊆zs x∉zs (here refl) hf
 ... | dsj = λ x₁ → dsj (∈-cmdWrote∷l (x , _) ls (proj₁ x₁) , (proj₂ x₁))
 
-hf=>disjoint : ∀ s x xs ys zs ls → ys ⊆ zs → x ∉ zs → HazardFree s (xs ++ x ∷ ys) (zs ∷ʳ x) ls → Disjoint (cmdWriteNames x (exec s xs)) (buildReadNames (run x (exec s xs)) ys)
+hf=>disjoint : ∀ s x xs ys zs ls → ys ⊆ zs → x ∉ zs → HazardFree s (xs ++ x ∷ ys) (zs ∷ʳ x) ls → Disjoint (cmdWriteNames x (script s xs)) (buildReadNames (run x (script s xs)) ys)
 hf=>disjoint s x [] ys zs ls ys⊆zs x∉zs hf = hf=>disjoint1 s x ys zs ls ys⊆zs x∉zs hf
 hf=>disjoint s x (x₁ ∷ xs) ys zs ls ys⊆zs x∉zs (:: .s .ls .x₁ .(xs ++ x ∷ ys) .(zs ++ x ∷ []) x₂ hf)
   = hf=>disjoint (run x₁ s) x xs ys zs _ ys⊆zs x∉zs hf

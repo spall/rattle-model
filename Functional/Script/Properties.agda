@@ -9,7 +9,7 @@ open import Functional.State.Helpers (oracle) using (run ; cmdWriteNames ; cmdRe
 open import Functional.State.Properties (oracle) as St
 open import Data.Empty using (⊥)
 open import Functional.Build using (Build)
-open import Functional.Script.Exec (oracle) as S
+open import Functional.Script.Exec (oracle) as S renaming (script to exec)
 open import Data.List using (List ; _∷ʳ_ ; _∷_ ; _++_ ; [] ; reverse ; map ; foldr)
 open import Data.List.Properties using (++-identityʳ ; ++-assoc) 
 open import Data.String using (String)
@@ -37,7 +37,7 @@ h₅ s s₁ x all₁ = sym (proj₂ (oracle x) s₁ s λ f₁ x₁ → sym (look
 
 --- exec properties ---
 
-exec-∷ʳ : (s : System) (x : Cmd) (b : Build) -> run x (S.exec s b) ≡ S.exec s (b ∷ʳ x)
+exec-∷ʳ : (s : System) (x : Cmd) (b : Build) -> run x (exec s b) ≡ exec s (b ∷ʳ x)
 exec-∷ʳ s x [] = refl
 exec-∷ʳ s x (x₁ ∷ b) = exec-∷ʳ (run x₁ s) x b
 

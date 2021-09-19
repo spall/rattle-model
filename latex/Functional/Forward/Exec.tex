@@ -40,7 +40,7 @@
 \AgdaSymbol{as}\AgdaSpace{}%
 \AgdaModule{St}\AgdaSpace{}%
 \AgdaKeyword{using}\AgdaSpace{}%
-\AgdaSymbol{(}\AgdaFunction{cmdReadNames}\AgdaSymbol{)}\<%
+\AgdaSymbol{(}\AgdaPostulate{cmdReadNames}\AgdaSymbol{)}\<%
 \\
 \>[0]\AgdaKeyword{open}\AgdaSpace{}%
 \AgdaKeyword{import}\AgdaSpace{}%
@@ -341,7 +341,7 @@
 \AgdaFunction{Memory}\AgdaSymbol{)}\AgdaSpace{}%
 \AgdaSymbol{->}\AgdaSpace{}%
 \AgdaBound{x}\AgdaSpace{}%
-\AgdaOperator{\AgdaFunction{∈}}\AgdaSpace{}%
+\AgdaOperator{\AgdaPostulate{∈}}\AgdaSpace{}%
 \AgdaFunction{map}\AgdaSpace{}%
 \AgdaField{proj₁}\AgdaSpace{}%
 \AgdaBound{ls}\AgdaSpace{}%
@@ -401,7 +401,7 @@
 \AgdaBound{mm}\AgdaSymbol{)}\AgdaSpace{}%
 \AgdaKeyword{with}\AgdaSpace{}%
 \AgdaBound{cmd}\AgdaSpace{}%
-\AgdaOperator{\AgdaFunction{∈?}}\AgdaSpace{}%
+\AgdaOperator{\AgdaPostulate{∈?}}\AgdaSpace{}%
 \AgdaFunction{map}\AgdaSpace{}%
 \AgdaField{proj₁}\AgdaSpace{}%
 \AgdaBound{mm}\<%
@@ -445,7 +445,7 @@
 \AgdaKeyword{let}%
 \>[348I]\AgdaBound{sys₂}\AgdaSpace{}%
 \AgdaSymbol{=}\AgdaSpace{}%
-\AgdaFunction{St.run}\AgdaSpace{}%
+\AgdaPostulate{St.run}\AgdaSpace{}%
 \AgdaBound{cmd}\AgdaSpace{}%
 \AgdaBound{sys}\AgdaSpace{}%
 \AgdaKeyword{in}\<%
@@ -455,7 +455,7 @@
 \AgdaOperator{\AgdaInductiveConstructor{,}}\AgdaSpace{}%
 \AgdaFunction{save}\AgdaSpace{}%
 \AgdaBound{cmd}\AgdaSpace{}%
-\AgdaSymbol{(}\AgdaFunction{cmdReadNames}\AgdaSpace{}%
+\AgdaSymbol{(}\AgdaPostulate{cmdReadNames}\AgdaSpace{}%
 \AgdaBound{cmd}\AgdaSpace{}%
 \AgdaBound{sys}\AgdaSymbol{)}\AgdaSpace{}%
 \AgdaBound{sys₂}\AgdaSpace{}%
@@ -492,8 +492,9 @@
 \AgdaBound{st}\<%
 \end{code}}
 
-\begin{code}[hide]%
-\>[0]\AgdaFunction{exec}\AgdaSpace{}%
+\newcommand{\forward}{%
+\begin{code}%
+\>[0]\AgdaFunction{forward}\AgdaSpace{}%
 \AgdaSymbol{:}\AgdaSpace{}%
 \AgdaFunction{State}\AgdaSpace{}%
 \AgdaSymbol{->}\AgdaSpace{}%
@@ -501,26 +502,26 @@
 \AgdaSymbol{->}\AgdaSpace{}%
 \AgdaFunction{State}\<%
 \\
-\>[0]\AgdaFunction{exec}\AgdaSpace{}%
+\>[0]\AgdaFunction{forward}\AgdaSpace{}%
 \AgdaBound{st}\AgdaSpace{}%
 \AgdaInductiveConstructor{[]}\AgdaSpace{}%
 \AgdaSymbol{=}\AgdaSpace{}%
 \AgdaBound{st}\<%
 \\
-\>[0]\AgdaFunction{exec}\AgdaSpace{}%
+\>[0]\AgdaFunction{forward}\AgdaSpace{}%
 \AgdaBound{st}\AgdaSpace{}%
 \AgdaSymbol{(}\AgdaBound{x}\AgdaSpace{}%
 \AgdaOperator{\AgdaInductiveConstructor{∷}}\AgdaSpace{}%
 \AgdaBound{b}\AgdaSymbol{)}\AgdaSpace{}%
 \AgdaSymbol{=}\AgdaSpace{}%
-\AgdaFunction{exec}\AgdaSpace{}%
+\AgdaFunction{forward}\AgdaSpace{}%
 \AgdaSymbol{(}\AgdaFunction{run}\AgdaSpace{}%
 \AgdaBound{st}\AgdaSpace{}%
 \AgdaBound{x}\AgdaSymbol{)}\AgdaSpace{}%
 \AgdaBound{b}\<%
-\\
-%
-\\[\AgdaEmptyExtraSkip]%
+\end{code}}
+
+\begin{code}[hide]%
 \>[0]\AgdaComment{\{- Goal: prove if a command is in the memory, and the recorded files and the values of the files in the system are the same as the values in the memory, then
    running the command is equivalent to not running the command. 
 
