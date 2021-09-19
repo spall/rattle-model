@@ -9,7 +9,7 @@ open import Functional.Build using (Build)
 open import Common.List.Properties using (_before_en_)
 open import Agda.Builtin.Equality
 open import Functional.File using (FileName)
-open import Functional.Script.Hazard.Base (oracle) using (HazardFree ; [] ; :: ; files ; cmdsRun ; cmdWrote ; FileInfo ; save ; filesRead ; ¬SpeculativeHazard ; ∈-files-++ ; ∈-cmdRead++mid ; ∈-cmdWrote++mid ; ∈-cmdWrote∷ ; ∈-cmdRead∷l ; lemma2 ; cmdWrote∷-≡ ; HFC ; HazardFreeCmd ; ∈-cmdWrote∷l)
+open import Functional.Script.Hazard.Base (oracle) using (HazardFree ; [] ; :: ; files ; cmdsRun ; cmdWrote ; FileInfo ; save ; filesRead ; ¬SpeculativeHazard ; ∈-files-++ ; ∈-filesRead-++ ; ∈-filesWrote-++ ; ∈-cmdRead++mid ; ∈-cmdWrote++mid ; ∈-cmdWrote∷ ; ∈-cmdRead∷l ; lemma2 ; cmdWrote∷-≡ ; HFC ; Hazard ; ∈-cmdWrote∷l ; Speculative ; ReadWrite ; WriteWrite ; cmdRead) 
 open import Data.List as L using (_∷_ ; _++_ ; map ; foldr ; List ; foldl ; _∷ʳ_ ; [] ; reverse ; [_])
 open import Data.Product using (_,_ ; proj₁ ; proj₂ ; _×_ ; Σ-syntax ; ∃-syntax)
 open import Relation.Binary.PropositionalEquality using (subst ; subst₂ ; cong ; sym ; trans ; cong₂)
@@ -67,18 +67,26 @@ unique→¬≡ (x ∷ ls) x₁ x₁∈ls (px ∷ u) with x₁ ≟ x
 ... | yes x₁≡x = λ x₁≡x₂ → lookup px (∈-++⁺ʳ ls (here refl)) (trans (sym x₁≡x) x₁≡x₂)
 unique→¬≡ (x ∷ ls) x₁ x₁∈ls (px ∷ u) | no ¬x₁≡x = unique→¬≡ ls x₁ (tail ¬x₁≡x x₁∈ls) u
 
+{-
 ¬sh-∷ʳ : ∀ b₁ x {ls} → Unique (b₁ ∷ʳ x) → ¬SpeculativeHazard (b₁ ∷ʳ x) ls → ¬SpeculativeHazard b₁ ls
-¬sh-∷ʳ b₁ x u ¬sh = λ x₁ x₂ x₃ x₄ x₅ x₆ → ¬sh x₁ x₂ x₃ (∈-++⁺ˡ x₄) (¬bf-∷ʳ x x₁ b₁ (unique→¬≡ b₁ x₂ x₄ u) x₅) x₆
+¬sh-∷ʳ b₁ x u ¬sh = λ x₁ x₂ x₃ x₄ x₅ x₆ → ¬sh x₁ x₂ x₃ (∈-++⁺ˡ x₄) (¬bf-∷ʳ x x₁ b₁ (unique→¬≡ b₁ x₂ x₄ u) x₅) x₆ -}
 
 hf-∷ʳ-l : ∀ {s} b₁ {b₂} {x} {ls} → HazardFree s (b₁ ∷ʳ x) b₂ ls → HazardFree s b₁ b₂ ls
 hf-∷ʳ-l List.[] hf = []
-hf-∷ʳ-l (x ∷ b₁) (:: _ _ .x .(b₁ ++ _ ∷ List.[]) b₂ (HFC x₁ x₂) hf)
-  = :: _ _ x b₁ b₂ (HFC x₁ x₂) (hf-∷ʳ-l b₁ hf)
-  
+hf-∷ʳ-l (x ∷ b₁) (:: _ _ .x .(b₁ ++ _ ∷ List.[]) b₂ ¬hz hf)
+  = :: _ _ x b₁ b₂ ¬hz (hf-∷ʳ-l b₁ hf)
+
+¬hz-∷ʳ-r : ∀ {s} {x} {b} {x₁} {ls} → Unique (b ∷ʳ x₁) → ¬ Hazard s x (b ∷ʳ x₁) ls → ¬ Hazard s x b ls
+¬hz-∷ʳ-r u ¬hz (Speculative s x b _ x₀ x₂ v y x₃ x₄ x₅ x₆)
+  = ¬hz (Speculative _ _ _ _ x₀ x₂ v y (∈-++⁺ˡ x₃) (¬bf-∷ʳ _ _ _ (unique→¬≡ _ _ x₃ u) x₄) x₅ x₆)
+¬hz-∷ʳ-r u ¬hz (ReadWrite _ _ _ v x x₁) = ¬hz (ReadWrite _ _ _ v x x₁)
+¬hz-∷ʳ-r u ¬hz (WriteWrite _ _ _ v x x₁) = ¬hz (WriteWrite _ _ _ v x x₁)
+
+
 hf-∷ʳ-r : ∀ {s} b₁ b₂ {x} {ls} → Unique (b₂ ∷ʳ x) → HazardFree s b₁ (b₂ ∷ʳ x) ls → HazardFree s b₁ b₂ ls
 hf-∷ʳ-r [] b₂ u hf = []
-hf-∷ʳ-r (x ∷ b₁) b₂ u (:: _ _ .x .b₁ .(b₂ ++ _ ∷ []) (HFC x₁ x₂) hf)
-  = :: _ _ x b₁ b₂ (HFC (¬sh-∷ʳ b₂ _ u x₁) x₂) (hf-∷ʳ-r b₁ b₂ u hf)
+hf-∷ʳ-r (x ∷ b₁) b₂ u (:: _ _ .x .b₁ .(b₂ ++ _ ∷ []) ¬hz hf)
+  = :: _ _ x b₁ b₂ (¬hz-∷ʳ-r u ¬hz) (hf-∷ʳ-r b₁ b₂ u hf)
 
 disjoint-drop-mid : ∀ ls xs ys zs → Disjoint ls (files (xs ++ ys ++ zs)) → Disjoint ls (files (xs ++ zs))
 disjoint-drop-mid ls xs ys zs dsj = λ x → dsj (proj₁ x , ∈-files-++ xs ys zs (proj₂ x))
@@ -105,6 +113,29 @@ before-add-mid x₂ x₁ (x ∷ xs) ys zs (x₃ ∷ as , bs , x∷xs++zs≡x₃�
         bf₁ with before-add-mid x₂ x₁ (map proj₁ xs) (map proj₁ ys) (map proj₁ zs) (subst (λ ls → x₂ before x₁ en ls) (map-++-commute proj₁ xs zs) bf)
         ... | bf₂ = subst (λ ls → x₂ before x₁ en ls) (sym (trans (map-++-commute proj₁ xs (ys ++ zs)) (cong (map proj₁ xs ++_) (map-++-commute proj₁ ys zs)))) bf₂
 
+¬Hazard-drop-mid : ∀ {s} {x} {b₂} xs ys zs → Unique (x ∷ cmdsRun (xs ++ ys ++ zs)) → ¬ Hazard s x b₂ (xs ++ ys ++ zs) → ¬ Hazard s x b₂ (xs ++ zs)
+¬Hazard-drop-mid xs ys zs u ¬hz (ReadWrite _ _ .(xs ++ zs) v x x₁)
+  = ¬hz (ReadWrite _ _ _ v x (∈-filesRead-++ xs ys zs x₁))
+¬Hazard-drop-mid xs ys zs u ¬hz (WriteWrite _ _ .(xs ++ zs) v x x₁)
+  = ¬hz (WriteWrite _ _ _ v x (∈-filesWrote-++ xs ys zs x₁))
+¬Hazard-drop-mid {s} {x} xs ys zs u ¬hz (Speculative _ _ _ .(xs ++ zs) x₁ x₂ v y x₃ x₄ x₅ x₆)
+  = ¬hz (Speculative s x _ (xs ++ ys ++ zs) x₁ x₂ v bf x₃ x₄ (∈-cmdRead++mid x₂ (save s x xs) ys zs u x₅) (∈-cmdWrote++mid x₁ (save s x xs) ys zs u x₆))
+    where bf₁ : x₂ before x₁ en (x ∷ cmdsRun xs ++ cmdsRun zs)
+          bf₁ = subst (λ x₇ → x₂ before x₁ en x₇) (cong (x ∷_) (map-++-commute proj₁ xs zs)) y
+          bf : x₂ before x₁ en (x ∷ cmdsRun (xs ++ ys ++ zs))
+          bf with (before-add-mid x₂ x₁ (x ∷ cmdsRun xs) (cmdsRun ys) (cmdsRun zs) bf₁)
+          ... | a = subst (λ x₇ → x₂ before x₁ en x₇) (sym (trans (cong (x ∷_) (map-++-commute proj₁ xs (ys ++ zs))) (cong ((x ∷ (map proj₁ xs)) ++_) (map-++-commute proj₁ ys zs)))) a
+
+hazard-still : ∀ {s} {s₁} {x} {b} {ls} → proj₁ (oracle x) s ≡ proj₁ (oracle x) s₁ → Hazard s x b ls → Hazard s₁ x b ls
+hazard-still ≡₁ (ReadWrite _ _ _ v x x₁)
+  = ReadWrite _ _ _ v (subst (λ x₃ → v ∈ x₃) (cong (map proj₁ ∘ proj₂) ≡₁) x) x₁
+hazard-still ≡₁ (WriteWrite _ _ _ v x x₁)
+  = WriteWrite _ _ _ v (subst (λ x₃ → v ∈ x₃) (cong (map proj₁ ∘ proj₂) ≡₁) x) x₁
+hazard-still {s} {s₁} {x} ≡₁ (Speculative _ _ _ _ x₁ x₂ v y x₃ x₄ x₅ x₆)
+  = Speculative _ _ _ _ x₁ x₂ v y x₃ x₄ (subst (λ x₈ → v ∈ cmdRead x₈ x₂) (cong (_∷ _) ≡₂) x₅) (subst (λ x₈ → v ∈ cmdWrote x₈ x₁) (cong (_∷ _) ≡₂) x₆)
+    where ≡₂ : (x , cmdReadNames x s , cmdWriteNames x s) ≡ (x , cmdReadNames x s₁ , cmdWriteNames x s₁)
+          ≡₂ = cong (x ,_) (cong₂ _,_ (cong (map proj₁ ∘ proj₁) ≡₁) (cong (map proj₁ ∘ proj₂) ≡₁))
+ 
 -- there is a copy of this elsewhere so maybe organize this better.
 g₂ : ∀ {x : Cmd} xs → x ∉ xs → All (λ y → ¬ x ≡ y) xs
 g₂ [] x∉xs = All.[]
@@ -112,8 +143,8 @@ g₂ (x ∷ xs) x∉xs = (λ x₃ → x∉xs (here x₃)) All.∷ (g₂ xs λ x�
 
 hf-still : ∀ {s₁} {s} b₁ {b₂} xs ys zs → (∀ f₁ → f₁ ∈ buildReadNames s₁ b₁ → s₁ f₁ ≡ s f₁) → Unique b₁ → Unique (map proj₁ (xs ++ ys ++ zs)) → Disjoint b₁ (map proj₁ (xs ++ ys ++ zs)) → HazardFree s₁ b₁ b₂ (xs ++ ys ++ zs) → HazardFree s b₁ b₂ (xs ++ zs)
 hf-still [] xs ys zs ∀₁ ub₁ u dsj hf = []
-hf-still {s₁} {s} (x ∷ b₁) xs ys zs ∀₁ (px ∷ ub₁) u dsj (:: _ .(xs ++ ys ++ zs) .x .b₁ _ (HFC ¬sh x₂) hf)
-  = :: _ (xs ++ zs) x b₁ _ (HFC ¬sh₂ (subst (λ x₃ → Disjoint x₃ (files (xs ++ zs))) ≡₁ (disjoint-drop-mid (cmdWriteNames x _) xs ys zs x₂)))
+hf-still {s₁} {s} (x ∷ b₁) xs ys zs ∀₁ (px ∷ ub₁) u dsj (:: _ .(xs ++ ys ++ zs) .x .b₁ _ ¬hz hf)
+  = :: _ (xs ++ zs) x b₁ _  ¬hz₁
          (hf-still b₁ (save s x xs) ys zs ∀₂ ub₁ u₂ dsj₁ hf₂) 
     where dsj₁ : Disjoint b₁ (x ∷ map proj₁ (xs ++ ys ++ zs))
           dsj₁ = λ x₁ → dsj (there (proj₁ x₁) , tail (λ v≡x → lookup px (proj₁ x₁) (sym v≡x)) (proj₂ x₁))
@@ -131,9 +162,9 @@ hf-still {s₁} {s} (x ∷ b₁) xs ys zs ∀₁ (px ∷ ub₁) u dsj (:: _ .(xs
           ... | s₁f₁≡sf₁ = St.lemma2 ≡₀ s₁f₁≡sf₁
           u₂ : Unique (x ∷ (map proj₁ (xs ++ ys ++ zs)))
           u₂ = (g₂ (map proj₁ (xs ++ ys ++ zs)) λ x₁ → dsj (here refl , x₁)) ∷ u
-          ¬sh₂ : ¬SpeculativeHazard _ (save s x (xs ++ zs))
-          ¬sh₂ = ¬sh-drop-mid _ ((x , (cmdReadNames x s) , (cmdWriteNames x s)) ∷ xs) ys zs u₂
-                              (subst₂ (λ x₁ x₃ → ¬SpeculativeHazard _ ((x , x₁ , x₃) ∷ (xs ++ ys ++ zs))) ≡₂ ≡₁ ¬sh)
+          ¬hz₁ : ¬ Hazard s x _ (xs ++ zs)
+          ¬hz₁ hz with ¬Hazard-drop-mid xs ys zs u₂ ¬hz
+          ... | a = a (hazard-still (sym ≡₀) hz)
 
 lemma3 : ∀ {s} {x} {ls} → Disjoint (cmdWriteNames x s) ls → (∀ f₁ → f₁ ∈ ls → run x s f₁ ≡ s f₁)
 lemma3 {s} {x} dsj f₁ f₁∈ls with f₁ ∈? cmdWriteNames x s
@@ -154,8 +185,8 @@ g₄ x∈ls x₁∉ls = λ x≡x₁ → x₁∉ls (subst (λ x₄ → x₄ ∈ _
 -}
 lemma4 : ∀ {s} {x} ys {b₁} {ls} → x ∉ ys → ys ⊆ (b₁ ∷ʳ x) → Unique (b₁ ∷ʳ x) → HazardFree s ys (b₁ ∷ʳ x) ls → Disjoint (cmdWrote ls x) (buildReadNames s ys)
 lemma4 [] x∉ys ⊆₁ u [] = λ ()
-lemma4 {s} {x} (x₃ ∷ b₂) {b₁} x∉ys ⊆₁ u (:: _ _ .x₃ .b₂ .(_ ++ _ ∷ []) (HFC ¬sh x₂) hf) x₄ with ∈-++⁻ (cmdReadNames x₃ s) (proj₂ x₄)
-... | inj₁ v∈₁ = contradiction (∈-cmdRead∷l x₃i _ v∈₁ , ∈-cmdWrote∷ x₃i x _ (proj₁ x₄) (g₄ (here refl) x∉ys)) (¬sh x x₃ ([] , map proj₁ _ , refl , lemma2 x _ (proj₁ x₄)) (⊆₁ (here refl)) ¬bf)
+lemma4 {s} {x} (x₃ ∷ b₂) {b₁} x∉ys ⊆₁ u (:: _ _ .x₃ .b₂ .(_ ++ _ ∷ []) ¬hz hf) x₄ with ∈-++⁻ (cmdReadNames x₃ s) (proj₂ x₄)
+... | inj₁ v∈₁ = ¬hz (Speculative s x₃ (b₁ ∷ʳ x) _ x x₃ _ ([] , map proj₁ _ , refl , lemma2 x _ (proj₁ x₄)) (⊆₁ (here refl)) ¬bf (∈-cmdRead∷l x₃i _ v∈₁) (∈-cmdWrote∷ x₃i x _ (proj₁ x₄) (g₄ (here refl) x∉ys)))
   where x₃i : (Cmd × List FileName × List FileName)
         x₃i = (x₃ , (cmdReadNames x₃ s) , (cmdWriteNames x₃ s))
         ¬bf : ¬ x before x₃ en (_ ∷ʳ x)
@@ -182,7 +213,7 @@ g₅ x (x₁ ∷ ys) (¬x≡x₁ All.∷ all₁) x∈x₁∷xs = g₅ x ys all�
 -- we should know this from the ¬ speculative hazard info and ?
 hf-drop-mid : ∀ {s} xs ys b₁ {x} {ls} → xs ++ x ∷ ys ⊆ b₁ ∷ʳ x → Unique (xs ++ x ∷ ys) → Unique (b₁ ∷ʳ x) → Unique (map proj₁ ls) → Disjoint (xs ++ x ∷ ys) (map proj₁ ls) → HazardFree s (xs ++ x ∷ ys) (b₁ ∷ʳ x) ls → HazardFree s (xs ++ ys) b₁ ls
 hf-drop-mid {s} List.[] List.[] b₁ ⊆₁ u₁ u uls dsj hf = []
-hf-drop-mid {s} List.[] ys b₁ {x} ⊆₁ (px₁ ∷ u₁) u uls dsj (:: .s _ _ .ys _ (HFC ¬sh x₂) hf) with hf-still ys [] [ (x , (cmdReadNames x s) , (cmdWriteNames x s)) ] _ ∀₁ u₁ uls₂ dsj₁ hf
+hf-drop-mid {s} List.[] ys b₁ {x} ⊆₁ (px₁ ∷ u₁) u uls dsj (:: .s _ _ .ys _ ¬hz hf) with hf-still ys [] [ (x , (cmdReadNames x s) , (cmdWriteNames x s)) ] _ ∀₁ u₁ uls₂ dsj₁ hf
   where dsj₁ : Disjoint ys (x ∷ map proj₁ _)
         dsj₁ = λ x₁ → dsj (there (proj₁ x₁) , tail (λ v≡x → lookup px₁ (proj₁ x₁) (sym v≡x)) (proj₂ x₁))
         uls₂ : Unique (x ∷ map proj₁ _)
@@ -190,21 +221,12 @@ hf-drop-mid {s} List.[] ys b₁ {x} ⊆₁ (px₁ ∷ u₁) u uls dsj (:: .s _ _
         ∀₁ : ∀ f₁ → f₁ ∈ buildReadNames (run x s) ys → run x s f₁ ≡ s f₁
         ∀₁ = lemma3 (subst (λ x₁ → Disjoint x₁ (buildReadNames (run x s) ys)) (cmdWrote∷-≡ (x , (cmdReadNames x s) , (cmdWriteNames x s)) _) (lemma4 ys (g₅ x ys px₁) (λ x₁ → ⊆₁ (there x₁)) u hf))
 ... | hf₂ = hf-∷ʳ-r ys b₁ u hf₂
-hf-drop-mid (x₁ ∷ xs) ys b₁ {x} ⊆₁ (px₁ ∷ u₁) u uls dsj (:: _ _ .x₁ .(xs ++ _ ∷ ys) _ (HFC ¬sh x₂) hf)
-  = :: _ _ x₁ (xs ++ ys) _ (HFC (¬sh-∷ʳ b₁ x u ¬sh) x₂) (hf-drop-mid xs ys b₁ (λ x₃ → ⊆₁ (there x₃)) u₁ u uls₂ dsj₁ hf)
+hf-drop-mid (x₁ ∷ xs) ys b₁ {x} ⊆₁ (px₁ ∷ u₁) u uls dsj (:: _ _ .x₁ .(xs ++ _ ∷ ys) _ ¬hz hf)
+  = :: _ _ x₁ (xs ++ ys) _ (¬hz-∷ʳ-r u ¬hz) (hf-drop-mid xs ys b₁ (λ x₃ → ⊆₁ (there x₃)) u₁ u uls₂ dsj₁ hf)
     where dsj₁ : Disjoint (xs ++ x ∷ ys) (x₁ ∷ map proj₁ _)
           dsj₁ = λ x₃ → dsj (there (proj₁ x₃) , tail (λ v≡x₁ → lookup px₁ (proj₁ x₃) (sym v≡x₁)) (proj₂ x₃))
           uls₂ : Unique (x₁ ∷ map proj₁ _)
           uls₂ = g₂ (map proj₁ _) (λ x₃ → dsj (here refl , x₃)) ∷ uls
-
-{- show 1. x₁ before x en ls     
-        2. x₁ ∈ b
-        3. ¬ x before x₁ en b
-
-  What if we have: 
-  HazardFree s₂ ys (zs ∷ x)
-  if we match on ys. we can prove 
--}
 
 ¬bf : ∀ {x : Cmd} {x₁} zs → x ∉ zs → ¬ (x before x₁ en (zs ∷ʳ x))
 {- need to prove ys is empty. then x₁ cannot be in empty list -}
@@ -220,8 +242,8 @@ hf-drop-mid (x₁ ∷ xs) ys b₁ {x} ⊆₁ (px₁ ∷ u₁) u uls dsj (:: _ _ 
 
 {- prove the writes of x are disjoint from the reads of x₁ using evidence of no speculative hazard
 -}
-disjoint3 : ∀ s x₁ zs x ls → x ∈ map proj₁ ls → x₁ ∈ zs → x ∉ zs → HazardFreeCmd s x₁ (zs ∷ʳ x) ls → Disjoint (cmdWrote ls x) (cmdReadNames x₁ s)
-disjoint3 s x₁ zs x ls x∈ls x₁∈zs x∉zs (HFC ¬sh x₃) = λ x₄ → ¬sh x x₁ bf (∈-++⁺ˡ x₁∈zs) (¬bf zs x∉zs) (∈-cmdRead∷l (x₁ , _) ls (proj₂ x₄) , ∈-cmdWrote∷ (x₁ , _) x ls (proj₁ x₄) λ x₁≡x → x∉zs (subst (λ x₅ → x₅ ∈ zs) x₁≡x x₁∈zs))
+disjoint3 : ∀ s x₁ zs x ls → x ∈ map proj₁ ls → x₁ ∈ zs → x ∉ zs → ¬ Hazard s x₁ (zs ∷ʳ x) ls → Disjoint (cmdWrote ls x) (cmdReadNames x₁ s)
+disjoint3 s x₁ zs x ls x∈ls x₁∈zs x∉zs ¬hz x₄ = ¬hz (Speculative s x₁ (zs ∷ʳ x) ls x x₁ _ bf (∈-++⁺ˡ x₁∈zs) (¬bf zs x∉zs) (∈-cmdRead∷l (x₁ , _) ls (proj₂ x₄)) (∈-cmdWrote∷ (x₁ , _) x ls (proj₁ x₄) λ x₁≡x → x∉zs (subst (λ x₅ → x₅ ∈ zs) x₁≡x x₁∈zs)))
   where bf : x₁ before x en (x₁ ∷ map proj₁ ls)
         bf = [] , map proj₁ ls , refl , x∈ls
 
@@ -230,22 +252,13 @@ hf=>disjoint2 : ∀ s ls ys zs x → ys ⊆ zs → x ∉ zs → x ∈ map proj�
 hf=>disjoint2 s ls [] zs x ys⊆zs x∉zs x∈ls hf = g₁
   where g₁ : Disjoint (cmdWrote ls x) (buildReadNames s [])
         g₁ ()
-hf=>disjoint2 s ls (x₁ ∷ ys) zs x ys⊆zs x∉zs x∈ls (:: .s .ls .x₁ .ys .(zs ++ x ∷ []) hfc hf) with hf=>disjoint2 (run x₁ s) (save s x₁ ls) ys zs x (λ x₃ → ys⊆zs (there x₃)) x∉zs (there x∈ls) hf
+hf=>disjoint2 s ls (x₁ ∷ ys) zs x ys⊆zs x∉zs x∈ls (:: .s .ls .x₁ .ys .(zs ++ x ∷ []) ¬hz hf) with hf=>disjoint2 (run x₁ s) (save s x₁ ls) ys zs x (λ x₃ → ys⊆zs (there x₃)) x∉zs (there x∈ls) hf
 ... | dsj₁ = g₁
   where g₁ : Disjoint (cmdWrote ls x) (buildReadNames s (x₁ ∷ ys))
         g₁ (∈₁ , ∈₂) with ∈-++⁻ (cmdReadNames x₁ s) ∈₂
-        ... | inj₁ ∈cmd = disjoint3 s x₁ zs x ls x∈ls (ys⊆zs (here refl)) x∉zs hfc (∈₁ , ∈cmd)
+        ... | inj₁ ∈cmd = disjoint3 s x₁ zs x ls x∈ls (ys⊆zs (here refl)) x∉zs ¬hz (∈₁ , ∈cmd)
         ... | inj₂ ∈build = dsj₁ ((∈-cmdWrote∷ (x₁ , _) x ls ∈₁ λ x₁≡x → x∉zs (ys⊆zs (here (sym x₁≡x)))) , ∈build)
 
-{- proof plan:
-  via a speculative hazard; show the writes of x are disjoint from the reads of ys.
-  ; because we know all of ys. are before x in the correct build.
-
-  for each cmd in ys; we can produce a hazard contradiction?
- ; via the contradiction we can show each command in ys's reads are disjoint from the writes of x.
-
- let's get a helper lemma that says; (writes ls x) are disjoint from the reads of a command in ls.
--}
 hf=>disjoint1 : ∀ s x ys zs ls → ys ⊆ zs → x ∉ zs → HazardFree s (x ∷ ys) (zs ∷ʳ x) ls → Disjoint (cmdWriteNames x s) (buildReadNames (run x s) ys)
 hf=>disjoint1 s x ys zs ls ys⊆zs x∉zs (:: .s .ls .x .ys .(zs ++ x ∷ []) x₁ hf) with hf=>disjoint2 (run x s) (save s x ls) ys zs x ys⊆zs x∉zs (here refl) hf
 ... | dsj = λ x₁ → dsj (∈-cmdWrote∷l (x , _) ls (proj₁ x₁) , (proj₂ x₁))
@@ -255,8 +268,3 @@ hf=>disjoint s x [] ys zs ls ys⊆zs x∉zs hf = hf=>disjoint1 s x ys zs ls ys�
 hf=>disjoint s x (x₁ ∷ xs) ys zs ls ys⊆zs x∉zs (:: .s .ls .x₁ .(xs ++ x ∷ ys) .(zs ++ x ∷ []) x₂ hf)
   = hf=>disjoint (run x₁ s) x xs ys zs _ ys⊆zs x∉zs hf
 
-{- 1. loop over the commands in ys.
-   2. for each command in ys, show it is disjoint from the writes of x.
-    -- 
-
--}

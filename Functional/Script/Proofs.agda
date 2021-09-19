@@ -1,4 +1,4 @@
-{-# OPTIONS --allow-unsolved-metas #-}
+-- {-# OPTIONS --allow-unsolved-metas #-}
 
 open import Functional.State as St using (F ; System ; Cmd ; extend ; read ; Memory)
 

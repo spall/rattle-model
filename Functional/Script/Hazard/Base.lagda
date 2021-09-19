@@ -268,7 +268,7 @@ hazardContradiction s x b ls hz (HFC ¬sh dsj) with hz
 \begin{code}
 data HazardFree : System → Build → Build → FileInfo → Set where
   [] : ∀ {s} {b} {ls} → HazardFree s [] b ls
-  :: : ∀ s ls x b₁ b₂ → HazardFreeCmd s x b₂ ls → HazardFree (run x s) b₁ b₂ (save s x ls) → HazardFree s (x ∷ b₁) b₂ ls
+  :: : ∀ s ls x b₁ b₂ → ¬ Hazard s x b₂ ls → HazardFree (run x s) b₁ b₂ (save s x ls) → HazardFree s (x ∷ b₁) b₂ ls
 \end{code}}
 
 \begin{code}[hide]
@@ -352,60 +352,59 @@ speculativeHazard-x? x b₂ (x₁ ∷ ls) ls₁ rs | no p₁ with speculativeHaz
         ... | yes x₂≡x₁ = p₁ (v , (v∈rs , subst (λ x₃ → v ∈ cmdWrote ls₁ x₃) x₂≡x₁ v∈ws))
         ... | no ¬x₂≡x₁ = ¬p (x₂ , v , tail ¬x₂≡x₁ x₂∈ , ¬bf , v∈rs , v∈ws)
 
-¬speculativeHazard? : ∀ (b₂ : Build) ls → Dec (¬SpeculativeHazard b₂ ls)
-¬speculativeHazard? b₂ ls = g₁ b₂ (cmdsRun ls) ls
-  where g₁ : ∀ b₂ ls₁ ls₂ → Dec (∀ x₁ x₂ → x₂ before x₁ en ls₁ → x₂ ∈ b₂ → ¬ x₁ before x₂ en b₂ → Disjoint (cmdRead ls₂ x₂) (cmdWrote ls₂ x₁))
-        g₁ b₂ [] ls₂ = true Relation.Nullary.because Relation.Nullary.ofʸ g₃
-          where g₃ : ∀ x₁ x₂ → x₂ before x₁ en [] → x₂ ∈ b₂ → ¬ (x₁ before x₂ en b₂) → Disjoint (cmdRead ls₂ x₂) (cmdWrote ls₂ x₁)
-                g₃ x₁ x₂ (xs , ys , ≡₁ , x₁∈ys) x₂∈b₂ ¬bf dsj = contradiction (subst (λ x → x₁ ∈ x) (sym ≡₁) (∈-++⁺ʳ xs (there x₁∈ys))) λ ()
-                  
+¬speculative? : ∀ b₂ ls → Dec (∃[ x₁ ](∃[ x₂ ](∃[ v ](x₂ before x₁ en (map proj₁ ls) × x₂ ∈ b₂ × ¬ x₁ before x₂ en b₂ × v ∈ cmdRead ls x₂ × v ∈ cmdWrote ls x₁))))
+¬speculative? b₂ ls = g₁ b₂ (map proj₁ ls) ls
+  where g₁ : ∀ b₂ ls₁ ls₂ → Dec (∃[ x₁ ](∃[ x₂ ](∃[ v ](x₂ before x₁ en ls₁ × x₂ ∈ b₂ × ¬ x₁ before x₂ en b₂ × v ∈ cmdRead ls₂ x₂ × v ∈ cmdWrote ls₂ x₁))))
+        g₁ b₂ [] ls₂ = false Relation.Nullary.because Relation.Nullary.ofⁿ g₂
+          where g₂ : ¬ (∃[ x₁ ](∃[ x₂ ](∃[ v ](x₂ before x₁ en [] × x₂ ∈ b₂ × ¬ x₁ before x₂ en b₂ × v ∈ cmdRead ls₂ x₂ × v ∈ cmdWrote ls₂ x₁))))
+                g₂ (_ , _ , _ , (xs , ys , ≡₁ , x₁∈ys) , rest)
+                  = contradiction (subst (λ x → _ ∈ x) (sym ≡₁) (∈-++⁺ʳ xs (there x₁∈ys))) (λ ())
         g₁ b₂ (x ∷ ls₁) ls₂ with x ∈? b₂
         ... | yes x∈b₂ with speculativeHazard-x? x b₂ ls₁ ls₂ (cmdRead ls₂ x)
-        -- we found a speculative hazard
-        ... | yes (x₁ , v , x₁∈ls , ¬bf , v∈rs , v∈ws) = false Relation.Nullary.because Relation.Nullary.ofⁿ g₃
-          where g₃ : ¬ (∀ x₁ x₂ → x₂ before x₁ en (x ∷ ls₁) → x₂ ∈ b₂ → ¬ x₁ before x₂ en b₂ → Disjoint (cmdRead ls₂ x₂) (cmdWrote ls₂ x₁))
-                g₃ p = p x₁ x ([] , ls₁ , refl , x₁∈ls) x∈b₂ ¬bf (v∈rs , v∈ws)
-        -- did not find a speculative hazard with x
+        ... | yes (x₁ , v , x₁∈ls , ¬bf , v∈rs , v∈ws)
+          = true Relation.Nullary.because Relation.Nullary.ofʸ (x₁ , x , v , ([] , ls₁ , refl , x₁∈ls) , x∈b₂ , ¬bf , v∈rs , v∈ws)
         ... | no ¬p with g₁ b₂ ls₁ ls₂
-        -- recur and found no speculative hazards.
-        ... | yes ¬sh = true Relation.Nullary.because Relation.Nullary.ofʸ g₃
-          where g₃ : ∀ x₁ x₂ → x₂ before x₁ en (x ∷ ls₁) → x₂ ∈ b₂ → ¬ x₁ before x₂ en b₂ → Disjoint (cmdRead ls₂ x₂) (cmdWrote ls₂ x₁)
-                g₃ x₁ x₂ ([] , ys , ≡₁ , x₁∈ys) x₂∈b₂ ¬bf dsj
-                  = ¬p (x₁ , _ , subst (λ x₃ → x₁ ∈ x₃) (sym (∷-injectiveʳ ≡₁)) x₁∈ys , subst (λ x₃ → ¬ (x₁ before x₃ en b₂)) (sym (∷-injectiveˡ ≡₁)) ¬bf , (subst (λ x₃ → _ ∈ cmdRead ls₂ x₃) (sym (∷-injectiveˡ ≡₁)) (proj₁ dsj)) , proj₂ dsj)
-                g₃ x₁ x₂ (x ∷ xs , ys , ≡₁ , x₁∈ys) x₂∈b₂ ¬bf dsj
-                  = ¬sh x₁ x₂ (xs , ys , ∷-injectiveʳ ≡₁ , x₁∈ys) x₂∈b₂ ¬bf dsj
-        -- recurred and found a sh
-        ... | no sh = false Relation.Nullary.because Relation.Nullary.ofⁿ g₃
-          where g₄ : (∀ x₁ x₂ → x₂ before x₁ en (x ∷ ls₁) → x₂ ∈ b₂ → ¬ (x₁ before x₂ en b₂) → Disjoint (cmdRead ls₂ x₂) (cmdWrote ls₂ x₁)) → (∀ x₁ x₂ → x₂ before x₁ en ls₁ → x₂ ∈ b₂ → ¬ x₁ before x₂ en b₂ → Disjoint (cmdRead ls₂ x₂) (cmdWrote ls₂ x₁))
-                g₄ f x₁ x₂ (xs , ys , ≡₁ , x₁∈ys) x₄ x₅ x₆ = f x₁ x₂ (x ∷ xs , ys , cong (x ∷_) ≡₁ , x₁∈ys) x₄ x₅ x₆
-                g₃ : ¬ (∀ x₁ x₂ → x₂ before x₁ en (x ∷ ls₁) → x₂ ∈ b₂ → ¬ x₁ before x₂ en b₂ → Disjoint (cmdRead ls₂ x₂) (cmdWrote ls₂ x₁))
-                g₃ f = sh (g₄ f)
+        ... | yes (x₁ , x₂ , v , (xs , ys , ≡₁ , ∈₁) , rest)
+          = true Relation.Nullary.because Relation.Nullary.ofʸ (x₁ , x₂ , v , (x ∷ xs , ys , cong (x ∷_) ≡₁ , ∈₁) , rest)
+        ... | no ¬sh = false Relation.Nullary.because Relation.Nullary.ofⁿ g₂
+          where g₂ : ¬ (∃[ x₁ ](∃[ x₂ ](∃[ v ](x₂ before x₁ en (x ∷ ls₁) × x₂ ∈ b₂ × ¬ x₁ before x₂ en b₂ × v ∈ cmdRead ls₂ x₂ × v ∈ cmdWrote ls₂ x₁))))
+                g₂ (x₁ , x₂ , v , ([] , ys , ≡₁ , ∈₁) , x₂∈b₂ , ¬bf , v∈rs , v∈ws)
+                  = ¬p (x₁ , v , subst (λ x₃ → x₁ ∈ x₃) (sym (∷-injectiveʳ ≡₁)) ∈₁ , subst (λ x₃ → ¬ (x₁ before x₃ en b₂)) (sym (∷-injectiveˡ ≡₁)) ¬bf
+                       , subst (λ x₃ → v ∈ cmdRead ls₂ x₃) (sym (∷-injectiveˡ ≡₁)) v∈rs , v∈ws)
+                g₂ (x₁ , x₂ , v , (x₃ ∷ xs , ys , ≡₁ , ∈₁) , rest) = ¬sh (x₁ , x₂ , v , (xs , ys , (∷-injectiveʳ ≡₁) , ∈₁) , rest)
         g₁ b₂ (x ∷ ls₁) ls₂ | no x∉b₂ with g₁ b₂ ls₁ ls₂
-        ... | yes ¬sh = true Relation.Nullary.because Relation.Nullary.ofʸ g₃
-          where g₃ : ∀ x₁ x₂ → x₂ before x₁ en (x ∷ ls₁) → x₂ ∈ b₂ → ¬ x₁ before x₂ en b₂ → Disjoint (cmdRead ls₂ x₂) (cmdWrote ls₂ x₁)
-                g₃ x₁ x₂ ([] , ys , ≡₁ , x₁∈ys) x₂∈b₂ ¬bf dsj
-                  = x∉b₂ (subst (λ x₃ → x₃ ∈ b₂) (sym (∷-injectiveˡ ≡₁)) x₂∈b₂)
-                g₃ x₁ x₂ (x ∷ xs , ys , ≡₁ , x₁∈ys) x₂∈b₂ ¬bf dsj
-                  = ¬sh x₁ x₂ (xs , ys , ∷-injectiveʳ ≡₁ , x₁∈ys) x₂∈b₂ ¬bf dsj
-        ... | no sh = false Relation.Nullary.because Relation.Nullary.ofⁿ g₃
-          where g₄ : (∀ x₁ x₂ → x₂ before x₁ en (x ∷ ls₁) → x₂ ∈ b₂ → ¬ (x₁ before x₂ en b₂) → Disjoint (cmdRead ls₂ x₂) (cmdWrote ls₂ x₁)) → (∀ x₁ x₂ → x₂ before x₁ en ls₁ → x₂ ∈ b₂ → ¬ x₁ before x₂ en b₂ → Disjoint (cmdRead ls₂ x₂) (cmdWrote ls₂ x₁))
-                g₄ f x₁ x₂ (xs , ys , ≡₁ , x₁∈ys) x₄ x₅ x₆ = f x₁ x₂ (x ∷ xs , ys , cong (x ∷_) ≡₁ , x₁∈ys) x₄ x₅ x₆
-                g₃ : ¬ (∀ x₁ x₂ → x₂ before x₁ en (x ∷ ls₁) → x₂ ∈ b₂ → ¬ x₁ before x₂ en b₂ → Disjoint (cmdRead ls₂ x₂) (cmdWrote ls₂ x₁))
-                g₃ f = sh (g₄ f)
+        ... | yes (x₁ , x₂ , v , (xs , ys , ≡₁ , ∈₁) , rest)
+          = true Relation.Nullary.because Relation.Nullary.ofʸ (x₁ , x₂ , v , (x ∷ xs , ys , cong (x ∷_) ≡₁ , ∈₁) , rest)
+        ... | no ¬sh = false Relation.Nullary.because Relation.Nullary.ofⁿ g₂
+          where g₂ : ¬ (∃[ x₁ ](∃[ x₂ ](∃[ v ](x₂ before x₁ en (x ∷ ls₁) × x₂ ∈ b₂ × ¬ x₁ before x₂ en b₂ × v ∈ cmdRead ls₂ x₂ × v ∈ cmdWrote ls₂ x₁))))
+                g₂ (x₁ , x₂ , v , ([] , ys , ≡₁ , ∈₁) , x₂∈b₂ , ¬bf , v∈rs , v∈ws)
+                  = contradiction (subst (λ x₃ → x₃ ∈ b₂) (sym (∷-injectiveˡ ≡₁)) x₂∈b₂) x∉b₂
+                g₂ (x₁ , x₂ , v , (x₃ ∷ xs , ys , ≡₁ , ∈₁) , rest) = ¬sh (x₁ , x₂ , v , (xs , ys , (∷-injectiveʳ ≡₁) , ∈₁) , rest)
+
+hazard? : ∀ s x b₂ ls → Dec (Hazard s x b₂ ls)
+hazard? s x b₂ ls with intersection?2 (cmdWriteNames x s) (filesRead ls)
+... | yes (v , ∈₁ , ∈₂) = true Relation.Nullary.because Relation.Nullary.ofʸ (ReadWrite s x {b₂} ls v ∈₁ ∈₂)
+... | no ¬x₁ with intersection?2 (cmdWriteNames x s) (filesWrote ls)
+... | yes (v , ∈₁ , ∈₂) = true Relation.Nullary.because Relation.Nullary.ofʸ (WriteWrite s x {b₂} ls v ∈₁ ∈₂)
+... | no ¬x₂ with ¬speculative? b₂ (save s x ls)
+... | yes (x₁ , x₂ , v , bf , x₂∈b₂ , ¬bf , v∈₁ , v∈₂)
+  = true Relation.Nullary.because Relation.Nullary.ofʸ (Speculative s x b₂ ls x₁ x₂ v bf x₂∈b₂ ¬bf v∈₁ v∈₂)
+... | no ¬sh = false Relation.Nullary.because Relation.Nullary.ofⁿ g₁
+  where g₁ : ¬ Hazard s x b₂ ls
+        g₁ (ReadWrite .s _ .ls v x x₁) = ¬x₁ (v , (x , x₁))
+        g₁ (WriteWrite .s _ .ls v x x₁) = ¬x₂ (v , (x , x₁))
+        g₁ (Speculative .s _ .b₂ .ls x₁ x₂ v y x₃ x₄ x₅ x₆)
+          = ¬sh (x₁ , x₂ , v , y , x₃ , x₄ , x₅ , x₆)
 
 hazardfree? : ∀ s b₁ b₂ ls → Dec (HazardFree s b₁ b₂ ls)
 hazardfree? s [] b₂ ls = true Relation.Nullary.because Relation.Nullary.ofʸ []
-hazardfree? s (x ∷ b₁) b₂ ls with intersection? (cmdWriteNames x s) (files ls)
-... | no ¬dsj  = false Relation.Nullary.because Relation.Nullary.ofⁿ g₁
-  where g₁ : HazardFree s (x ∷ b₁) b₂ ls → ⊥
-        g₁ (:: .s .ls _ .b₁ .b₂ (HFC x x₁) hf) = ¬dsj x₁
-... | yes dsj with ¬speculativeHazard? b₂ (save s x ls)
-... | no sh = false Relation.Nullary.because Relation.Nullary.ofⁿ g₁
-  where g₁ : HazardFree s (x ∷ b₁) b₂ ls → ⊥
-        g₁ (:: .s .ls _ .b₁ .b₂ (HFC ¬sh _) hf) = sh ¬sh
-... | yes ¬sh with hazardfree? (run x s) b₁ b₂ (save s x ls)
-... | yes hf = true Relation.Nullary.because (Relation.Nullary.ofʸ (:: s ls x b₁ b₂ (HFC ¬sh dsj) hf))
+hazardfree? s (x ∷ b₁) b₂ ls with hazard? s x b₂ ls
+... | yes hz = false Relation.Nullary.because Relation.Nullary.ofⁿ g₁
+  where g₁ : ¬ HazardFree s (x ∷ b₁) b₂ ls
+        g₁ (:: .s .ls _ .b₁ .b₂ ¬hz hf) = ¬hz hz
+... | no ¬hz with hazardfree? (run x s) b₁ b₂ (save s x ls)
+... | yes hf = true Relation.Nullary.because Relation.Nullary.ofʸ (:: s ls x b₁ b₂ ¬hz hf)
 ... | no ¬hf = false Relation.Nullary.because Relation.Nullary.ofⁿ g₁
-  where g₁ : HazardFree s (x ∷ b₁) b₂ ls → ⊥
-        g₁ (:: .s .ls _ .b₁ .b₂ x hf) = contradiction hf ¬hf
+  where g₁ : ¬ HazardFree s (x ∷ b₁) b₂ ls
+        g₁ (:: .s .ls _ .b₁ .b₂ x hf) = ¬hf hf
 \end{code}

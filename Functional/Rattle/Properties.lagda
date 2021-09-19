@@ -111,10 +111,10 @@ completeness : ∀ st ls b₁ b₂ → OKBuild st ls b₁ b₂ → HazardFree (p
 \end{code}}
 \begin{code}[hide]
 completeness st ls [] _ (dsb , mp , (ub₁ , ub₂ , uls , dsj)) hf = st , ls , refl
-completeness st@(s , mm) ls (x ∷ b₁) b₂ ((Cons .x ds .b₁ dsb) , mp , ((px ∷ ub₁) , ub₂ , uls , dsj₁))  (:: .s .ls .x .b₁ .b₂ (HFC ¬sh dsj) hf) with x ∈? map proj₁ mm
+completeness st@(s , mm) ls (x ∷ b₁) b₂ ((Cons .x ds .b₁ dsb) , mp , ((px ∷ ub₁) , ub₂ , uls , dsj₁))  (:: .s .ls .x .b₁ .b₂ ¬hz hf) with x ∈? map proj₁ mm
 ... | yes x∈ with maybeAll {s} (get x mm x∈)
 ... | nothing with checkHazard s x {b₂} ls
-... | just hz = ⊥-elim (hazardContradiction s x b₂ ls hz (HFC ¬sh dsj))
+... | just hz = ⊥-elim (¬hz hz)
 ... | nothing = completeness st₂ ls₂ b₁ b₂ (dsb , mp₂ , (ub₁ , ub₂ , uls₂ , dsj₂)) hf
   where dsj₂ : Disjoint b₁ (x ∷ map proj₁ ls)
         dsj₂ = λ x₁ → dsj₁ (there (proj₁ x₁) , tail (λ v≡x → lookup px (proj₁ x₁) (sym v≡x)) (proj₂ x₁))
@@ -127,7 +127,7 @@ completeness st@(s , mm) ls (x ∷ b₁) b₂ ((Cons .x ds .b₁ dsb) , mp , ((p
         mp₂ : MemoryProperty (proj₂ st₂)
         mp₂ = MemoryProperty.Cons x s (λ f₁ x₂ → lemma3 f₁ (proj₂ (proj₁ (oracle x) s)) λ x₃ → ds (x₂ , x₃)) mp
 
-completeness st@(s , mm) ls (x ∷ b₁) b₂ ((Cons .x x₁ .b₁ dsb) , mp , ((px ∷ ub₁) , ub₂ , uls , dsj₁))  (:: .s .ls .x .b₁ .b₂ (HFC ¬sh dsj) hf) | yes x∈ | just all₁ with noEffect x (λ f₁ → refl) mp x∈ all₁
+completeness st@(s , mm) ls (x ∷ b₁) b₂ ((Cons .x x₁ .b₁ dsb) , mp , ((px ∷ ub₁) , ub₂ , uls , dsj₁))  (:: .s .ls .x .b₁ .b₂ ¬hz hf) | yes x∈ | just all₁ with noEffect x (λ f₁ → refl) mp x∈ all₁
 ... | ∀₁ = completeness st ls b₁ b₂ ((dsj-≡ (St.run x s) s b₁ ∀₁ dsb) , mp , (ub₁ , ub₂ , uls , dsj₃))  hf₂
   where dsj₃ : Disjoint b₁ (map proj₁ ls)
         dsj₃ = λ x₂ → dsj₁ (there (proj₁ x₂) , proj₂ x₂)
@@ -138,8 +138,8 @@ completeness st@(s , mm) ls (x ∷ b₁) b₂ ((Cons .x x₁ .b₁ dsb) , mp , (
         hf₂ : HazardFree s b₁ b₂ ls
         hf₂ = hf-still b₁ [] ((x , cmdReadNames x s , cmdWriteNames x s) ∷ []) ls (λ f₁ x₂ → sym (∀₁ f₁)) ub₁ uls₂ dsj₂ hf
         
-completeness st@(s , mm) ls (x ∷ b₁) b₂ ((Cons .x ds .b₁ dsb) , mp , ((px ∷ ub₁) , ub₂ , uls , dsj₁))  (:: .s .ls .x .b₁ .b₂ (HFC ¬sh dsj) hf) |  no x∉ with checkHazard s x {b₂} ls
-... | just hz = ⊥-elim (hazardContradiction s x b₂ ls hz (HFC ¬sh dsj))
+completeness st@(s , mm) ls (x ∷ b₁) b₂ ((Cons .x ds .b₁ dsb) , mp , ((px ∷ ub₁) , ub₂ , uls , dsj₁))  (:: .s .ls .x .b₁ .b₂ ¬hz hf) |  no x∉ with checkHazard s x {b₂} ls
+... | just hz = ⊥-elim (¬hz hz)
 ... | nothing = completeness (St.run x s , save x ((cmdReadNames x s) ++ (cmdWriteNames x s)) (St.run x s) mm) (rec s x ls) b₁ b₂ (dsb , (MemoryProperty.Cons x s (λ f₁ x₂ → lemma3 f₁ (proj₂ (proj₁ (oracle x) s)) λ x₃ → ds (x₂ , x₃)) mp) , (ub₁ , ub₂ , (g₂ (map proj₁ ls) (λ x₁ → dsj₁ (here refl , x₁)) ∷ uls) , dsj₂)) hf 
   where dsj₂ : Disjoint b₁ (x ∷ map proj₁ ls)
         dsj₂ = λ x₁ → dsj₁ (there (proj₁ x₁) , tail (λ v≡x → lookup px (proj₁ x₁) (sym v≡x)) (proj₂ x₁))
@@ -194,7 +194,7 @@ correct b₁ b₂ s mm ls (dsb , mp , ue) with rattle ((s , mm) , ls) b₁ b₂ 
 -- then we use soundness to prove theyre equal to their non hazard versions ; then we use the reordering proof to show they're equivalent??
 
 extra-lemma : ∀ s x y b₁ b₂ ls → x ∈ b₂ → y ∈ b₂ → ¬ HazardFree s b₂ b₁ ls
-extra-lemma s x y b₁ (x₁ ∷ b₂) ls x∈b₁ y∈b₁ (:: .s .ls .x₁ .b₂ .b₁ (HFC x₂ x₃) hf) = {!!}
+extra-lemma s x y b₁ (x₁ ∷ b₂) ls x∈b₁ y∈b₁ (:: .s .ls .x₁ .b₂ .b₁ ¬hz hf) = {!!}
 
 -- for every pair of commands in b₂ (x , y) where x is before y; if x writes to something y reads; then (x , y) in b₁ too.
 
