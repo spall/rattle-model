@@ -1,4 +1,3 @@
--- {-# OPTIONS --allow-unsolved-metas #-}
 
 open import Functional.State as St using (F ; System ; Cmd ; extend ; read ; Memory)
 
@@ -9,7 +8,7 @@ open import Functional.State.Helpers (oracle) using (cmdWriteNames ; run ; cmdRe
 open import Functional.State.Properties (oracle) using (lemma5)
 open import Functional.Script.Exec (oracle) using (script ; buildWriteNames ; buildReadNames)
 open import Functional.Script.Hazard (oracle) using (HazardFree ; FileInfo)
-open import Functional.Script.Hazard.Properties (oracle) using (hf-∷ʳ-l ; hf-drop-mid ; hf=>disjoint)
+open import Functional.Script.Hazard.Properties (oracle) using (hf-∷ʳ-l ; hf-drop-mid ; hf=>disjoint ; hf=>disjointRW ; hf=>disjointWW ; hf=>disjointWR)
 open import Data.Sum using (inj₁ ; inj₂)
 open import Data.List using (_∷ʳ_ ; List)
 open import Data.List.Properties using (unfold-reverse ; reverse-involutive ; ++-identityʳ ; length-reverse)
@@ -20,12 +19,12 @@ open import Data.List.Relation.Unary.Unique.Propositional.Properties using (++�
 open import Data.List using (map ; reverse ; length ; [] ; _∷_ ; _++_ ; [_])
 open import Data.Product using (proj₁ ; proj₂ ; _,_)
 open import Data.List.Relation.Binary.Disjoint.Propositional using (Disjoint)
-open import Data.List.Membership.Propositional using (_∈_)
+open import Data.List.Membership.Propositional using (_∈_ ; _∉_)
 open import Data.List.Membership.Propositional.Properties using (∈-∃++ ; ∈-++⁻ ; ∈-++⁺ˡ ; ∈-++⁺ʳ)
 open import Data.List.Relation.Unary.Any as Any using (here ; there)
-open import Data.List.Relation.Unary.Any.Properties using (reverse⁺)
+open import Data.List.Relation.Unary.Any.Properties using (reverse⁺ ; reverse⁻)
 open import Relation.Binary.PropositionalEquality using (subst ; subst₂ ; sym ; trans)
-open import Data.List.Relation.Unary.All as All using (All ; _∷_)
+open import Data.List.Relation.Unary.All as All using (All ; _∷_ ; lookup)
 open import Data.List.Relation.Unary.All.Properties as AllP hiding (++⁺)
 open import Relation.Nullary using (¬_)
 open import Functional.Build using (Build ; UniqueEvidence)
@@ -52,6 +51,14 @@ unique→disjoint (x ∷ xs) (¬x₁≡x ∷ all₁) x₂ = unique→disjoint xs
 all-reverse : ∀ {x₁ : Cmd} xs → All (λ y → ¬ x₁ ≡ y) xs → All (λ y → ¬ x₁ ≡ y) (reverse xs)
 all-reverse [] All.[] = All.[]
 all-reverse (x ∷ xs) (px ∷ all₁) = subst (λ x₂ → All (λ y → ¬ _ ≡ y) x₂) (sym (unfold-reverse x xs)) (AllP.++⁺ (all-reverse xs all₁) (px ∷ All.[]))
+
+unique=>∉ : ∀ (x : Cmd) xs → All (λ y → ¬ x ≡ y) xs → x ∉ xs
+unique=>∉ x xs px x₁ with lookup px x₁
+... | a = a refl
+
+unique=>¬ : ∀ (v : Cmd) x xs ys → v ∈ ys → Unique (xs ++ x ∷ ys) → ¬ v ≡ x
+unique=>¬ v x [] ys v∈ys (px ∷ u) = λ x₁ → (lookup px v∈ys) (sym x₁)
+unique=>¬ v x (x₁ ∷ xs) ys v∈ys (px ∷ u) = unique=>¬ v x xs ys v∈ys u
 
 unique-reverse : ∀ xs → Unique xs → Unique (reverse xs)
 unique-reverse [] u = []
@@ -90,59 +97,27 @@ reordered-inner {s} (x ∷ b₁) b₂ ls ↭₁ (ub₂ , (px ∷ ub₁) , uls , 
                                             (sym (unfold-reverse x b₁)) (sym b₂≡xs++x∷ys)
                                             (exec-f₁≡ s f₁ x (reverse b₁) xs ys ∀₁ ≡₁ all₁ dsj₁)
           -- need to prove x does the same thing in both builds.
-    where dsj₁ : Disjoint (cmdWriteNames x (script s xs)) (buildWriteNames (run x (script s xs)) ys)
-          dsj₁ = {!!}
+    where g₃ : x ∉ reverse b₁
+          g₃ x∈rev = unique=>∉ x b₁ px (reverse⁻ x∈rev)
+          g₁ : ∀ {v} → v ∈ ys → v ∈ reverse b₁
+          g₁ v∈ys with ∈-resp-↭ (↭-sym ↭₁) (subst (λ x₁ → _ ∈ x₁) (sym b₂≡xs++x∷ys) (∈-++⁺ʳ xs (there v∈ys)))
+          ... | v∈x∷b₁ with Any.tail (unique=>¬ _ x xs ys v∈ys (subst (λ x₁ → Unique x₁) b₂≡xs++x∷ys ub₂)) v∈x∷b₁
+          ... | v∈b₁ = reverse⁺ v∈b₁
+          dsj₁ : Disjoint (cmdWriteNames x (script s xs)) (buildWriteNames (run x (script s xs)) ys)
+          dsj₁ = hf=>disjointWW s x xs ys (reverse b₁) ls (λ x₁ → g₁ x₁) g₃ (subst₂ (λ x₁ x₂ → HazardFree s x₁ x₂ ls) b₂≡xs++x∷ys (unfold-reverse x b₁) hf₂)
           dsj₃ : Disjoint (cmdReadNames x (script s xs)) (buildWriteNames (run x (script s xs)) ys)
-          dsj₃ = {!!}
-          ≡₂ : buildWriteNames (run x (script s xs)) ys ≡ buildWriteNames (script s xs) ys
-          ≡₂ = writes≡ (run x (script s xs)) (script s xs) ys {!!}
+          dsj₃ = hf=>disjointRW s x xs ys (reverse b₁) ls (λ x₁ → g₁ x₁) g₃ (subst₂ (λ x₁ x₂ → HazardFree s x₁ x₂ ls) b₂≡xs++x∷ys (unfold-reverse x b₁) hf₂)
+          dsj₄ : Disjoint (cmdWriteNames x (script s xs)) (buildReadNames (run x (script s xs)) ys)
+          dsj₄ = hf=>disjointWR s x xs ys (reverse b₁) ls (λ x₁ → g₁ x₁) g₃ (subst₂ (λ x₁ x₂ → HazardFree s x₁ x₂ ls) b₂≡xs++x∷ys (unfold-reverse x b₁) hf₂)
           dsj₂ : Disjoint (cmdReadNames x (script s xs)) (buildWriteNames (script s xs) ys)
-          dsj₂ = subst (λ x₁ → Disjoint (cmdReadNames x (script s xs)) x₁) ≡₂ dsj₃
+          dsj₂ = subst (λ x₁ → Disjoint _ x₁) (sym (writes≡ (script s xs) (run x (script s xs)) ys (lemma5 (buildReadNames (run x (script s xs)) ys) (cmdWrites x (script s xs)) dsj₄)))
+                       dsj₃
           ≡₁ : proj₁ (oracle x) (script s (reverse b₁)) ≡ proj₁ (oracle x) (script s xs)
           ≡₁ = sym (proj₂ (oracle x) (script s xs) (script s (reverse b₁))
                λ f₁ x₁ → trans (exec-≡f₁ s f₁ xs ys λ x₂ → dsj₂ (x₁ , x₂)) (sym (∀₁ f₁)))
           all₁ : All (λ f₁ → script s xs f₁ ≡ run x (script s xs) f₁) (buildReadNames (run x (script s xs)) ys)
-          all₁ = lemma5 (buildReadNames (run x (script s xs)) ys) (cmdWrites x (script s xs)) (hf=>disjoint s x xs ys (reverse b₁) ls (λ _∈ys → g₁ _∈ys) {!!} (subst₂ (λ x₁ x₂ → HazardFree s x₁ x₂ ls) b₂≡xs++x∷ys (unfold-reverse x b₁) hf₂))
-            where g₁ : ∀ {v} → v ∈ ys → v ∈ reverse b₁
-                  g₁ v∈ys with ∈-resp-↭ (↭-sym ↭₁) (subst (λ x₁ → _ ∈ x₁) (sym b₂≡xs++x∷ys) (∈-++⁺ʳ xs (there v∈ys)))
-                  ... | v∈x∷b₁ with Any.tail {!!} v∈x∷b₁
-                  ... | v∈b₁ = reverse⁺ v∈b₁
-
-{- Goal: Disjoint (cmdReadNames x (script s xs)) (buildWriteNames (script s xs) ys)
- We know: Disjoint (cmdReadNames x (script s xs)) (buildWriteNames (run x (script s xs)) ys)
-          Disjoint (cmdWriteNames x (script s xs)) (buildReadNames (run x (script s xs)) ys)
-
-new Goal : buildWriteNames (run x (script s xs)) ys ≡ buildWriteNames (script s xs) ys
-
-Other goal: script s xs f₁ ≡ script s (xs ++ ys) f₁ ; where f₁ ∈ reads of x 
--- this should be true if f₁ not in the writes of ys. 
--- we know 
-
--- deeply annoying that holes 5 and 6 are not filled by the same thing; since they are very similar
--}
-
-{- 
-(script-f₁≡ s f₁ x (reverse b) ls₁ ls₂ ∀₂ ≡₂ all₁ dsj)
-                       
-          where ∀₂ : (∀ f₂ → S.exec s (reverse b) f₂ ≡ S.exec s (ls₁ ++ ls₂) f₂)
-                ∀₂ = subst (λ x₁ → ∀ f₂ → _ ≡ S.exec s x₁ f₂) (reverse-involutive (ls₁ ++ ls₂)) ∀₁
-                hf₃ : {xs : List String} (s : System) (x : Cmd) (ls₁ ls₂ : Build) -> HazardFree s (ls₁ ++ x ∷ ls₂) xs -> HazardFree (S.exec s ls₁) (x ∷ ls₂) (S.build-rws s ls₁ xs)
-                hf₃ s x [] ls₂ hf = hf
-                hf₃ s x (x₁ ∷ ls₁) ls₂ (Cons _ .x₁ .(ls₁ ++ x ∷ ls₂) x₂ hf)
-                  = hf₃ (run oracle x₁ s) x ls₁ ls₂ hf
-                dsj : Disjoint (S.Cwrites (S.exec s ls₁) x) (writes (run oracle x (S.exec s ls₁)) ls₂)
-                dsj = hf→disjointWrites (S.exec s ls₁) x ls₂ (hf₃ s x ls₁ ls₂ (subst (λ x₄ → HazardFree s x₄ _) reverse-b₁≡ls₁++x∷ls₂ hf₂))
-                dsj₁ : Disjoint (S.Creads (S.exec s ls₁) x) (writes (S.exec s ls₁) ls₂)
-                dsj₁ = still-disjoint (S.exec s ls₁) x ls₂
-                       (hfr→disjoint s x (reverse b) ls₁ ls₂ hfr₁)
-                       (hf→disjointReads (S.exec s ls₁) x ls₂ (hf₃ s x ls₁ ls₂ (subst (λ x₄ → HazardFree s x₄ _) reverse-b₁≡ls₁++x∷ls₂ hf₂)))
-                ≡₂ : proj₁ (oracle x) (S.exec s (reverse b)) ≡ proj₁ (oracle x) (S.exec s ls₁)
-                ≡₂ = S.h₄ (S.exec s (reverse b)) (S.exec s ls₁) x (all≡ s (S.Creads (S.exec s ls₁) x) (reverse b) ls₁ ls₂ dsj₁ ∀₂)
-                all₁ : All (λ f₂ → S.exec s ls₁ f₂ ≡ run oracle x (S.exec s ls₁) f₂) (S.reads (run oracle x (S.exec s ls₁)) ls₂)
-                all₁ = St.lemma5 {S.exec s ls₁} (S.reads (run oracle x (S.exec s ls₁)) ls₂) (proj₂ (proj₁ (oracle x) (S.exec s ls₁))) (hfr→disjoint s x (reverse b) ls₁ ls₂ hfr₁)
-
-
--}
+          all₁ = lemma5 (buildReadNames (run x (script s xs)) ys) (cmdWrites x (script s xs))
+                 (hf=>disjoint s x xs ys (reverse b₁) ls (λ x₁ → g₁ x₁) g₃ (subst₂ (λ x₁ x₂ → HazardFree s x₁ x₂ ls) b₂≡xs++x∷ys (unfold-reverse x b₁) hf₂))
 
 ↭-reverse : ∀ (xs : Build) → xs ↭ reverse xs
 ↭-reverse xs = subst (λ x → x ↭ reverse xs) (++-identityʳ xs) (++↭ʳ++ xs [])

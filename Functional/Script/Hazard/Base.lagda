@@ -271,6 +271,7 @@ data HazardFree : System → Build → Build → FileInfo → Set where
   :: : ∀ s ls x b₁ b₂ → ¬ Hazard s x b₂ ls → HazardFree (run x s) b₁ b₂ (save s x ls) → HazardFree s (x ∷ b₁) b₂ ls
 \end{code}}
 
+
 \begin{code}[hide]
 
 intersection?2 : (xs ys : FileNames) → Dec (∃[ v ](v ∈ xs × v ∈ ys))

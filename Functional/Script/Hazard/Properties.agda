@@ -1,4 +1,3 @@
-{-# OPTIONS --allow-unsolved-metas #-}
 open import Functional.State using (F ;  System ; Cmd)
 
 module Functional.Script.Hazard.Properties (oracle : F) where
@@ -9,7 +8,7 @@ open import Functional.Build using (Build)
 open import Common.List.Properties using (_before_en_)
 open import Agda.Builtin.Equality
 open import Functional.File using (FileName)
-open import Functional.Script.Hazard.Base (oracle) using (HazardFree ; [] ; :: ; files ; cmdsRun ; cmdWrote ; FileInfo ; save ; filesRead ; ¬SpeculativeHazard ; ∈-files-++ ; ∈-filesRead-++ ; ∈-filesWrote-++ ; ∈-cmdRead++mid ; ∈-cmdWrote++mid ; ∈-cmdWrote∷ ; ∈-cmdRead∷l ; lemma2 ; cmdWrote∷-≡ ; HFC ; Hazard ; ∈-cmdWrote∷l ; Speculative ; ReadWrite ; WriteWrite ; cmdRead) 
+open import Functional.Script.Hazard.Base (oracle) using (HazardFree ; [] ; :: ; files ; cmdsRun ; cmdWrote ; FileInfo ; save ; filesRead ; ¬SpeculativeHazard ; ∈-files-++ ; ∈-filesRead-++ ; ∈-filesWrote-++ ; ∈-cmdRead++mid ; ∈-cmdWrote++mid ; ∈-cmdWrote∷ ; ∈-cmdRead∷l ; lemma2 ; cmdWrote∷-≡ ; HFC ; Hazard ; ∈-cmdWrote∷l ; Speculative ; ReadWrite ; WriteWrite ; cmdRead ; filesWrote) 
 open import Data.List as L using (_∷_ ; _++_ ; map ; foldr ; List ; foldl ; _∷ʳ_ ; [] ; reverse ; [_])
 open import Data.Product using (_,_ ; proj₁ ; proj₂ ; _×_ ; Σ-syntax ; ∃-syntax)
 open import Relation.Binary.PropositionalEquality using (subst ; subst₂ ; cong ; sym ; trans ; cong₂)
@@ -268,3 +267,75 @@ hf=>disjoint s x [] ys zs ls ys⊆zs x∉zs hf = hf=>disjoint1 s x ys zs ls ys�
 hf=>disjoint s x (x₁ ∷ xs) ys zs ls ys⊆zs x∉zs (:: .s .ls .x₁ .(xs ++ x ∷ ys) .(zs ++ x ∷ []) x₂ hf)
   = hf=>disjoint (run x₁ s) x xs ys zs _ ys⊆zs x∉zs hf
 
+hf=>disjointWW3 : ∀ s x₁ zs x ls → x ∈ map proj₁ ls → x₁ ∈ zs → x ∉ zs → ¬ Hazard s x₁ (zs ∷ʳ x) ls → Disjoint (filesWrote ls) (cmdWriteNames x₁ s)
+hf=>disjointWW3 s x₁ zs x ls x∈ls x₁∈zs x∉zs ¬hz x₄ = ¬hz (WriteWrite s x₁ ls _ (proj₂ x₄) (proj₁ x₄))
+
+hf=>disjointWW2 : ∀ s ls ys zs x → ys ⊆ zs → x ∉ zs → x ∈ map proj₁ ls → HazardFree s ys (zs ∷ʳ x) ls → Disjoint (filesWrote ls) (buildWriteNames s ys)
+hf=>disjointWW2 s ls [] zs x ys⊆zs x∉zs x∈ls hf = g₁
+  where g₁ : Disjoint (filesWrote ls) (buildWriteNames s [])
+        g₁ ()
+hf=>disjointWW2 s ls (x₁ ∷ ys) zs x ys⊆zs x∉zs x∈ls (:: .s .ls .x₁ .ys .(zs ++ x ∷ []) x₂ hf) with hf=>disjointWW2 (run x₁ s) (save s x₁ ls) ys zs x (λ x₃ → ys⊆zs (there x₃)) x∉zs (there x∈ls) hf
+... | dsj = g₁
+  where g₁ : Disjoint (filesWrote ls) (buildWriteNames s (x₁ ∷ ys))
+        g₁ (∈₁ , ∈₂) with ∈-++⁻ (cmdWriteNames x₁ s) ∈₂
+        ... | inj₁ ∈cmd = hf=>disjointWW3 s x₁ zs x ls x∈ls (ys⊆zs (here refl)) x∉zs x₂ (∈₁ , ∈cmd)
+        ... | inj₂ ∈build = dsj (∈-++⁺ʳ _ ∈₁ , ∈build)
+
+hf=>disjointWW1 : ∀ s x ys zs ls → ys ⊆ zs → x ∉ zs → HazardFree s (x ∷ ys) (zs ∷ʳ x) ls → Disjoint (cmdWriteNames x s) (buildWriteNames (run x s) ys)
+hf=>disjointWW1 s x ys zs ls ys⊆zs x∉zs (:: .s .ls .x .ys .(zs ++ x ∷ []) x₁ hf) with hf=>disjointWW2 (run _ s) (save s x ls) ys zs x ys⊆zs x∉zs (here refl) hf
+... | dsj = λ x₂ → dsj (∈-++⁺ˡ (proj₁ x₂) , (proj₂ x₂))
+
+hf=>disjointWW : ∀ s x xs ys zs ls → ys ⊆ zs → x ∉ zs → HazardFree s (xs ++ x ∷ ys) (zs ∷ʳ x) ls → Disjoint (cmdWriteNames x (script s xs)) (buildWriteNames (run x (script s xs)) ys)
+hf=>disjointWW s x [] ys zs ls ys⊆zs x∉zs hf
+  = hf=>disjointWW1 s x ys zs ls ys⊆zs x∉zs hf
+hf=>disjointWW s x (x₁ ∷ xs) ys zs ls ys⊆zs x∉zs (:: .s .ls .x₁ .(xs ++ x ∷ ys) .(zs ++ x ∷ []) x₂ hf)
+  = hf=>disjointWW (run x₁ s) x xs ys zs _ ys⊆zs x∉zs hf
+
+hf=>disjointRW3 : ∀ s x₁ zs x ls → x ∈ map proj₁ ls → x₁ ∈ zs → x ∉ zs → ¬ Hazard s x₁ (zs ∷ʳ x) ls → Disjoint (filesRead ls) (cmdWriteNames x₁ s)
+hf=>disjointRW3 s x₁ zs x ls x∈ls x₁∈zs x∉zs ¬hz x₄ = ¬hz (ReadWrite s x₁ ls _ (proj₂ x₄) (proj₁ x₄))
+
+hf=>disjointRW2 : ∀ s ls ys zs x → ys ⊆ zs → x ∉ zs → x ∈ map proj₁ ls → HazardFree s ys (zs ∷ʳ x) ls → Disjoint (filesRead ls) (buildWriteNames s ys)
+hf=>disjointRW2 s ls [] zs x ys⊆zs x∉zs x∈ls hf = g₁
+  where g₁ : Disjoint (filesRead ls) (buildWriteNames s [])
+        g₁ ()
+hf=>disjointRW2 s ls (x₁ ∷ ys) zs x ys⊆zs x∉zs x∈ls (:: .s .ls .x₁ .ys .(zs ++ x ∷ []) x₂ hf) with hf=>disjointRW2 (run x₁ s) (save s x₁ ls) ys zs x (λ x₃ → ys⊆zs (there x₃)) x∉zs (there x∈ls) hf
+... | dsj = g₁
+  where g₁ : Disjoint (filesRead ls) (buildWriteNames s (x₁ ∷ ys))
+        g₁ (∈₁ , ∈₂) with ∈-++⁻ (cmdWriteNames x₁ s) ∈₂
+        ... | inj₁ ∈cmd = hf=>disjointRW3 s x₁ zs x ls x∈ls (ys⊆zs (here refl)) x∉zs x₂ (∈₁ , ∈cmd)
+        ... | inj₂ ∈build = dsj (∈-++⁺ʳ _ ∈₁ , ∈build)
+
+hf=>disjointRW1 : ∀ s x ys zs ls → ys ⊆ zs → x ∉ zs → HazardFree s (x ∷ ys) (zs ∷ʳ x) ls → Disjoint (cmdReadNames x s) (buildWriteNames (run x s) ys)
+hf=>disjointRW1 s x ys zs ls ys⊆zs x∉zs (:: .s .ls .x .ys .(zs ++ x ∷ []) x₁ hf) with hf=>disjointRW2 (run _ s) (save s x ls) ys zs x ys⊆zs x∉zs (here refl) hf
+... | dsj = λ x₂ → dsj (∈-++⁺ˡ (proj₁ x₂) , (proj₂ x₂))
+
+hf=>disjointRW : ∀ s x xs ys zs ls → ys ⊆ zs → x ∉ zs → HazardFree s (xs ++ x ∷ ys) (zs ∷ʳ x) ls → Disjoint (cmdReadNames x (script s xs)) (buildWriteNames (run x (script s xs)) ys)
+hf=>disjointRW s x [] ys zs ls ys⊆zs x∉zs hf
+  = hf=>disjointRW1 s x ys zs ls ys⊆zs x∉zs hf
+hf=>disjointRW s x (x₁ ∷ xs) ys zs ls ys⊆zs x∉zs (:: .s .ls .x₁ .(xs ++ x ∷ ys) .(zs ++ x ∷ []) x₂ hf)
+  = hf=>disjointRW (run x₁ s) x xs ys zs _ ys⊆zs x∉zs hf
+
+hf=>disjointWR3 : ∀ s x₁ zs x ls → x ∈ map proj₁ ls → x₁ ∈ zs → x ∉ zs → ¬ Hazard s x₁ (zs ∷ʳ x) ls → Disjoint (cmdWrote ls x) (cmdReadNames x₁ s)
+hf=>disjointWR3 s x₁ zs x ls x∈ls x₁∈zs x∉zs ¬hz x₄ = ¬hz (Speculative s x₁ (zs ∷ʳ x) ls x x₁ _ bf (∈-++⁺ˡ x₁∈zs) (¬bf zs x∉zs) (∈-cmdRead∷l (x₁ , (cmdReadNames x₁ s) , _) ls (proj₂ x₄)) (∈-cmdWrote∷ (x₁ , _ , _) x ls (proj₁ x₄) λ x₂ → x∉zs (subst (λ x₃ → x₃ ∈ zs) x₂ x₁∈zs)))
+  where bf : x₁ before x en (x₁ ∷ cmdsRun ls)
+        bf = [] , cmdsRun ls , refl , x∈ls
+
+hf=>disjointWR2 : ∀ s ls ys zs x → ys ⊆ zs → x ∉ zs → x ∈ map proj₁ ls → HazardFree s ys (zs ∷ʳ x) ls → Disjoint (cmdWrote ls x) (buildReadNames s ys)
+hf=>disjointWR2 s ls [] zs x ys⊆zs x∉zs x∈ls hf = g₁
+  where g₁ : Disjoint (cmdWrote ls x) (buildReadNames s [])
+        g₁ ()
+hf=>disjointWR2 s ls (x₁ ∷ ys) zs x ys⊆zs x∉zs x∈ls (:: .s .ls .x₁ .ys .(zs ++ x ∷ []) x₂ hf) with hf=>disjointWR2 (run x₁ s) (save s x₁ ls) ys zs x (λ x₃ → ys⊆zs (there x₃)) x∉zs (there x∈ls) hf
+... | dsj = g₁
+  where g₁ : Disjoint (cmdWrote ls x) (buildReadNames s (x₁ ∷ ys))
+        g₁ (∈₁ , ∈₂) with ∈-++⁻ (cmdReadNames x₁ s) ∈₂
+        ... | inj₁ ∈cmd = hf=>disjointWR3 s x₁ zs x ls x∈ls (ys⊆zs (here refl)) x∉zs x₂ (∈₁ , ∈cmd)
+        ... | inj₂ ∈build = dsj (∈-cmdWrote∷ (x₁ , _ , _) x ls ∈₁ (λ x₃ → x∉zs (subst (λ x₄ → x₄ ∈ zs) x₃ (ys⊆zs (here refl)))) , ∈build)
+
+hf=>disjointWR1 : ∀ s x ys zs ls → ys ⊆ zs → x ∉ zs → HazardFree s (x ∷ ys) (zs ∷ʳ x) ls → Disjoint (cmdWriteNames x s) (buildReadNames (run x s) ys)
+hf=>disjointWR1 s x ys zs ls ys⊆zs x∉zs (:: .s .ls .x .ys .(zs ++ x ∷ []) x₁ hf) with hf=>disjointWR2 (run _ s) (save s x ls) ys zs x ys⊆zs x∉zs (here refl) hf
+... | dsj = λ x₂ → dsj (∈-cmdWrote∷l (x , _ , (cmdWriteNames x s)) ls (proj₁ x₂) , proj₂ x₂)
+
+hf=>disjointWR : ∀ s x xs ys zs ls → ys ⊆ zs → x ∉ zs → HazardFree s (xs ++ x ∷ ys) (zs ∷ʳ x) ls → Disjoint (cmdWriteNames x (script s xs)) (buildReadNames (run x (script s xs)) ys)
+hf=>disjointWR s x [] ys zs ls ys⊆zs x∉zs hf = hf=>disjointWR1 s x ys zs ls ys⊆zs x∉zs hf
+hf=>disjointWR s x (x₁ ∷ xs) ys zs ls ys⊆zs x∉zs (:: .s .ls .x₁ .(xs ++ x ∷ ys) .(zs ++ x ∷ []) x₂ hf)
+  = hf=>disjointWR (run x₁ s) x xs ys zs _ ys⊆zs x∉zs hf
