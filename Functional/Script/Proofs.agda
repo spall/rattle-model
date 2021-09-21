@@ -67,7 +67,7 @@ unique-reverse (x₁ ∷ xs) (px ∷ u) with ++⁺ (unique-reverse xs u) (All.[]
 
 {- length equivalence just makes the proof smaller -}
 -- all of those unique and disjoint things are called UniqueEvidence now so replace to make it look better.
-reordered-inner : ∀ {s} b₁ b₂ ls → {length b₁ ≡ length b₂} → b₁ ↭ b₂ → UniqueEvidence b₂ b₁ (map proj₁ ls) → HazardFree s (reverse b₁) [] ls → HazardFree s b₂ (reverse b₁) ls → (∀ f₁ → script s (reverse b₁) f₁ ≡ script s b₂ f₁)
+reordered-inner : ∀ {s} b₁ b₂ ls → {length b₁ ≡ length b₂} → b₁ ↭ b₂ → UniqueEvidence b₂ b₁ (map proj₁ ls) → HazardFree s (reverse b₁) [] ls → HazardFree s b₂ (reverse b₁) ls → (∀ f₁ → script (reverse b₁) s f₁ ≡ script b₂ s f₁)
 reordered-inner [] [] ls ↭₁ (ub₂ , ub₁ , uls , dsj) hf₁ hf₂ = λ f₁ → refl
 {- we remove x from both builds ; 
    then show adding x back in gives us equivalent system still -}
@@ -93,7 +93,7 @@ reordered-inner {s} (x ∷ b₁) b₂ ls ↭₁ (ub₂ , (px ∷ ub₁) , uls , 
                     ... | a₂ with reverse⁺ a₂
                     ... | a₃ = subst (λ x₁ → _ ∈ x₁) (unfold-reverse x b₁) a₃
         -- add back x.
-... | ∀₁ = λ f₁ → subst₂ (λ x₁ x₂ → script s x₁ f₁ ≡ script s x₂ f₁)
+... | ∀₁ = λ f₁ → subst₂ (λ x₁ x₂ → script x₁ s f₁ ≡ script x₂ s f₁)
                                             (sym (unfold-reverse x b₁)) (sym b₂≡xs++x∷ys)
                                             (exec-f₁≡ s f₁ x (reverse b₁) xs ys ∀₁ ≡₁ all₁ dsj₁)
           -- need to prove x does the same thing in both builds.
@@ -103,25 +103,25 @@ reordered-inner {s} (x ∷ b₁) b₂ ls ↭₁ (ub₂ , (px ∷ ub₁) , uls , 
           g₁ v∈ys with ∈-resp-↭ (↭-sym ↭₁) (subst (λ x₁ → _ ∈ x₁) (sym b₂≡xs++x∷ys) (∈-++⁺ʳ xs (there v∈ys)))
           ... | v∈x∷b₁ with Any.tail (unique=>¬ _ x xs ys v∈ys (subst (λ x₁ → Unique x₁) b₂≡xs++x∷ys ub₂)) v∈x∷b₁
           ... | v∈b₁ = reverse⁺ v∈b₁
-          dsj₁ : Disjoint (cmdWriteNames x (script s xs)) (buildWriteNames (run x (script s xs)) ys)
+          dsj₁ : Disjoint (cmdWriteNames x (script xs s)) (buildWriteNames (run x (script xs s)) ys)
           dsj₁ = hf=>disjointWW s x xs ys (reverse b₁) ls (λ x₁ → g₁ x₁) g₃ (subst₂ (λ x₁ x₂ → HazardFree s x₁ x₂ ls) b₂≡xs++x∷ys (unfold-reverse x b₁) hf₂)
-          dsj₃ : Disjoint (cmdReadNames x (script s xs)) (buildWriteNames (run x (script s xs)) ys)
+          dsj₃ : Disjoint (cmdReadNames x (script xs s)) (buildWriteNames (run x (script xs s)) ys)
           dsj₃ = hf=>disjointRW s x xs ys (reverse b₁) ls (λ x₁ → g₁ x₁) g₃ (subst₂ (λ x₁ x₂ → HazardFree s x₁ x₂ ls) b₂≡xs++x∷ys (unfold-reverse x b₁) hf₂)
-          dsj₄ : Disjoint (cmdWriteNames x (script s xs)) (buildReadNames (run x (script s xs)) ys)
+          dsj₄ : Disjoint (cmdWriteNames x (script xs s)) (buildReadNames (run x (script xs s)) ys)
           dsj₄ = hf=>disjointWR s x xs ys (reverse b₁) ls (λ x₁ → g₁ x₁) g₃ (subst₂ (λ x₁ x₂ → HazardFree s x₁ x₂ ls) b₂≡xs++x∷ys (unfold-reverse x b₁) hf₂)
-          dsj₂ : Disjoint (cmdReadNames x (script s xs)) (buildWriteNames (script s xs) ys)
-          dsj₂ = subst (λ x₁ → Disjoint _ x₁) (sym (writes≡ (script s xs) (run x (script s xs)) ys (lemma5 (buildReadNames (run x (script s xs)) ys) (cmdWrites x (script s xs)) dsj₄)))
+          dsj₂ : Disjoint (cmdReadNames x (script xs s)) (buildWriteNames (script xs s) ys)
+          dsj₂ = subst (λ x₁ → Disjoint _ x₁) (sym (writes≡ (script xs s) (run x (script xs s)) ys (lemma5 (buildReadNames (run x (script xs s)) ys) (cmdWrites x (script xs s)) dsj₄)))
                        dsj₃
-          ≡₁ : proj₁ (oracle x) (script s (reverse b₁)) ≡ proj₁ (oracle x) (script s xs)
-          ≡₁ = sym (proj₂ (oracle x) (script s xs) (script s (reverse b₁))
+          ≡₁ : proj₁ (oracle x) (script (reverse b₁) s) ≡ proj₁ (oracle x) (script xs s)
+          ≡₁ = sym (proj₂ (oracle x) (script xs s) (script (reverse b₁) s)
                λ f₁ x₁ → trans (exec-≡f₁ s f₁ xs ys λ x₂ → dsj₂ (x₁ , x₂)) (sym (∀₁ f₁)))
-          all₁ : All (λ f₁ → script s xs f₁ ≡ run x (script s xs) f₁) (buildReadNames (run x (script s xs)) ys)
-          all₁ = lemma5 (buildReadNames (run x (script s xs)) ys) (cmdWrites x (script s xs))
+          all₁ : All (λ f₁ → script xs s f₁ ≡ run x (script xs s) f₁) (buildReadNames (run x (script xs s)) ys)
+          all₁ = lemma5 (buildReadNames (run x (script xs s)) ys) (cmdWrites x (script xs s))
                  (hf=>disjoint s x xs ys (reverse b₁) ls (λ x₁ → g₁ x₁) g₃ (subst₂ (λ x₁ x₂ → HazardFree s x₁ x₂ ls) b₂≡xs++x∷ys (unfold-reverse x b₁) hf₂))
 
 ↭-reverse : ∀ (xs : Build) → xs ↭ reverse xs
 ↭-reverse xs = subst (λ x → x ↭ reverse xs) (++-identityʳ xs) (++↭ʳ++ xs [])
 
-reordered : ∀ {s} b₁ b₂ ls → b₁ ↭ b₂ → UniqueEvidence b₂ b₁ (map proj₁ ls) → HazardFree s b₁ [] ls → HazardFree s b₂ b₁ ls → (∀ f₁ → script s b₁ f₁ ≡ script s b₂ f₁)
+reordered : ∀ {s} b₁ b₂ ls → b₁ ↭ b₂ → UniqueEvidence b₂ b₁ (map proj₁ ls) → HazardFree s b₁ [] ls → HazardFree s b₂ b₁ ls → (∀ f₁ → script b₁ s f₁ ≡ script b₂ s f₁)
 reordered b₁ b₂ ls ↭₁ (ub₂ , ub₁ , uls , dsj) hf₁ hf₂ f₁ with reordered-inner (reverse b₁) b₂ ls {trans (length-reverse b₁) (↭-length ↭₁)} (↭-trans (↭-sym (↭-reverse b₁)) ↭₁) (ub₂ , (unique-reverse b₁ ub₁) , uls , dsj) (subst (λ x → HazardFree _ x [] ls) (sym (reverse-involutive b₁)) hf₁) (subst (λ x → HazardFree _ b₂ x ls) (sym (reverse-involutive b₁)) hf₂) f₁
-... | ≡₁ = subst (λ x → script _ x f₁ ≡ script _ b₂ f₁) (reverse-involutive b₁) ≡₁
+... | ≡₁ = subst (λ x → script x _ f₁ ≡ script b₂ _ f₁) (reverse-involutive b₁) ≡₁

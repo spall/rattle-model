@@ -176,20 +176,20 @@ runWError (st , ls) x with (run? x st)
 
 \newcommand{\Rexec}{%
 \begin{code}
-rattle_unchecked : State -> Build -> State
+rattle_unchecked : Build → State → State
 \end{code}}
 \begin{code}[hide]
-rattle_unchecked st [] = st
-rattle_unchecked st (x ∷ b) = rattle_unchecked (run st x) b
+rattle_unchecked [] st = st
+rattle_unchecked (x ∷ b) st = rattle_unchecked b (run st x)
 \end{code}
 
 \newcommand{\rattle}{%
 \begin{code}
-rattle : ∀ st (b₁ : Build) b₂ → ∃Hazard b₂ ⊎ State × FileInfo
+rattle : ∀ (b₁ : Build) b₂ st → ∃Hazard b₂ ⊎ State × FileInfo
 \end{code}}
 \begin{code}[hide]
-rattle st [] b₂ = inj₂ st
-rattle st (x ∷ b₁) b₂ with runWError st x
+rattle [] b₂ st = inj₂ st
+rattle (x ∷ b₁) b₂ st with runWError st x
 ... | inj₁ hz = inj₁ (proj₁ (proj₁ st) , x , proj₂ st , hz)
-... | inj₂ (st₁ , ls₁) = rattle (st₁ , ls₁) b₁ b₂
+... | inj₂ (st₁ , ls₁) = rattle b₁ b₂ (st₁ , ls₁)
 \end{code}
