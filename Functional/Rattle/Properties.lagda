@@ -236,7 +236,7 @@ we would have a speculative hazard if
 
 \end{code}
 
-\begin{code}
+\begin{code}[hide]
 correct2 : ∀ br bc s m ls → OKBuild (s , m) ls br bc → bc ↭ br → ¬ HazardFree s bc bc ls ⊎ ∃[ s₁ ](∃[ m₁ ](∃[ ls₁ ](rattle ((s , m) , ls) br bc ≡ inj₂ ((s₁ , m₁) , ls₁) × ∀ f₁ → s₁ f₁ ≡ script s bc f₁)))
 correct2 b₁ b₂ s mm ls (dsb , mp , ue) p with rattle ((s , mm) , ls) b₁ b₂ | inspect (rattle ((s , mm) , ls) b₁) b₂
 ... | inj₁ hz | [ ≡₁ ] = {!!}
