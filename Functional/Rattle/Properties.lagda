@@ -266,7 +266,6 @@ correct2 b₁ b₂ s mm ls (dsb , mp , ue) p with rattle ((s , mm) , ls) b₁ b�
 -}
 \end{code}
 
--- need the same assumptions as semi correct
 \newcommand{\correctS}{%
 \begin{code}
 correct_speculation : ∀ s br bc → PreCond s br bc → ¬ HazardFree s bc bc [] ⊎ ≡toScript s br bc
