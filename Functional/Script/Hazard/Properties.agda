@@ -262,7 +262,7 @@ hf=>disjoint1 : ∀ s x ys zs ls → ys ⊆ zs → x ∉ zs → HazardFree s (x 
 hf=>disjoint1 s x ys zs ls ys⊆zs x∉zs (:: .s .ls .x .ys .(zs ++ x ∷ []) x₁ hf) with hf=>disjoint2 (run x s) (save s x ls) ys zs x ys⊆zs x∉zs (here refl) hf
 ... | dsj = λ x₁ → dsj (∈-cmdWrote∷l (x , _) ls (proj₁ x₁) , (proj₂ x₁))
 
-hf=>disjoint : ∀ s x xs ys zs ls → ys ⊆ zs → x ∉ zs → HazardFree s (xs ++ x ∷ ys) (zs ∷ʳ x) ls → Disjoint (cmdWriteNames x (script s xs)) (buildReadNames (run x (script s xs)) ys)
+hf=>disjoint : ∀ s x xs ys zs ls → ys ⊆ zs → x ∉ zs → HazardFree s (xs ++ x ∷ ys) (zs ∷ʳ x) ls → Disjoint (cmdWriteNames x (script xs s)) (buildReadNames (run x (script xs s)) ys)
 hf=>disjoint s x [] ys zs ls ys⊆zs x∉zs hf = hf=>disjoint1 s x ys zs ls ys⊆zs x∉zs hf
 hf=>disjoint s x (x₁ ∷ xs) ys zs ls ys⊆zs x∉zs (:: .s .ls .x₁ .(xs ++ x ∷ ys) .(zs ++ x ∷ []) x₂ hf)
   = hf=>disjoint (run x₁ s) x xs ys zs _ ys⊆zs x∉zs hf
@@ -285,7 +285,7 @@ hf=>disjointWW1 : ∀ s x ys zs ls → ys ⊆ zs → x ∉ zs → HazardFree s (
 hf=>disjointWW1 s x ys zs ls ys⊆zs x∉zs (:: .s .ls .x .ys .(zs ++ x ∷ []) x₁ hf) with hf=>disjointWW2 (run _ s) (save s x ls) ys zs x ys⊆zs x∉zs (here refl) hf
 ... | dsj = λ x₂ → dsj (∈-++⁺ˡ (proj₁ x₂) , (proj₂ x₂))
 
-hf=>disjointWW : ∀ s x xs ys zs ls → ys ⊆ zs → x ∉ zs → HazardFree s (xs ++ x ∷ ys) (zs ∷ʳ x) ls → Disjoint (cmdWriteNames x (script s xs)) (buildWriteNames (run x (script s xs)) ys)
+hf=>disjointWW : ∀ s x xs ys zs ls → ys ⊆ zs → x ∉ zs → HazardFree s (xs ++ x ∷ ys) (zs ∷ʳ x) ls → Disjoint (cmdWriteNames x (script xs s)) (buildWriteNames (run x (script xs s)) ys)
 hf=>disjointWW s x [] ys zs ls ys⊆zs x∉zs hf
   = hf=>disjointWW1 s x ys zs ls ys⊆zs x∉zs hf
 hf=>disjointWW s x (x₁ ∷ xs) ys zs ls ys⊆zs x∉zs (:: .s .ls .x₁ .(xs ++ x ∷ ys) .(zs ++ x ∷ []) x₂ hf)
@@ -309,7 +309,7 @@ hf=>disjointRW1 : ∀ s x ys zs ls → ys ⊆ zs → x ∉ zs → HazardFree s (
 hf=>disjointRW1 s x ys zs ls ys⊆zs x∉zs (:: .s .ls .x .ys .(zs ++ x ∷ []) x₁ hf) with hf=>disjointRW2 (run _ s) (save s x ls) ys zs x ys⊆zs x∉zs (here refl) hf
 ... | dsj = λ x₂ → dsj (∈-++⁺ˡ (proj₁ x₂) , (proj₂ x₂))
 
-hf=>disjointRW : ∀ s x xs ys zs ls → ys ⊆ zs → x ∉ zs → HazardFree s (xs ++ x ∷ ys) (zs ∷ʳ x) ls → Disjoint (cmdReadNames x (script s xs)) (buildWriteNames (run x (script s xs)) ys)
+hf=>disjointRW : ∀ s x xs ys zs ls → ys ⊆ zs → x ∉ zs → HazardFree s (xs ++ x ∷ ys) (zs ∷ʳ x) ls → Disjoint (cmdReadNames x (script xs s)) (buildWriteNames (run x (script xs s)) ys)
 hf=>disjointRW s x [] ys zs ls ys⊆zs x∉zs hf
   = hf=>disjointRW1 s x ys zs ls ys⊆zs x∉zs hf
 hf=>disjointRW s x (x₁ ∷ xs) ys zs ls ys⊆zs x∉zs (:: .s .ls .x₁ .(xs ++ x ∷ ys) .(zs ++ x ∷ []) x₂ hf)
@@ -335,7 +335,7 @@ hf=>disjointWR1 : ∀ s x ys zs ls → ys ⊆ zs → x ∉ zs → HazardFree s (
 hf=>disjointWR1 s x ys zs ls ys⊆zs x∉zs (:: .s .ls .x .ys .(zs ++ x ∷ []) x₁ hf) with hf=>disjointWR2 (run _ s) (save s x ls) ys zs x ys⊆zs x∉zs (here refl) hf
 ... | dsj = λ x₂ → dsj (∈-cmdWrote∷l (x , _ , (cmdWriteNames x s)) ls (proj₁ x₂) , proj₂ x₂)
 
-hf=>disjointWR : ∀ s x xs ys zs ls → ys ⊆ zs → x ∉ zs → HazardFree s (xs ++ x ∷ ys) (zs ∷ʳ x) ls → Disjoint (cmdWriteNames x (script s xs)) (buildReadNames (run x (script s xs)) ys)
+hf=>disjointWR : ∀ s x xs ys zs ls → ys ⊆ zs → x ∉ zs → HazardFree s (xs ++ x ∷ ys) (zs ∷ʳ x) ls → Disjoint (cmdWriteNames x (script xs s)) (buildReadNames (run x (script xs s)) ys)
 hf=>disjointWR s x [] ys zs ls ys⊆zs x∉zs hf = hf=>disjointWR1 s x ys zs ls ys⊆zs x∉zs hf
 hf=>disjointWR s x (x₁ ∷ xs) ys zs ls ys⊆zs x∉zs (:: .s .ls .x₁ .(xs ++ x ∷ ys) .(zs ++ x ∷ []) x₂ hf)
   = hf=>disjointWR (run x₁ s) x xs ys zs _ ys⊆zs x∉zs hf

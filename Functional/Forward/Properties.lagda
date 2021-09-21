@@ -150,7 +150,7 @@ helper2 [] all₁ = refl
 helper2 (x ∷ ls) (px All.∷ all₁) with helper2 ls all₁
 ... | a = cong₂ _++_ (helper3 x px) a
 
-correct-inner : ∀ {s₁} {s₂} {ls} m b {b₁} → (∀ f₁ → s₁ f₁ ≡ s₂ f₁) → DisjointBuild s₁ b → Unique b → Unique (map proj₁ ls) → Disjoint b (map proj₁ ls) → concatMap (λ x₁ → cmdReadWrites x₁ s₁) (map proj₁ m) ⊆ files ls → IdempotentState cmdReadNames s₁ m → HazardFree s₁ b b₁ ls → (∀ f₁ → proj₁ (forward (s₁ , m) b) f₁ ≡ script s₂ b f₁)
+correct-inner : ∀ {s₁} {s₂} {ls} m b {b₁} → (∀ f₁ → s₁ f₁ ≡ s₂ f₁) → DisjointBuild s₁ b → Unique b → Unique (map proj₁ ls) → Disjoint b (map proj₁ ls) → concatMap (λ x₁ → cmdReadWrites x₁ s₁) (map proj₁ m) ⊆ files ls → IdempotentState cmdReadNames s₁ m → HazardFree s₁ b b₁ ls → (∀ f₁ → proj₁ (forward (s₁ , m) b) f₁ ≡ script b s₂ f₁)
 correct-inner m [] ∀₁ _ _ _ _ _ is hf = ∀₁
 correct-inner {s₁} {s₂} {ls} m (x ∷ b) ∀₁ (Cons x dc b dsb) (px ∷ ub) uls dsj ⊆₁ is (:: _ _ .x .b _ ¬hz hf) f₁ with x ∈? map proj₁ m
 ... | no x∉mem = correct-inner (save x (cmdReadNames x s₁) (St.run x s₁) m) b (run-≡ x ∀₁) dsb ub
@@ -212,13 +212,13 @@ correct-inner {s₁} {s₂} {ls} m (x ∷ b) ∀₁ (Cons x dc b dsb) (px ∷ ub
 \end{code}
 
 \begin{code}[hide]
-correct : ∀ {s} b ls → DisjointBuild s b → Unique b → Unique (map proj₁ ls) → Disjoint b (map proj₁ ls) → HazardFree s b b ls → (∀ f₁ → proj₁ (forward (s , _) b) f₁ ≡ script s b f₁)
+correct : ∀ {s} b ls → DisjointBuild s b → Unique b → Unique (map proj₁ ls) → Disjoint b (map proj₁ ls) → HazardFree s b b ls → (∀ f₁ → proj₁ (forward (s , _) b) f₁ ≡ script b s f₁)
 correct b ls dsb ub uls dsj hf = correct-inner [] b (λ f₁ → refl) dsb ub uls dsj (λ ()) [] hf
 \end{code}
 
 \newcommand{\correctF}{%
 \begin{code}
-correct_forward : ∀ {s} b → PreCond s b b → HazardFree s b b [] → (∀ f₁ → proj₁ (forward (s , []) b) f₁ ≡ script s b f₁)
+correct_forward : ∀ {s} b → PreCond s b b → HazardFree s b b [] → (∀ f₁ → proj₁ (forward (s , []) b) f₁ ≡ script b s f₁)
 \end{code}}
 \begin{code}[hide]
 correct_forward b (dsb , ub , _) hf = correct b [] dsb ub Data.List.Relation.Unary.AllPairs.[] g₁ hf

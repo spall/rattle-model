@@ -9,7 +9,7 @@ open import Functional.State.Helpers (oracle) using (run ; cmdWriteNames ; cmdRe
 open import Functional.State.Properties (oracle) as St
 open import Data.Empty using (⊥)
 open import Functional.Build (oracle) using (Build ; DisjointBuild ; Cons ; Null)
-open import Functional.Script.Exec (oracle) as S renaming (script to exec)
+open import Functional.Script.Exec (oracle) as S using (script ; buildReadNames ; h₄ ; buildWriteNames)
 open import Data.List using (List ; _∷ʳ_ ; _∷_ ; _++_ ; [] ; reverse ; map ; foldr)
 open import Data.List.Properties using (++-identityʳ ; ++-assoc) 
 open import Data.String using (String)
@@ -37,12 +37,12 @@ h₅ s s₁ x all₁ = sym (proj₂ (oracle x) s₁ s λ f₁ x₁ → sym (look
 
 --- exec properties ---
 
-exec-∷ʳ : (s : FileSystem) (x : Cmd) (b : Build) -> run x (exec s b) ≡ exec s (b ∷ʳ x)
+exec-∷ʳ : (s : FileSystem) (x : Cmd) (b : Build) -> run x (script b s) ≡ script (b ∷ʳ x) s
 exec-∷ʳ s x [] = refl
 exec-∷ʳ s x (x₁ ∷ b) = exec-∷ʳ (run x₁ s) x b
 
 
-exec-∷≡ : (f₁ : String) (s s₁ : FileSystem) (b : Build) -> All (λ f₂ → s f₂ ≡ s₁ f₂) (buildReadNames s₁ b) -> s f₁ ≡ s₁ f₁ -> exec s b f₁ ≡ exec s₁ b f₁
+exec-∷≡ : (f₁ : String) (s s₁ : FileSystem) (b : Build) -> All (λ f₂ → s f₂ ≡ s₁ f₂) (buildReadNames s₁ b) -> s f₁ ≡ s₁ f₁ -> script b s f₁ ≡ script b s₁ f₁
 exec-∷≡ f₁ s s₁ [] all₁ ≡₁ = ≡₁
 exec-∷≡ f₁ s s₁ (x₁ ∷ b) all₁ ≡₁ with ++⁻ (cmdReadNames x₁ s₁) all₁ 
 ... | all₂ , all₃ = exec-∷≡ f₁ (run x₁ s) (run x₁ s₁) b (St.lemma1-sym {s} {s₁} (buildReadNames (run x₁ s₁) b) x₁ all₂ all₃)
@@ -50,26 +50,26 @@ exec-∷≡ f₁ s s₁ (x₁ ∷ b) all₁ ≡₁ with ++⁻ (cmdReadNames x₁
 
 
 -- this is a copy of lemma9 so just replace lemma9 with this
-exec-≡sys : (s : FileSystem) (f₁ : String) (xs : Build) -> f₁ ∉ buildWriteNames s xs -> exec s xs f₁ ≡ s f₁
+exec-≡sys : (s : FileSystem) (f₁ : String) (xs : Build) -> f₁ ∉ buildWriteNames s xs -> script xs s f₁ ≡ s f₁
 exec-≡sys s f₁ [] f₁∉ = refl
 exec-≡sys s f₁ (x ∷ xs) f₁∉ = trans (exec-≡sys (run x s) f₁ xs (λ x₁ → f₁∉ (∈-++⁺ʳ (cmdWriteNames x s) x₁)))
                                     (sym (St.lemma3 {s} f₁ (proj₂ (proj₁ (oracle x) s)) λ x₁ → f₁∉ (∈-++⁺ˡ x₁)))
 
 {- if f₁ is not in the writes if ys then f₁ is the same in the system before and after ys executes -}
 
-exec-≡f₁ : (s : FileSystem) (f₁ : String) (xs ys : Build) -> f₁ ∉ buildWriteNames (exec s xs) ys -> exec s xs f₁ ≡ exec s (xs ++ ys) f₁
+exec-≡f₁ : (s : FileSystem) (f₁ : String) (xs ys : Build) -> f₁ ∉ buildWriteNames (script xs s) ys -> script xs s f₁ ≡ script (xs ++ ys) s f₁
 exec-≡f₁ s f₁ [] ys f₁∉ = sym (exec-≡sys s f₁ ys f₁∉)
 exec-≡f₁ s f₁ (x ∷ xs) ys f₁∉ = exec-≡f₁ (run x s) f₁ xs ys f₁∉
 
-exec≡₃ : {sys : FileSystem} (x : Cmd) (xs : Build) -> run x (exec sys xs) ≡ exec sys (xs ∷ʳ x)
+exec≡₃ : {sys : FileSystem} (x : Cmd) (xs : Build) -> run x (script xs sys) ≡ script (xs ∷ʳ x) sys
 exec≡₃ x [] = refl
 exec≡₃ {s} x (x₁ ∷ xs) = exec≡₃ {run x₁ s} x xs
 
-exec≡₄ : {sys : FileSystem} (xs ys : Build) -> exec sys (xs ++ ys) ≡ exec (exec sys xs) ys
+exec≡₄ : {sys : FileSystem} (xs ys : Build) -> script (xs ++ ys) sys ≡ script ys (script xs sys)
 exec≡₄ [] ys = refl
 exec≡₄ {sys} (x ∷ xs) ys = exec≡₄ {run x sys} xs ys
 
-exec≡₅ : {sys : FileSystem} (x : Cmd) (xs ys : Build) -> exec (run x (exec sys xs)) ys ≡ exec sys (xs ++ x ∷ ys)
+exec≡₅ : {sys : FileSystem} (x : Cmd) (xs ys : Build) -> script ys (run x (script xs sys)) ≡ script (xs ++ x ∷ ys) sys
 exec≡₅ x [] ys = refl
 exec≡₅ {sys} x (x₁ ∷ xs) ys = exec≡₅ {run x₁ sys} x xs ys
 
@@ -82,7 +82,7 @@ build-rws-∷ʳ s ls x [] = refl
 build-rws-∷ʳ s ls x (x₁ ∷ b) = build-rws-∷ʳ (run oracle x₁ s) (S.read-writes s x₁ ++ ls) x b
 -}
 
-all≡ : (s : FileSystem) (fs : List String) (xs ys zs : Build) -> Disjoint fs (buildWriteNames (exec s ys) zs) -> (∀ f₁ → exec s xs f₁ ≡ exec s (ys ++ zs) f₁) -> All (λ f₁ → exec s xs f₁ ≡ exec s ys f₁) fs
+all≡ : (s : FileSystem) (fs : List String) (xs ys zs : Build) -> Disjoint fs (buildWriteNames (script ys s) zs) -> (∀ f₁ → script xs s f₁ ≡ script (ys ++ zs) s f₁) -> All (λ f₁ → script xs s f₁ ≡ script ys s f₁) fs
 all≡ s [] xs ys zs dsj ∀₁ = All.[]
 all≡ s (x ∷ fs) xs ys zs dsj ∀₁ = trans (∀₁ x) (sym (exec-≡f₁ s x ys zs λ x₁ → dsj (here refl , x₁))) All.∷ (all≡ s fs xs ys zs (λ x₁ → dsj (there (proj₁ x₁) , proj₂ x₁)) ∀₁)
 
@@ -99,25 +99,25 @@ still-disjoint : (s : System) (x : Cmd) (ys : Build) -> Disjoint (cmdWriteNames 
 still-disjoint s x ys dsj₁ dsj₂ = subst (λ x₁ → Disjoint _ x₁) (sym (writes≡ s (run oracle x s) ys (St.lemma5 {s} (reads (run oracle x s) ys) (proj₂ (proj₁ (oracle x) s)) dsj₁))) dsj₂
 -}
 
-exec-f₁≡ : ∀ s f₁ x xs ys zs -> (∀ f₂ → exec s xs f₂ ≡ exec s (ys ++ zs) f₂) -> proj₁ (oracle x) (exec s xs) ≡ proj₁ (oracle x) (exec s ys) -> All (λ f₂ → exec s ys f₂ ≡ run x (exec s ys) f₂) (buildReadNames (run x (exec s ys)) zs) -> Disjoint (cmdWriteNames x (exec s ys)) (buildWriteNames (run x (exec s ys)) zs) -> exec s (xs ∷ʳ x) f₁ ≡ exec s (ys ++ x ∷ zs) f₁
-exec-f₁≡ s f₁ x xs ys zs ∀₁ ≡₀ all₁ dsj with f₁ ∈? cmdWriteNames x (exec s xs)
-... | yes f₁∈ with exec-≡sys (run x (exec s ys)) f₁ zs f₁∉
-  where f₁∉ : f₁ ∉ buildWriteNames (run x (exec s ys)) zs
+exec-f₁≡ : ∀ s f₁ x xs ys zs -> (∀ f₂ → script xs s f₂ ≡ script (ys ++ zs) s f₂) -> proj₁ (oracle x) (script xs s) ≡ proj₁ (oracle x) (script ys s) -> All (λ f₂ → script ys s f₂ ≡ run x (script ys s) f₂) (buildReadNames (run x (script ys s)) zs) -> Disjoint (cmdWriteNames x (script ys s)) (buildWriteNames (run x (script ys s)) zs) -> script (xs ∷ʳ x) s f₁ ≡ script (ys ++ x ∷ zs) s f₁
+exec-f₁≡ s f₁ x xs ys zs ∀₁ ≡₀ all₁ dsj with f₁ ∈? cmdWriteNames x (script xs s)
+... | yes f₁∈ with exec-≡sys (run x (script ys s)) f₁ zs f₁∉
+  where f₁∉ : f₁ ∉ buildWriteNames (run x (script ys s)) zs
         f₁∉ = λ x₁ → dsj (subst (λ x₂ → f₁ ∈ map proj₁ (proj₂ x₂)) ≡₀ f₁∈ , x₁)
 ... | a = trans ≡₁ (trans (sym a) (cong-app (exec≡₅ {s} x ys zs) f₁))
-  where ≡₁ : exec s (xs ∷ʳ x) f₁ ≡ run x (exec s ys) f₁
+  where ≡₁ : script (xs ∷ʳ x) s f₁ ≡ run x (script ys s) f₁
         ≡₁ with (cong proj₂ ≡₀)
-        ... | a₁ with St.lemma4 {exec s xs} {exec s ys} (proj₂ (proj₁ (oracle x) (exec s xs))) f₁ f₁∈
-        ... | a₂ = trans (cong-app (sym (exec≡₃ {s} x xs)) f₁) (subst (λ x₁ → foldr extend (exec s xs) (proj₂ (proj₁ (oracle x) (exec s xs))) f₁ ≡ foldr extend (exec s ys) (proj₂ x₁) f₁) ≡₀ a₂)
+        ... | a₁ with St.lemma4 {script xs s} {script ys s} (proj₂ (proj₁ (oracle x) (script xs s))) f₁ f₁∈
+        ... | a₂ = trans (cong-app (sym (exec≡₃ {s} x xs)) f₁) (subst (λ x₁ → foldr extend (script xs s) (proj₂ (proj₁ (oracle x) (script xs s))) f₁ ≡ foldr extend (script ys s) (proj₂ x₁) f₁) ≡₀ a₂)
 -- prove exec s (xs ∷ʳ x) f₁ ≡ run oracle x (exec s ys) f₁ ≡ exec s (ys ++ x ∷ zs) f₁
 exec-f₁≡ s f₁ x xs ys zs ∀₁ ≡₀ all₁ dsj | no f₁∉  = trans ≡₁ (trans (∀₁ f₁) ≡₂)
-  where ≡₁ : exec s (xs ∷ʳ x) f₁ ≡ exec s xs f₁
-        ≡₁ = sym (trans (St.lemma3 {exec s xs} f₁ (proj₂ (proj₁ (oracle x) (exec s xs))) f₁∉)
+  where ≡₁ : script (xs ∷ʳ x) s f₁ ≡ script xs s f₁
+        ≡₁ = sym (trans (St.lemma3 {script xs s} f₁ (proj₂ (proj₁ (oracle x) (script xs s))) f₁∉)
                         (cong-app (exec-∷ʳ s x xs) f₁))
-        f₁∉₁ : f₁ ∉ cmdWriteNames x (exec s ys)
+        f₁∉₁ : f₁ ∉ cmdWriteNames x (script ys s)
         f₁∉₁ = subst (λ x₁ → f₁ ∉ map proj₁ (proj₂ x₁)) ≡₀ f₁∉
-        ≡₂ : exec s (ys ++ zs) f₁ ≡ exec s (ys ++ x ∷ zs) f₁
-        ≡₂ with exec-∷≡ f₁ (exec s ys) (run x (exec s ys)) zs all₁ (St.lemma3 {exec s ys} f₁ (proj₂ (proj₁ (oracle x) (exec s ys))) f₁∉₁)
+        ≡₂ : script (ys ++ zs) s f₁ ≡ script (ys ++ x ∷ zs) s f₁
+        ≡₂ with exec-∷≡ f₁ (script ys s) (run x (script ys s)) zs all₁ (St.lemma3 {script ys s} f₁ (proj₂ (proj₁ (oracle x) (script ys s))) f₁∉₁)
         ... | a = trans (cong-app (exec≡₄ {s} ys zs) f₁) (trans a (cong-app (exec≡₅ {s} x ys zs) f₁))
 -- prove exec s (xs ∷ x) f₁ ≡ exec s xs f₁ ≡ exec s (ys ++ zs) f₁ ≡ exec s (xs ++ x ∷ ys) f₁
 
