@@ -33,7 +33,7 @@ open import Data.List.Relation.Unary.Unique.Propositional using (Unique)
 open import Data.Empty using (⊥)
 open import Relation.Nullary using (yes ; no ; ¬_)
 open import Data.List.Relation.Unary.Any using (tail ; here ; there)
-open import Common.List.Properties using (_before_en_ ; before-∷)
+open import Common.List.Properties using (_before_∈_ ; before-∷)
 open import Functional.Script.Hazard (oracle) using (Hazard ; WriteWrite ; ReadWrite ; Speculative ; filesRead ; filesWrote ; cmdRead ; cmdWrote ; cmdsRun ; FileInfo ; ∈-cmdWrote∷ ; ∈-cmdRead∷ ; ∃Hazard ; ¬SpeculativeHazard ; before?) renaming (save to rec)
 open import Data.List.Relation.Unary.AllPairs using (_∷_)
 open import Relation.Binary.PropositionalEquality using (cong ; trans ; sym ; subst ; _≢_)
@@ -92,7 +92,7 @@ required? x (x₁ ∷ b) ls bf | yes x≡x₁ with subset? bf ls
 ... | true = just (here x≡x₁)
 ... | false = nothing
 
-∃Speculative2 : ∀ x₂ b ls₁ ls rs → Maybe (∃[ x₁ ](∃[ v ](x₁ ∈ ls₁ × ¬ x₁ before x₂ en b × v ∈ rs × v ∈ cmdWrote ls x₁)))
+∃Speculative2 : ∀ x₂ b ls₁ ls rs → Maybe (∃[ x₁ ](∃[ v ](x₁ ∈ ls₁ × ¬ (x₁ before x₂ ∈ b) × v ∈ rs × v ∈ cmdWrote ls x₁)))
 ∃Speculative2 x₂ b [] ls rs = nothing
 ∃Speculative2 x₂ b (x ∷ ls₁) ls rs  with before? x x₂ b
 ... | yes bf with ∃Speculative2 x₂ b ls₁ ls rs
@@ -106,7 +106,7 @@ required? x (x₁ ∷ b) ls bf | yes x≡x₁ with subset? bf ls
 ... | just (x₁ , v , x₁∈ls , ¬bf₁ , v∈rs , v∈ws)
   = just (x₁ , v , there x₁∈ls , ¬bf₁ , v∈rs , v∈ws) -- ∈-cmdWrote∷ x x₁ ls v∈ws (lookup px x₁∈ls))
 
-∃Speculative1 : ∀ ls₁ ls {b} (ran : Build) → Maybe (∃[ x₁ ](∃[ x₂ ](∃[ v ](x₂ before x₁ en ls₁ × x₂ ∈ b × ¬ x₁ before x₂ en b × v ∈ cmdRead ls x₂ × v ∈ cmdWrote ls x₁))))
+∃Speculative1 : ∀ ls₁ ls {b} (ran : Build) → Maybe (∃[ x₁ ](∃[ x₂ ](∃[ v ]((x₂ before x₁ ∈ ls₁) × x₂ ∈ b × ¬ (x₁ before x₂ ∈ b) × v ∈ cmdRead ls x₂ × v ∈ cmdWrote ls x₁))))
 ∃Speculative1 [] ls ran = nothing
 ∃Speculative1 (x ∷ ls₁) ls {b} ran with required? x b (ls₁ ++ ran) []
 ... | just x∈b with ∃Speculative2 x b ls₁ ls (cmdRead ls x)

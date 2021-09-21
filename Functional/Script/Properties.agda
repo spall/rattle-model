@@ -14,7 +14,7 @@ open import Data.List using (List ; _∷ʳ_ ; _∷_ ; _++_ ; [] ; reverse ; map 
 open import Data.List.Properties using (++-identityʳ ; ++-assoc) 
 open import Data.String using (String)
 open import Relation.Binary.PropositionalEquality using (subst ; sym ; decSetoid ; trans ; cong ; cong₂ ; cong-app)
-open import Common.List.Properties as CLP using (_before_en_ ; ∈→before-∷ʳ)
+open import Common.List.Properties as CLP using (∈→before-∷ʳ)
 open import Data.List.Relation.Binary.Disjoint.Propositional using (Disjoint)
 open import Data.Product using (proj₂ ; proj₁ ; _,_ ; ∃-syntax ; _×_)
 open import Relation.Nullary.Negation using (contradiction)

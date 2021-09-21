@@ -6,7 +6,7 @@ module Functional.Proofs (oracle : Oracle) where
 open import Agda.Builtin.Equality
 open import Agda.Builtin.Bool
 
-open import Common.List.Properties as CLP using (_before_en_)
+open import Common.List.Properties as CLP using (_before_∈_)
 open import Functional.Script.Properties (oracle) as FSP
 
 open import Relation.Binary.Definitions using (Decidable)

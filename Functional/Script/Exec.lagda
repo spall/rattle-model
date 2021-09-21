@@ -3,7 +3,7 @@ open import Functional.State as St using (Oracle ; FileSystem ; Cmd)
 
 module Functional.Script.Exec (oracle : Oracle) where
 
-open import Common.List.Properties as CLP using (_before_en_ ; before-∷ʳ⁺)
+open import Common.List.Properties as CLP using (before-∷ʳ⁺)
 open import Functional.State.Helpers (oracle) using (run ; cmdReadNames ; cmdWriteNames ; cmdReadWriteNames)
 open import Functional.State.Properties (oracle) using (lemma1-sym ; lemma5 ; run-≡)
 open import Agda.Builtin.Equality

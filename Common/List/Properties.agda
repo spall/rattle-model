@@ -32,21 +32,21 @@ l10 : ∀ (v : A) xs ys → (xs ++ ys) ∷ʳ v ≡ xs ++ ys ∷ʳ v
 l10 v [] ys = refl
 l10 v (x ∷ xs) ys = cong (x ∷_) (l10 v xs ys)
 
-_before_en_ : A -> A -> List A -> Set _ -- why the _ ?
-v before w en xs = ∃[ ys ](∃[ zs ](xs ≡ ys ++ [ v ] ++ zs × w ∈ zs))
+_before_∈_ : A -> A -> List A -> Set _ -- why the _ ?
+v before w ∈ xs = ∃[ ys ](∃[ zs ](xs ≡ ys ++ [ v ] ++ zs × w ∈ zs))
 
 -- properties about _before_en_ --
 
-before-∷ : ∀ (v w x : A) xs → v before w en xs → v before w en (x ∷ xs)
+before-∷ : ∀ (v w x : A) xs → v before w ∈ xs → v before w ∈ (x ∷ xs)
 before-∷ v w x xs (as , bs , xs≡as++v∷bs , w∈bs)
   = x ∷ as , bs , cong (x ∷_) xs≡as++v∷bs , w∈bs
 
-before-∷ʳ⁺ : ∀ (v w x : A) xs → v before w en xs -> v before w en (xs ∷ʳ x)
+before-∷ʳ⁺ : ∀ (v w x : A) xs → v before w ∈ xs -> v before w ∈ (xs ∷ʳ x)
 before-∷ʳ⁺ v w x xs (as , bs , xs≡as++v∷bs , w∈bs)
   = as , bs ∷ʳ x , trans (cong (_∷ʳ x) xs≡as++v∷bs) (l10 x as (v ∷ bs)) , (∈-++⁺ˡ w∈bs)
 
 -- more of a constructor
-∈→before-∷ʳ : ∀ (v w : A) xs -> v ∈ xs -> v before w en (xs ∷ʳ w)
+∈→before-∷ʳ : ∀ (v w : A) xs -> v ∈ xs -> v before w ∈ (xs ∷ʳ w)
 ∈→before-∷ʳ v w xs v∈xs with ∈-∃++ v∈xs
 ... | ys , zs , xs≡ys++v∷zs
   = ys , zs ∷ʳ w , trans (cong (_∷ʳ w) xs≡ys++v∷zs) (l10 w ys (v ∷ zs)) , ∈-++⁺ʳ zs (here refl)
