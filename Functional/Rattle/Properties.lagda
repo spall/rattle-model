@@ -174,8 +174,6 @@ script≡rattle {s₁} {s₂} mm (x ∷ b₁) ∀₁ (Cons .x dsj .b₁ dsb) mp 
 \begin{code}[hide]
 -- correctness is if you have any build then either you get the right answer (the one the script gave) or you get an error and there was a hazard.
 \end{code}
--- disjointbuid s bc
--- unique bc
 \newcommand{\correct}{%
 \begin{code}
 correct_rattle : ∀ s bc → PreCond s bc bc → ¬ HazardFree s bc bc [] ⊎ ≡toScript s bc bc
@@ -288,10 +286,6 @@ semi-correct s mm ls b₁ b₂ dsb mp ue b₂↭b₁ with hazardfree? s b₁ b�
 ... | (s₁ , mm₁) , ls₁ , ≡₁ = inj₂ (inj₂ (s₁ , mm₁ , ls₁ , ≡₁ , λ f₁ → sym (trans (reordered b₂ b₁ ls b₂↭b₁ ue {!!} hf f₁) (trans (script≡rattle mm b₁ (λ f₂ → refl) dsb mp f₁) (cong-app (cong proj₁ (soundness (s , mm) ls b₁ b₂ ≡₁)) f₁)))))
 \end{code}
 
-need bc perm br
-unique br
-unique bc
-disjoint s br
 \newcommand{\correctP}{%
 \begin{code}
 semi_correct : ∀ s br bc → PreCond s br bc → ¬ HazardFree s br bc [] ⊎ ¬ HazardFree s bc bc [] ⊎ ≡toScript s br bc

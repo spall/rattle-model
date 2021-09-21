@@ -2240,8 +2240,6 @@
 \begin{code}[hide]%
 \>[0]\AgdaComment{-- correctness is if you have any build then either you get the right answer (the one the script gave) or you get an error and there was a hazard.}\<%
 \end{code}
--- disjointbuid s bc
--- unique bc
 \newcommand{\correct}{%
 \begin{code}%
 \>[0]\AgdaOperator{\AgdaFunction{correct\AgdaUnderscore{}rattle}}\AgdaSpace{}%
@@ -2989,10 +2987,6 @@ we would have a speculative hazard if
 \AgdaBound{f₁}\AgdaSymbol{)))))}\<%
 \end{code}
 
-need bc perm br
-unique br
-unique bc
-disjoint s br
 \newcommand{\correctP}{%
 \begin{code}%
 \>[0]\AgdaOperator{\AgdaFunction{semi\AgdaUnderscore{}correct}}\AgdaSpace{}%
