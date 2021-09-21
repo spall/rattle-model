@@ -21,7 +21,7 @@ open import Data.Product.Properties using (≡-dec ; ,-injectiveˡ ; ,-injective
 open import Data.Product.Relation.Binary.Pointwise.NonDependent using (×-decidable ; ≡×≡⇒≡ ; ≡⇒≡×≡ )
 open import Function.Base using (_∘_)
 open import Functional.File using (FileName ; FileContent)
-open import Functional.Build using (Build ; UniqueEvidence)
+open import Functional.Build (oracle) using (Build ; UniqueEvidence)
 open import Relation.Binary using (Decidable)
 open import Relation.Nullary.Decidable as Dec using (isYes ; map′)
 open import Relation.Nullary.Negation using (¬? ; contradiction)
@@ -176,11 +176,11 @@ runWError (st , ls) x with (run? x st)
 
 \newcommand{\Rexec}{%
 \begin{code}
-exec : State -> Build -> State
+rattle_unchecked : State -> Build -> State
 \end{code}}
 \begin{code}[hide]
-exec st [] = st
-exec st (x ∷ b) = exec (run st x) b
+rattle_unchecked st [] = st
+rattle_unchecked st (x ∷ b) = rattle_unchecked (run st x) b
 \end{code}
 
 \newcommand{\rattle}{%

@@ -11,7 +11,7 @@ open import Data.Sum using (_⊎_)
 open import Data.List using ([] ; _∷_ ; List ; map ; _++_ ; _∷ʳ_ ; [_] ; foldr ; reverse)
 open import Data.Product using (proj₁ ; proj₂ ; _,_ ; _×_ ; ∄-syntax ; ∃-syntax ; Σ-syntax)
 
-open import Functional.Build using (Build)
+open import Functional.Build (oracle) using (Build)
 open import Functional.File using (FileName ; Files)
 open import Data.List.Relation.Binary.Disjoint.Propositional using (Disjoint)
 open import Relation.Binary.PropositionalEquality using (decSetoid ; trans ; sym ; subst ; cong ; cong₂) 

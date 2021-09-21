@@ -4,7 +4,7 @@ module Functional.Script.Hazard.Properties (oracle : Oracle) where
 open import Functional.State.Properties (oracle) as St hiding (lemma3 ; lemma4 ; lemma2)
 open import Functional.State.Helpers (oracle) using (run ; cmdWriteNames ; cmdReadNames)
 open import Functional.Script.Exec (oracle) using (script ; buildReadNames ; buildWriteNames)
-open import Functional.Build using (Build)
+open import Functional.Build (oracle) using (Build)
 open import Common.List.Properties using (_before_en_)
 open import Agda.Builtin.Equality
 open import Functional.File using (FileName)

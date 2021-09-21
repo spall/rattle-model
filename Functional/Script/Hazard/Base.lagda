@@ -14,7 +14,7 @@ open import Data.List.Properties using (concat-++ ; map-++-commute ; ∷-injecti
 open import Data.Product using (_×_ ; proj₁ ; proj₂ ; _,_ ; Σ-syntax ; ∃-syntax) 
 open import Data.Product.Properties using (,-injectiveˡ ; ,-injectiveʳ)
 open import Functional.File using (FileName)
-open import Functional.Build using (Build)
+open import Functional.Build (oracle) using (Build)
 open import Data.List.Membership.Propositional using (_∈_ ; _∉_)
 
 open import Data.List.Membership.Propositional.Properties using (∈-++⁺ˡ ; ∈-++⁺ʳ)

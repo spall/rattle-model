@@ -28,12 +28,12 @@ open import Data.List.Membership.DecSetoid (decSetoid _≟_) using (_∈_ ; _∈
 open import Relation.Nullary using (yes ; no ; ¬_)
 open import Relation.Nullary.Negation using (contradiction)
 open import Data.List.Relation.Unary.Any using (tail ; here ; there)
-open import Functional.Rattle.Exec (oracle) using (rattle ; runWError ; run ; doRun ; exec ; doRunWError ; checkHazard ; g₂)
-open import Functional.Build using (Build ; UniqueEvidence)
+open import Functional.Rattle.Exec (oracle) using (rattle ; runWError ; run ; doRun ; rattle_unchecked ; doRunWError ; checkHazard ; g₂)
+open import Functional.Build (oracle) using (Build ; UniqueEvidence ; PreCond ; DisjointBuild ; Cons)
 open import Data.Sum using (inj₂ ; from-inj₂ ; inj₁ ; _⊎_)
 open import Data.Sum.Properties using (inj₂-injective)
 open import Functional.Script.Exec (oracle) as Script
-open import Functional.Script.Properties (oracle) using (DisjointBuild ; Cons ; dsj-≡)
+open import Functional.Script.Properties (oracle) using (dsj-≡)
 open import Functional.Script.Proofs (oracle) using (reordered)
 
 open import Functional.Script.Hazard (oracle) using (Hazard ; HazardFree ; FileInfo ; :: ; ¬SpeculativeHazard ; hazardContradiction ; ∃Hazard ; [] ; HFC ; hazardfree?) renaming (save to rec)
@@ -92,13 +92,13 @@ runSoundness st ls st₁ ls₁ b x ≡₁ with run? x st
 
 \newcommand{\soundness}{%
 \begin{code}
-soundness : ∀ {st₁} {ls₁} st ls b₁ b₂ → rattle (st , ls) b₁ b₂ ≡ inj₂ (st₁ , ls₁) → exec st b₁ ≡ st₁
+soundness : ∀ {st₁} {ls₁} st ls b₁ b₂ → rattle (st , ls) b₁ b₂ ≡ inj₂ (st₁ , ls₁) → rattle_unchecked st b₁ ≡ st₁
 \end{code}}
 \begin{code}[hide]
 soundness st ls [] b₂ ≡₁ = cong proj₁ (inj₂-injective ≡₁)
 soundness st ls (x ∷ b₁) b₂  ≡₁ with runWError {b₂} (st , ls) x | inspect (runWError {b₂} (st , ls)) x
 ... | inj₂ (st₂ , ls₂) | [ ≡₂ ] with runSoundness st ls st₂ ls₂ b₂ x ≡₂
-... | ≡st₂ = subst (λ x₁ → exec x₁ b₁ ≡ _) (sym ≡st₂) (soundness st₂ ls₂ b₁ b₂ ≡₁)
+... | ≡st₂ = subst (λ x₁ → rattle_unchecked x₁ b₁ ≡ _) (sym ≡st₂) (soundness st₂ ls₂ b₁ b₂ ≡₁)
 
 OKBuild : State → FileInfo → Build → Build → Set
 OKBuild (s , mm) ls b₁ b₂ = DisjointBuild s b₁ × MemoryProperty mm × UniqueEvidence b₁ b₂ (map proj₁ ls)
@@ -148,7 +148,7 @@ completeness st@(s , mm) ls (x ∷ b₁) b₂ ((Cons .x ds .b₁ dsb) , mp , ((p
 \newcommand{\lemmasr}{%
 \begin{code}
 script≡rattle : ∀ {s₁} {s₂} m b₁ → (∀ f₁ → s₁ f₁ ≡ s₂ f₁) → DisjointBuild s₂ b₁ → MemoryProperty m
-              → (∀ f₁ → script s₁ b₁ f₁ ≡ proj₁ (exec (s₂ , m) b₁) f₁)
+              → (∀ f₁ → script s₁ b₁ f₁ ≡ proj₁ (rattle_unchecked (s₂ , m) b₁) f₁)
 \end{code}}
 \begin{code}[hide]
 script≡rattle mm [] ∀₁ dsb mp = ∀₁ 
@@ -167,25 +167,28 @@ script≡rattle {s₁} {s₂} mm (x ∷ b₁) ∀₁ (Cons .x dsj .b₁ dsb) mp 
         ∀₃ = noEffect x (λ f₂ → refl) mp x∈ all₁
 
 -- rattle produces a State and the System in that state is equivalent to the one produced by script
-≡toScript : State → FileInfo → Build → Build → Build → Set
-≡toScript st₁@(s₁ , mm₁) ls₁ b₁ b₂ b₃ = ∃[ s ](∃[ mm ](∃[ ls ](rattle (st₁ , ls₁) b₁ b₂ ≡ inj₂ ((s , mm) , ls) × ∀ f₁ → s f₁ ≡ script s₁ b₃ f₁)))
+≡toScript : FileSystem → Build → Build → Set
+≡toScript s br bc = ∃[ s₁ ](∃[ m ](∃[ ls ](rattle ((s , []) , []) br bc ≡ inj₂ ((s₁ , m) , ls) × ∀ f₁ → s₁ f₁ ≡ script s bc f₁)))
 \end{code}
 
 \begin{code}[hide]
 -- correctness is if you have any build then either you get the right answer (the one the script gave) or you get an error and there was a hazard.
 \end{code}
+-- disjointbuid s bc
+-- unique bc
 \newcommand{\correct}{%
 \begin{code}
-correct : ∀ b₁ b₂ s m ls → OKBuild (s , m) ls b₁ b₂ → ¬ HazardFree s b₁ b₂ ls ⊎ ≡toScript (s , m) ls b₁ b₂ b₁
+correct_rattle : ∀ s bc → PreCond s bc bc → ¬ HazardFree s bc bc [] ⊎ ≡toScript s bc bc
 \end{code}}
 \begin{code}[hide]
-correct b₁ b₂ s mm ls (dsb , mp , ue) with rattle ((s , mm) , ls) b₁ b₂ | inspect (rattle ((s , mm) , ls) b₁) b₂
+correct_rattle s bc pc with rattle ((s , []) , []) bc bc | inspect (rattle ((s , []) , []) bc) bc
 ... | inj₁ hz | [ ≡₁ ] = inj₁ g₁
-  where g₁ : HazardFree s b₁ b₂ ls → ⊥
-        g₁ hf with completeness (s , mm) ls b₁ b₂ (dsb , mp , ue) hf
+  where g₁ : ¬ HazardFree s bc bc []
+        g₁ hf with completeness (s , []) [] bc bc ({!!} , {!!}) hf
         ... | a , fst , ≡₂ = contradiction (trans (sym ≡₁) ≡₂) λ ()
-... | inj₂ ((s₁ , mm₁) , _) | [ ≡₁ ] = inj₂ (s₁ , mm₁ , _ , refl , λ f₁ → sym (trans (script≡rattle mm b₁ (λ f₂ → refl) dsb mp f₁) (cong-app (cong proj₁ (soundness (s , mm) ls b₁ b₂ ≡₁)) f₁)))
+... | inj₂ ((s₁ , mm₁) , ls₁) | [ ≡₁ ] = inj₂ (s₁ , mm₁ , ls₁ , refl , λ f₁ → sym (trans (script≡rattle [] bc (λ f₂ → refl) {!!} {!!} f₁) (cong-app (cong proj₁ (soundness (s , []) [] bc bc ≡₁)) f₁)))
 \end{code}
+
 
 \begin{code}[hide]
 -- want to prove if execWError original build produces a hazard then execWError of the reordered build will produce a hazard too.
@@ -235,12 +238,8 @@ we would have a speculative hazard if
 
 \end{code}
 
-\newcommand{\correctS}{%
 \begin{code}
-correct2 : ∀ b₁ b₂ s m ls → OKBuild (s , m) ls b₁ b₂ → b₂ ↭ b₁ → ¬ HazardFree s b₂ [] ls ⊎ ≡toScript (s , m) ls b₁ b₂ b₂
-\end{code}}
-
-\begin{code}[hide]
+correct2 : ∀ br bc s m ls → OKBuild (s , m) ls br bc → bc ↭ br → ¬ HazardFree s bc bc ls ⊎ ∃[ s₁ ](∃[ m₁ ](∃[ ls₁ ](rattle ((s , m) , ls) br bc ≡ inj₂ ((s₁ , m₁) , ls₁) × ∀ f₁ → s₁ f₁ ≡ script s bc f₁)))
 correct2 b₁ b₂ s mm ls (dsb , mp , ue) p with rattle ((s , mm) , ls) b₁ b₂ | inspect (rattle ((s , mm) , ls) b₁) b₂
 ... | inj₁ hz | [ ≡₁ ] = {!!}
 {- proof plan:
@@ -269,15 +268,36 @@ correct2 b₁ b₂ s mm ls (dsb , mp , ue) p with rattle ((s , mm) , ls) b₁ b�
 -}
 \end{code}
 
-\newcommand{\correctP}{%
+-- need the same assumptions as semi correct
+\newcommand{\correctS}{%
 \begin{code}
-semi-correct : ∀ s m ls b₁ b₂ → OKBuild (s , m) ls b₁ b₂ → b₂ ↭ b₁ → HazardFree s b₂ [] ls
-             → ¬ HazardFree s b₁ b₂ ls ⊎ ≡toScript (s , m) ls b₁ b₂ b₂
+correct_speculation : ∀ s br bc → PreCond s br bc → ¬ HazardFree s bc bc [] ⊎ ≡toScript s br bc
 \end{code}}
+\begin{code}[hide]
+correct_speculation s br bc pc = {!!}
+\end{code}
 
 \begin{code}[hide]
-semi-correct s mm ls b₁ b₂ (dsb , mp , ue) b₂↭b₁ hf₁ with hazardfree? s b₁ b₂ ls
+semi-correct : ∀ s m ls b₁ b₂ → DisjointBuild s b₁ → MemoryProperty m → UniqueEvidence b₁ b₂ (map proj₁ ls) → b₂ ↭ b₁ → ¬ HazardFree s b₁ b₂ ls ⊎ ¬ HazardFree s b₂ b₂ ls ⊎ ∃[ s₁ ](∃[ m₁ ](∃[ ls₁ ](rattle ((s , m) , ls) b₁ b₂ ≡ inj₂ ((s₁ , m₁) , ls₁) × ∀ f₁ → s₁ f₁ ≡ script s b₂ f₁)))
+             -- ≡toScript (s , m) ls b₁ b₂ b₂
+semi-correct s mm ls b₁ b₂ dsb mp ue b₂↭b₁ with hazardfree? s b₁ b₂ ls
 ... | no hz = inj₁ hz
-... | yes hf with completeness (s , mm) ls b₁ b₂ (dsb , mp , ue) hf
-... | (s₁ , mm₁) , ls₁ , ≡₁ = inj₂ (s₁ , mm₁ , ls₁ , ≡₁ , λ f₁ → sym (trans (reordered b₂ b₁ ls b₂↭b₁ ue hf₁ hf f₁) (trans (script≡rattle mm b₁ (λ f₂ → refl) dsb mp f₁) (cong-app (cong proj₁ (soundness (s , mm) ls b₁ b₂ ≡₁)) f₁))))
+... | yes hf with hazardfree? s b₂ b₂ ls
+... | no hz = inj₂ (inj₁ hz)
+... | yes hf₁ with completeness (s , mm) ls b₁ b₂ (dsb , mp , ue) hf
+... | (s₁ , mm₁) , ls₁ , ≡₁ = inj₂ (inj₂ (s₁ , mm₁ , ls₁ , ≡₁ , λ f₁ → sym (trans (reordered b₂ b₁ ls b₂↭b₁ ue {!!} hf f₁) (trans (script≡rattle mm b₁ (λ f₂ → refl) dsb mp f₁) (cong-app (cong proj₁ (soundness (s , mm) ls b₁ b₂ ≡₁)) f₁)))))
+\end{code}
+
+need bc perm br
+unique br
+unique bc
+disjoint s br
+\newcommand{\correctP}{%
+\begin{code}
+semi_correct : ∀ s br bc → PreCond s br bc → ¬ HazardFree s br bc [] ⊎ ¬ HazardFree s bc bc [] ⊎ ≡toScript s br bc
+\end{code}}
+\begin{code}[hide]
+semi_correct s br bc (dsb , ubr , ubc , bc↭br) = semi-correct s [] [] br bc dsb [] (ubr , (ubc , (Data.List.Relation.Unary.AllPairs.[] , g₁))) bc↭br
+  where g₁ : Disjoint br []
+        g₁ ()
 \end{code}

@@ -4,11 +4,11 @@
 \AgdaKeyword{import}\AgdaSpace{}%
 \AgdaModule{Functional.State}\AgdaSpace{}%
 \AgdaKeyword{using}\AgdaSpace{}%
-\AgdaSymbol{(}\AgdaFunction{F}\AgdaSpace{}%
+\AgdaSymbol{(}\AgdaFunction{Oracle}\AgdaSpace{}%
 \AgdaSymbol{;}\AgdaSpace{}%
 \AgdaFunction{Cmd}\AgdaSpace{}%
 \AgdaSymbol{;}\AgdaSpace{}%
-\AgdaFunction{System}\AgdaSpace{}%
+\AgdaFunction{FileSystem}\AgdaSpace{}%
 \AgdaSymbol{;}\AgdaSpace{}%
 \AgdaFunction{CmdProof}\AgdaSpace{}%
 \AgdaSymbol{;}\AgdaSpace{}%
@@ -22,7 +22,7 @@
 \AgdaModule{Functional.State.Helpers}\AgdaSpace{}%
 \AgdaSymbol{(}\AgdaBound{oracle}\AgdaSpace{}%
 \AgdaSymbol{:}\AgdaSpace{}%
-\AgdaFunction{F}\AgdaSymbol{)}\AgdaSpace{}%
+\AgdaFunction{Oracle}\AgdaSymbol{)}\AgdaSpace{}%
 \AgdaKeyword{where}\<%
 \\
 %
@@ -102,7 +102,7 @@
 \AgdaSymbol{:}\AgdaSpace{}%
 \AgdaFunction{Cmd}\AgdaSpace{}%
 \AgdaSymbol{→}\AgdaSpace{}%
-\AgdaFunction{System}\AgdaSpace{}%
+\AgdaFunction{FileSystem}\AgdaSpace{}%
 \AgdaSymbol{→}\AgdaSpace{}%
 \AgdaFunction{Files}\<%
 \\
@@ -118,7 +118,7 @@
 \AgdaSymbol{:}\AgdaSpace{}%
 \AgdaFunction{Cmd}\AgdaSpace{}%
 \AgdaSymbol{→}\AgdaSpace{}%
-\AgdaFunction{System}\AgdaSpace{}%
+\AgdaFunction{FileSystem}\AgdaSpace{}%
 \AgdaSymbol{→}\AgdaSpace{}%
 \AgdaFunction{Files}\<%
 \\
@@ -134,7 +134,7 @@
 \AgdaSymbol{:}\AgdaSpace{}%
 \AgdaFunction{Cmd}\AgdaSpace{}%
 \AgdaSymbol{→}\AgdaSpace{}%
-\AgdaFunction{System}\AgdaSpace{}%
+\AgdaFunction{FileSystem}\AgdaSpace{}%
 \AgdaSymbol{→}\AgdaSpace{}%
 \AgdaFunction{Files}\<%
 \\
@@ -150,7 +150,7 @@
 \AgdaSymbol{:}\AgdaSpace{}%
 \AgdaFunction{Cmd}\AgdaSpace{}%
 \AgdaSymbol{→}\AgdaSpace{}%
-\AgdaFunction{System}\AgdaSpace{}%
+\AgdaFunction{FileSystem}\AgdaSpace{}%
 \AgdaSymbol{→}\AgdaSpace{}%
 \AgdaFunction{FileNames}\<%
 \\
@@ -166,7 +166,7 @@
 \AgdaSymbol{:}\AgdaSpace{}%
 \AgdaFunction{Cmd}\AgdaSpace{}%
 \AgdaSymbol{→}\AgdaSpace{}%
-\AgdaFunction{System}\AgdaSpace{}%
+\AgdaFunction{FileSystem}\AgdaSpace{}%
 \AgdaSymbol{→}\AgdaSpace{}%
 \AgdaFunction{Files}\AgdaSpace{}%
 \AgdaOperator{\AgdaFunction{×}}\AgdaSpace{}%
@@ -182,7 +182,7 @@
 \AgdaSymbol{:}\AgdaSpace{}%
 \AgdaFunction{Cmd}\AgdaSpace{}%
 \AgdaSymbol{→}\AgdaSpace{}%
-\AgdaFunction{System}\AgdaSpace{}%
+\AgdaFunction{FileSystem}\AgdaSpace{}%
 \AgdaSymbol{→}\AgdaSpace{}%
 \AgdaFunction{FileNames}\<%
 \\
@@ -198,7 +198,7 @@
 \AgdaSymbol{:}\AgdaSpace{}%
 \AgdaFunction{Cmd}\AgdaSpace{}%
 \AgdaSymbol{→}\AgdaSpace{}%
-\AgdaFunction{System}\AgdaSpace{}%
+\AgdaFunction{FileSystem}\AgdaSpace{}%
 \AgdaSymbol{→}\AgdaSpace{}%
 \AgdaFunction{FileNames}\<%
 \\
@@ -220,7 +220,7 @@
 \AgdaSymbol{:}\AgdaSpace{}%
 \AgdaFunction{Cmd}\AgdaSpace{}%
 \AgdaSymbol{→}\AgdaSpace{}%
-\AgdaFunction{System}\AgdaSpace{}%
+\AgdaFunction{FileSystem}\AgdaSpace{}%
 \AgdaSymbol{→}\AgdaSpace{}%
 \AgdaFunction{FileNames}\AgdaSpace{}%
 \AgdaOperator{\AgdaFunction{×}}\AgdaSpace{}%
@@ -241,9 +241,9 @@
 \AgdaSymbol{:}\AgdaSpace{}%
 \AgdaFunction{Cmd}\AgdaSpace{}%
 \AgdaSymbol{→}\AgdaSpace{}%
-\AgdaFunction{System}\AgdaSpace{}%
+\AgdaFunction{FileSystem}\AgdaSpace{}%
 \AgdaSymbol{→}\AgdaSpace{}%
-\AgdaFunction{System}\<%
+\AgdaFunction{FileSystem}\<%
 \\
 \>[0]\AgdaFunction{run}\AgdaSpace{}%
 \AgdaBound{x}\AgdaSpace{}%

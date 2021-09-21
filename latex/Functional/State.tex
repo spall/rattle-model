@@ -154,11 +154,11 @@
 
 \newcommand{\sys}{%
 \begin{code}%
-\>[0]\AgdaFunction{System}\AgdaSpace{}%
+\>[0]\AgdaFunction{FileSystem}\AgdaSpace{}%
 \AgdaSymbol{:}\AgdaSpace{}%
 \AgdaPrimitiveType{Set}\<%
 \\
-\>[0]\AgdaFunction{System}\AgdaSpace{}%
+\>[0]\AgdaFunction{FileSystem}\AgdaSpace{}%
 \AgdaSymbol{=}\AgdaSpace{}%
 \AgdaFunction{FileName}\AgdaSpace{}%
 \AgdaSymbol{->}\AgdaSpace{}%
@@ -185,11 +185,13 @@
 \\
 \>[0]\AgdaFunction{CmdFunction}\AgdaSpace{}%
 \AgdaSymbol{=}\AgdaSpace{}%
-\AgdaFunction{System}\AgdaSpace{}%
+\AgdaFunction{FileSystem}\AgdaSpace{}%
 \AgdaSymbol{→}\AgdaSpace{}%
-\AgdaFunction{Files}\AgdaSpace{}%
+\AgdaDatatype{List}\AgdaSpace{}%
+\AgdaFunction{File}\AgdaSpace{}%
 \AgdaOperator{\AgdaFunction{×}}\AgdaSpace{}%
-\AgdaFunction{Files}\<%
+\AgdaDatatype{List}\AgdaSpace{}%
+\AgdaFunction{File}\<%
 \end{code}}
 
 
@@ -199,9 +201,10 @@
 \AgdaSymbol{:}\AgdaSpace{}%
 \AgdaFunction{CmdFunction}\AgdaSpace{}%
 \AgdaSymbol{→}\AgdaSpace{}%
-\AgdaFunction{System}\AgdaSpace{}%
+\AgdaFunction{FileSystem}\AgdaSpace{}%
 \AgdaSymbol{→}\AgdaSpace{}%
-\AgdaFunction{FileNames}\<%
+\AgdaDatatype{List}\AgdaSpace{}%
+\AgdaFunction{FileName}\<%
 \\
 \>[0]\AgdaFunction{reads}\AgdaSpace{}%
 \AgdaBound{f}\AgdaSpace{}%
@@ -223,7 +226,7 @@
 \\
 \>[0]\AgdaFunction{CmdProof}\AgdaSpace{}%
 \AgdaBound{f}%
-\>[153I]\AgdaSymbol{=}\AgdaSpace{}%
+\>[156I]\AgdaSymbol{=}\AgdaSpace{}%
 \AgdaSymbol{∀}\AgdaSpace{}%
 \AgdaBound{s₁}\AgdaSpace{}%
 \AgdaBound{s₂}\AgdaSpace{}%
@@ -236,15 +239,15 @@
 \AgdaFunction{reads}\AgdaSpace{}%
 \AgdaBound{f}\AgdaSpace{}%
 \AgdaBound{s₁}\AgdaSpace{}%
-\AgdaSymbol{->}\AgdaSpace{}%
+\AgdaSymbol{→}\AgdaSpace{}%
 \AgdaBound{s₁}\AgdaSpace{}%
 \AgdaBound{f₁}\AgdaSpace{}%
 \AgdaOperator{\AgdaDatatype{≡}}\AgdaSpace{}%
 \AgdaBound{s₂}\AgdaSpace{}%
 \AgdaBound{f₁}\AgdaSymbol{)}\<%
 \\
-\>[.][@{}l@{}]\<[153I]%
-\>[11]\AgdaSymbol{->}\AgdaSpace{}%
+\>[.][@{}l@{}]\<[156I]%
+\>[11]\AgdaSymbol{→}\AgdaSpace{}%
 \AgdaBound{f}\AgdaSpace{}%
 \AgdaBound{s₁}\AgdaSpace{}%
 \AgdaOperator{\AgdaDatatype{≡}}\AgdaSpace{}%
@@ -254,11 +257,11 @@
 
 \newcommand{\oracle}{%
 \begin{code}%
-\>[0]\AgdaFunction{F}\AgdaSpace{}%
+\>[0]\AgdaFunction{Oracle}\AgdaSpace{}%
 \AgdaSymbol{:}\AgdaSpace{}%
 \AgdaPrimitiveType{Set}\<%
 \\
-\>[0]\AgdaFunction{F}\AgdaSpace{}%
+\>[0]\AgdaFunction{Oracle}\AgdaSpace{}%
 \AgdaSymbol{=}\AgdaSpace{}%
 \AgdaFunction{Cmd}\AgdaSpace{}%
 \AgdaSymbol{->}\AgdaSpace{}%
@@ -305,9 +308,9 @@
 \AgdaSymbol{:}\AgdaSpace{}%
 \AgdaFunction{File}\AgdaSpace{}%
 \AgdaSymbol{->}\AgdaSpace{}%
-\AgdaFunction{System}\AgdaSpace{}%
+\AgdaFunction{FileSystem}\AgdaSpace{}%
 \AgdaSymbol{->}\AgdaSpace{}%
-\AgdaFunction{System}\<%
+\AgdaFunction{FileSystem}\<%
 \\
 \>[0]\AgdaFunction{extend}\AgdaSpace{}%
 \AgdaSymbol{(}\AgdaBound{k}\AgdaSpace{}%
@@ -336,7 +339,7 @@
 \AgdaDatatype{List}\AgdaSpace{}%
 \AgdaFunction{FileName}\AgdaSpace{}%
 \AgdaSymbol{->}\AgdaSpace{}%
-\AgdaFunction{System}\AgdaSpace{}%
+\AgdaFunction{FileSystem}\AgdaSpace{}%
 \AgdaSymbol{->}\AgdaSpace{}%
 \AgdaDatatype{List}\AgdaSpace{}%
 \AgdaSymbol{(}\AgdaFunction{FileName}\AgdaSpace{}%
@@ -367,7 +370,7 @@
 \AgdaDatatype{List}\AgdaSpace{}%
 \AgdaFunction{FileName}\AgdaSpace{}%
 \AgdaSymbol{->}\AgdaSpace{}%
-\AgdaFunction{System}\AgdaSpace{}%
+\AgdaFunction{FileSystem}\AgdaSpace{}%
 \AgdaSymbol{->}\AgdaSpace{}%
 \AgdaFunction{Memory}\AgdaSpace{}%
 \AgdaSymbol{->}\AgdaSpace{}%
@@ -400,7 +403,7 @@
 \\
 \>[0]\AgdaFunction{State}\AgdaSpace{}%
 \AgdaSymbol{=}\AgdaSpace{}%
-\AgdaSymbol{(}\AgdaFunction{System}\AgdaSpace{}%
+\AgdaSymbol{(}\AgdaFunction{FileSystem}\AgdaSpace{}%
 \AgdaOperator{\AgdaFunction{×}}\AgdaSpace{}%
 \AgdaFunction{Memory}\AgdaSymbol{)}\<%
 \end{code}}

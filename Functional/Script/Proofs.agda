@@ -27,7 +27,7 @@ open import Relation.Binary.PropositionalEquality using (subst ; subst₂ ; sym 
 open import Data.List.Relation.Unary.All as All using (All ; _∷_ ; lookup)
 open import Data.List.Relation.Unary.All.Properties as AllP hiding (++⁺)
 open import Relation.Nullary using (¬_)
-open import Functional.Build using (Build ; UniqueEvidence)
+open import Functional.Build (oracle) using (Build ; UniqueEvidence)
 open import Functional.Script.Properties (oracle) using (exec-f₁≡ ; exec-≡f₁ ; writes≡)
 
 {- If we follow the concept of hazardfree, it doesn't make sense, for 

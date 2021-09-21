@@ -6,6 +6,7 @@ open import Functional.State using (Oracle ; FileSystem ; Memory ; Cmd ; extend 
 module Functional.Forward.Properties (oracle : Oracle) where
 
 open import Functional.State.Helpers (oracle) as St hiding (run)
+open import Functional.Build (oracle) using (DisjointBuild ; Cons ; PreCond)
 open import Functional.State.Properties (oracle) as StP using (lemma3 ; lemma4 ; run-≡)
 open import Data.Bool using (false ; if_then_else_)
 open import Data.Product using (proj₁ ; proj₂ ; _,_)
@@ -33,7 +34,7 @@ open import Functional.Script.Hazard (oracle) using (HazardFree ; :: ; files ; f
 open import Functional.Script.Hazard.Properties (oracle) using (hf-still) renaming (g₂ to ∉toAll)
 open import Data.List.Relation.Unary.Unique.Propositional using (Unique)
 open import Data.List.Relation.Unary.AllPairs using (_∷_)
-open import Functional.Script.Properties (oracle) using (DisjointBuild ; Cons ; dsj-≡)
+open import Functional.Script.Properties (oracle) using (dsj-≡)
 open import Data.List.Relation.Binary.Subset.Propositional using (_⊆_)
 open import Data.Sum using (_⊎_ ; inj₁ ; inj₂)
 
@@ -217,10 +218,10 @@ correct b ls dsb ub uls dsj hf = correct-inner [] b (λ f₁ → refl) dsb ub ul
 
 \newcommand{\correctF}{%
 \begin{code}
-forward_correct : ∀ {s} b → HazardFree s b b [] → (∀ f₁ → proj₁ (forward (s , []) b) f₁ ≡ script s b f₁)
+correct_forward : ∀ {s} b → PreCond s b b → HazardFree s b b [] → (∀ f₁ → proj₁ (forward (s , []) b) f₁ ≡ script s b f₁)
 \end{code}}
 \begin{code}[hide]
-forward_correct b hf = correct b [] {!!} {!!} Data.List.Relation.Unary.AllPairs.[] g₁ hf
+correct_forward b (dsb , ub , _) hf = correct b [] dsb ub Data.List.Relation.Unary.AllPairs.[] g₁ hf
   where g₁ : Disjoint b []
         g₁ ()
 \end{code}

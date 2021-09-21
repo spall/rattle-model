@@ -8,7 +8,7 @@ open import Agda.Builtin.Equality
 open import Functional.State.Helpers (oracle) using (run ; cmdWriteNames ; cmdReadNames)
 open import Functional.State.Properties (oracle) as St
 open import Data.Empty using (⊥)
-open import Functional.Build using (Build)
+open import Functional.Build (oracle) using (Build ; DisjointBuild ; Cons ; Null)
 open import Functional.Script.Exec (oracle) as S renaming (script to exec)
 open import Data.List using (List ; _∷ʳ_ ; _∷_ ; _++_ ; [] ; reverse ; map ; foldr)
 open import Data.List.Properties using (++-identityʳ ; ++-assoc) 
@@ -120,11 +120,6 @@ exec-f₁≡ s f₁ x xs ys zs ∀₁ ≡₀ all₁ dsj | no f₁∉  = trans �
         ≡₂ with exec-∷≡ f₁ (exec s ys) (run x (exec s ys)) zs all₁ (St.lemma3 {exec s ys} f₁ (proj₂ (proj₁ (oracle x) (exec s ys))) f₁∉₁)
         ... | a = trans (cong-app (exec≡₄ {s} ys zs) f₁) (trans a (cong-app (exec≡₅ {s} x ys zs) f₁))
 -- prove exec s (xs ∷ x) f₁ ≡ exec s xs f₁ ≡ exec s (ys ++ zs) f₁ ≡ exec s (xs ++ x ∷ ys) f₁
-
-data DisjointBuild : FileSystem -> Build -> Set where
-  Null : ∀ {s} → DisjointBuild s []
-  Cons : ∀ {s} x -> Disjoint (cmdReadNames x s) (cmdWriteNames x s) -> (b : Build) -> DisjointBuild (run x s) b -> DisjointBuild s (x ∷ b)
-
 
 dsj-≡ : ∀ s₁ s₂ b₁ → (∀ f₁ → s₂ f₁ ≡ s₁ f₁) → DisjointBuild s₁ b₁ → DisjointBuild s₂ b₁
 dsj-≡ s₁ s₂ .[] ∀₁ Null = Null
