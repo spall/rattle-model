@@ -111,7 +111,7 @@
 \AgdaModule{Functional.Forward.Exec}\AgdaSpace{}%
 \AgdaSymbol{(}\AgdaBound{oracle}\AgdaSymbol{)}\AgdaSpace{}%
 \AgdaKeyword{using}\AgdaSpace{}%
-\AgdaSymbol{(}run \AgdaSymbol{;} run? \AgdaSymbol{;} maybeAll \AgdaSymbol{;} get \AgdaSymbol{;} forward\AgdaSymbol{)}\<%
+\AgdaSymbol{(}run \AgdaSymbol{;} run? \AgdaSymbol{;} maybeAll \AgdaSymbol{;} get \AgdaSymbol{;} fabricate\AgdaSymbol{)}\<%
 \\
 \>[0]\AgdaKeyword{open}\AgdaSpace{}%
 \AgdaKeyword{import}\AgdaSpace{}%
@@ -2235,11 +2235,11 @@
 \AgdaBound{f₁}\AgdaSpace{}%
 \AgdaSymbol{→}\AgdaSpace{}%
 \AgdaField{proj₁}\AgdaSpace{}%
-\AgdaSymbol{(}\AgdaFunction{forward}\AgdaSpace{}%
+\AgdaSymbol{(}\AgdaFunction{fabricate}\AgdaSpace{}%
+\AgdaBound{b}\AgdaSpace{}%
 \AgdaSymbol{(}\AgdaBound{s₁}\AgdaSpace{}%
 \AgdaOperator{\AgdaInductiveConstructor{,}}\AgdaSpace{}%
-\AgdaBound{m}\AgdaSymbol{)}\AgdaSpace{}%
-\AgdaBound{b}\AgdaSymbol{)}\AgdaSpace{}%
+\AgdaBound{m}\AgdaSymbol{))}\AgdaSpace{}%
 \AgdaBound{f₁}\AgdaSpace{}%
 \AgdaOperator{\AgdaDatatype{≡}}\AgdaSpace{}%
 \AgdaFunction{script}\AgdaSpace{}%
@@ -3261,11 +3261,11 @@
 \AgdaBound{f₁}\AgdaSpace{}%
 \AgdaSymbol{→}\AgdaSpace{}%
 \AgdaField{proj₁}\AgdaSpace{}%
-\AgdaSymbol{(}\AgdaFunction{forward}\AgdaSpace{}%
+\AgdaSymbol{(}\AgdaFunction{fabricate}\AgdaSpace{}%
+\AgdaBound{b}\AgdaSpace{}%
 \AgdaSymbol{(}\AgdaBound{s}\AgdaSpace{}%
 \AgdaOperator{\AgdaInductiveConstructor{,}}\AgdaSpace{}%
-\AgdaSymbol{\AgdaUnderscore{})}\AgdaSpace{}%
-\AgdaBound{b}\AgdaSymbol{)}\AgdaSpace{}%
+\AgdaSymbol{\AgdaUnderscore{}))}\AgdaSpace{}%
 \AgdaBound{f₁}\AgdaSpace{}%
 \AgdaOperator{\AgdaDatatype{≡}}\AgdaSpace{}%
 \AgdaFunction{script}\AgdaSpace{}%
@@ -3322,11 +3322,11 @@
 \AgdaBound{f₁}\AgdaSpace{}%
 \AgdaSymbol{→}\AgdaSpace{}%
 \AgdaField{proj₁}\AgdaSpace{}%
-\AgdaSymbol{(}\AgdaFunction{forward}\AgdaSpace{}%
+\AgdaSymbol{(}\AgdaFunction{fabricate}\AgdaSpace{}%
+\AgdaBound{b}\AgdaSpace{}%
 \AgdaSymbol{(}\AgdaBound{s}\AgdaSpace{}%
 \AgdaOperator{\AgdaInductiveConstructor{,}}\AgdaSpace{}%
-\AgdaInductiveConstructor{[]}\AgdaSymbol{)}\AgdaSpace{}%
-\AgdaBound{b}\AgdaSymbol{)}\AgdaSpace{}%
+\AgdaInductiveConstructor{[]}\AgdaSymbol{))}\AgdaSpace{}%
 \AgdaBound{f₁}\AgdaSpace{}%
 \AgdaOperator{\AgdaDatatype{≡}}\AgdaSpace{}%
 \AgdaFunction{script}\AgdaSpace{}%

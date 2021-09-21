@@ -60,9 +60,9 @@ run st cmd = if (run? cmd st)
 
 \newcommand{\forward}{%
 \begin{code}
-forward : State -> Build -> State
-forward st [] = st
-forward st (x ∷ b) = forward (run st x) b
+fabricate : Build → State → State
+fabricate [] st = st
+fabricate (x ∷ b) st = fabricate b (run st x)
 \end{code}}
 
 \begin{code}[hide]
