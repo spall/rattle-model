@@ -1,5 +1,5 @@
 
-open import Functional.State as St using (Oracle ; System ; Cmd ; extend ; read ; Memory)
+open import Functional.State as St using (Oracle ; Cmd ; extend ; read ; Memory)
 
 module Functional.Script.Proofs (oracle : Oracle) where
 

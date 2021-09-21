@@ -1,8 +1,8 @@
 
 \begin{code}[hide]
-open import Functional.State using (State ; F ; Cmd ; System ; Memory ; save)
+open import Functional.State using (State ; Oracle ; Cmd ; FileSystem ; Memory ; save)
 
-module Functional.Rattle.Exec (oracle : F) where
+module Functional.Rattle.Exec (oracle : Oracle) where
 
 open import Functional.State.Helpers (oracle) as St hiding (run)
 open import Agda.Builtin.Equality

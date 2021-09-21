@@ -1,6 +1,6 @@
 
 \begin{code}[hide]
-open import Functional.State using (Oracle ; Cmd ; System ; CmdProof ; CmdFunction ; extend)
+open import Functional.State using (Oracle ; Cmd ; FileSystem ; CmdProof ; CmdFunction ; extend)
 
 module Functional.State.Helpers (oracle : Oracle) where
 
@@ -18,33 +18,33 @@ getNames = L.map proj₁
 getCmdFunction : Cmd → CmdFunction
 getCmdFunction = proj₁ ∘ oracle
 
-cmdReads : Cmd → System → Files
+cmdReads : Cmd → FileSystem → Files
 cmdReads = proj₁ ∘₂ getCmdFunction
 
-cmdWrites : Cmd → System → Files
+cmdWrites : Cmd → FileSystem → Files
 cmdWrites = proj₂ ∘₂ getCmdFunction
 
-writes : Cmd → System → Files
+writes : Cmd → FileSystem → Files
 writes = proj₂ ∘₂ getCmdFunction
 
-cmdWriteNames : Cmd → System → FileNames
+cmdWriteNames : Cmd → FileSystem → FileNames
 cmdWriteNames = getNames ∘₂ cmdWrites
 
-cmdFiles : Cmd → System → Files × Files
+cmdFiles : Cmd → FileSystem → Files × Files
 cmdFiles = getCmdFunction
 
-cmdReadNames : Cmd → System → FileNames
+cmdReadNames : Cmd → FileSystem → FileNames
 cmdReadNames = getNames ∘₂ cmdReads
 
-cmdReadWriteNames : Cmd → System → FileNames
+cmdReadWriteNames : Cmd → FileSystem → FileNames
 cmdReadWriteNames x s = (cmdReadNames x s) ++ (cmdWriteNames x s)
 
-trace : Cmd → System → FileNames × FileNames
+trace : Cmd → FileSystem → FileNames × FileNames
 trace = (map getNames getNames) ∘₂ cmdFiles
 \end{code}
 
 \newcommand{\run}{%
 \begin{code}
-run : Cmd → System → System
+run : Cmd → FileSystem → FileSystem
 run x s = foldr extend s (writes x s)
 \end{code}}

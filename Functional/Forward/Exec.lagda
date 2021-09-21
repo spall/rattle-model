@@ -1,6 +1,6 @@
 
 \begin{code}[hide]
-open import Functional.State using (State ; Oracle ; Cmd ; save ; System ; Memory ; extend)
+open import Functional.State using (State ; Oracle ; Cmd ; save ; FileSystem ; Memory ; extend)
 
 module Functional.Forward.Exec (oracle : Oracle) where
 
@@ -30,7 +30,7 @@ open import Relation.Nullary.Negation using (contradiction)
 open import Data.List.Relation.Binary.Subset.Propositional using (_⊆_)
 open import Data.List.Relation.Binary.Subset.Propositional.Properties using (Any-resp-⊆ ; ⊆-reflexive)
 
-maybeAll : {sys : System} -> (ls : List (FileName × Maybe FileContent)) -> Maybe (All (λ (f₁ , v₁) → sys f₁ ≡ v₁) ls)
+maybeAll : {sys : FileSystem} -> (ls : List (FileName × Maybe FileContent)) -> Maybe (All (λ (f₁ , v₁) → sys f₁ ≡ v₁) ls)
 maybeAll {sys} ls = decToMaybe (g₁ ls)
   where g₁ : (ls : List (FileName × Maybe FileContent)) -> Dec (All (λ (f₁ , v₁) → sys f₁ ≡ v₁) ls)
         g₁ ls = all? (λ (f₁ , v₁) → ≡-dec _≟_ (sys f₁) v₁) ls

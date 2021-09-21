@@ -1,5 +1,5 @@
 \begin{code}[hide]
-open import Functional.State using (Oracle ; Cmd ; System)
+open import Functional.State using (Oracle ; Cmd ; FileSystem)
 
 module Functional.Script.Hazard.Base (oracle : Oracle) where
 
@@ -93,7 +93,7 @@ FileInfo = List (Cmd × FileNames × FileNames)
 \end{code}}
 
 \begin{code}[hide]
-save : System → Cmd → FileInfo → FileInfo
+save : FileSystem → Cmd → FileInfo → FileInfo
 save s x fi = (x , (cmdReadNames x s) , (cmdWriteNames x s)) ∷ fi
 
 cmdsRun : FileInfo → List Cmd
@@ -239,7 +239,7 @@ lemma1 x (x₁ ∷ xs) v∈ with (proj₁ x₁) ≟ x
 
 \newcommand{\hazard}{%
 \begin{code}
-data Hazard : System → Cmd → Build → FileInfo → Set where
+data Hazard : FileSystem → Cmd → Build → FileInfo → Set where
   ReadWrite   : ∀ s x {b} ls v → v ∈ (cmdWriteNames x s) → v ∈ (filesRead ls) → Hazard s x b ls
   WriteWrite  : ∀ s x {b} ls v → v ∈ (cmdWriteNames x s) → v ∈ (filesWrote ls) → Hazard s x b ls
   Speculative : ∀ s x b ls x₁ x₂ v → x₂ before x₁ en (x ∷ (cmdsRun ls)) → x₂ ∈ b → ¬ x₁ before x₂ en b
@@ -253,7 +253,7 @@ data Hazard : System → Cmd → Build → FileInfo → Set where
 
 \newcommand{\hfcmd}{%
 \begin{code}
-data HazardFreeCmd : System → Cmd → Build → FileInfo → Set where
+data HazardFreeCmd : FileSystem → Cmd → Build → FileInfo → Set where
   HFC : ∀ {s} {ls} {x} {b₂} → ¬SpeculativeHazard b₂ (save s x ls) → Disjoint (cmdWriteNames x s) (files ls) → HazardFreeCmd s x b₂ ls
 \end{code}}
 \begin{code}[hide]
@@ -266,7 +266,7 @@ hazardContradiction s x b ls hz (HFC ¬sh dsj) with hz
 
 \newcommand{\hazardfree}{%
 \begin{code}
-data HazardFree : System → Build → Build → FileInfo → Set where
+data HazardFree : FileSystem → Build → Build → FileInfo → Set where
   [] : ∀ {s} {b} {ls} → HazardFree s [] b ls
   :: : ∀ s ls x b₁ b₂ → ¬ Hazard s x b₂ ls → HazardFree (run x s) b₁ b₂ (save s x ls) → HazardFree s (x ∷ b₁) b₂ ls
 \end{code}}

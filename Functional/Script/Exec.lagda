@@ -1,5 +1,5 @@
 \begin{code}[hide]
-open import Functional.State as St using (Oracle ; System ; Cmd)
+open import Functional.State as St using (Oracle ; FileSystem ; Cmd)
 
 module Functional.Script.Exec (oracle : Oracle) where
 
@@ -34,21 +34,21 @@ open import Function using (_∘_)
 
 \newcommand{\script}{%
 \begin{code}
-script : System -> Build -> System
+script : FileSystem -> Build -> FileSystem
 script sys [] = sys
 script sys (x ∷ b) = script (run x sys) b
 \end{code}}
 
 \begin{code}[hide]
-buildReadNames : System -> Build -> List FileName
+buildReadNames : FileSystem -> Build -> List FileName
 buildReadNames _ [] = []
 buildReadNames sys (x ∷ b) = (cmdReadNames x sys) ++ buildReadNames (run x sys) b
 
-buildWriteNames : System -> Build -> List FileName
+buildWriteNames : FileSystem -> Build -> List FileName
 buildWriteNames _ [] = []
 buildWriteNames sys (x ∷ b) = (cmdWriteNames x sys) ++ buildWriteNames (run x sys) b
 
-build-rws : System -> Build -> List FileName -> List FileName
+build-rws : FileSystem -> Build -> List FileName -> List FileName
 build-rws sys [] ls = ls
 build-rws sys (x ∷ b) ls = build-rws (run x sys) b (cmdReadWriteNames x sys ++ ls)
 
@@ -56,16 +56,16 @@ build-rws sys (x ∷ b) ls = build-rws (run x sys) b (cmdReadWriteNames x sys ++
 -- proofs to go in own file eventually:        
 
 -- use this instead of h₂
-h₄ : (s s₁ : System) (x : Cmd) -> All (λ f₁ → s f₁ ≡ s₁ f₁) (cmdReadNames x s₁) -> proj₁ (oracle x) s ≡ proj₁ (oracle x) s₁
+h₄ : (s s₁ : FileSystem) (x : Cmd) -> All (λ f₁ → s f₁ ≡ s₁ f₁) (cmdReadNames x s₁) -> proj₁ (oracle x) s ≡ proj₁ (oracle x) s₁
 h₄ s s₁ x all₁ = sym (proj₂ (oracle x) s₁ s λ f₁ x₁ → sym (lookup all₁ x₁))
 
-h₃ : {s s₁ : System} (x : Cmd) (xs ys : Build) -> All (λ f₁ → s f₁ ≡ s₁ f₁) (buildReadNames s₁ (xs ++ x ∷ ys)) -> All (λ f₁ → script s xs f₁ ≡ script s₁ xs f₁) (cmdReadNames x (script s₁ xs))
+h₃ : {s s₁ : FileSystem} (x : Cmd) (xs ys : Build) -> All (λ f₁ → s f₁ ≡ s₁ f₁) (buildReadNames s₁ (xs ++ x ∷ ys)) -> All (λ f₁ → script s xs f₁ ≡ script s₁ xs f₁) (cmdReadNames x (script s₁ xs))
 h₃ {s} {s₁} x [] ys all₁ = ++⁻ˡ (cmdReadNames x s₁) all₁
 h₃ {s} {s₁} x (x₁ ∷ xs) ys all₁ with ++⁻ (cmdReadNames x₁ s₁) all₁
 ... | all₂ , all₃ = h₃ {run x₁ s} {run x₁ s₁} x xs ys (lemma1-sym {s} {s₁} (buildReadNames (run x₁ s₁) (xs ++ x ∷ ys)) x₁ all₂ all₃)
 
 
-h₁ : {s : System} (f₁ : FileName) -> (x w : Cmd) (xs ys ls₁ ls₂ : Build) -> f₁ ∈ cmdReadNames w (script s ls₁) -> Disjoint (cmdWriteNames x (script s xs)) (buildReadNames (run x (script s xs)) ys) -> xs ++ ys ≡ ls₁ ++ w ∷ ls₂ -> ∃[ ls₃ ](∃[ ls₄ ](xs ++ x ∷ ys ≡ ls₃ ++ w ∷ ls₄ × f₁ ∈ cmdReadNames w (script s ls₃)))
+h₁ : {s : FileSystem} (f₁ : FileName) -> (x w : Cmd) (xs ys ls₁ ls₂ : Build) -> f₁ ∈ cmdReadNames w (script s ls₁) -> Disjoint (cmdWriteNames x (script s xs)) (buildReadNames (run x (script s xs)) ys) -> xs ++ ys ≡ ls₁ ++ w ∷ ls₂ -> ∃[ ls₃ ](∃[ ls₄ ](xs ++ x ∷ ys ≡ ls₃ ++ w ∷ ls₄ × f₁ ∈ cmdReadNames w (script s ls₃)))
 h₁ {s} f₁ x w [] ys ls₁ ls₂ f₁∈ dsj ys≡ls₁++w∷ls₂ with h₃ w ls₁ ls₂ (lemma5 (bs (ls₁ ++ w ∷ ls₂)) ws (subst (λ x₁ → Disjoint (map proj₁ ws) (bs x₁)) ys≡ls₁++w∷ls₂ dsj))
   where bs : Build -> List FileName
         bs b = buildReadNames (run x s) b
@@ -81,7 +81,7 @@ h₁ {s} f₁ x w (x₁ ∷ xs) ys (x₂ ∷ ls₁) ls₂ f₁∈ dsj x₁∷xs+
                           , subst (λ x₄ → _ ∈ buildReadNames (run x (script (run x₄ s) xs)) ys) (sym x₁≡x₂) (proj₂ x₃))
 ... | ls₃ , ls₄ , xs++x∷ys≡ls₃++w∷ls₄ , f₁∈₂ = x₂ ∷ ls₃ , ls₄ , cong₂ _∷_ x₁≡x₂ xs++x∷ys≡ls₃++w∷ls₄ , f₁∈₂
 
-script-≡ : {sys sys₁ : System} (b : Build) -> (∀ f₁ → sys f₁ ≡ sys₁ f₁) -> (∀ f₁ → script sys b f₁ ≡ script sys₁ b f₁)
+script-≡ : {sys sys₁ : FileSystem} (b : Build) -> (∀ f₁ → sys f₁ ≡ sys₁ f₁) -> (∀ f₁ → script sys b f₁ ≡ script sys₁ b f₁)
 script-≡ [] ∀₁ f₁ = ∀₁ f₁
 script-≡ (x ∷ b) ∀₁ = script-≡ b λ f₁ → run-≡ x ∀₁ f₁
 \end{code}
