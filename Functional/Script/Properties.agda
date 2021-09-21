@@ -1,7 +1,7 @@
 
-open import Functional.State using (F ; System ; Cmd ; extend)
+open import Functional.State using (Oracle ; System ; Cmd ; extend)
 
-module Functional.Script.Properties (oracle : F) where
+module Functional.Script.Properties (oracle : Oracle) where
 
 -- open import Functional.Script.HazardFree (oracle) using (HazardFree)
 open import Agda.Builtin.Equality

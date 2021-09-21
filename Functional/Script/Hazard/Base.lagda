@@ -1,7 +1,7 @@
 \begin{code}[hide]
-open import Functional.State using (F ; Cmd ; System)
+open import Functional.State using (Oracle ; Cmd ; System)
 
-module Functional.Script.Hazard.Base (oracle : F) where
+module Functional.Script.Hazard.Base (oracle : Oracle) where
 
 open import Agda.Builtin.Equality
 open import Functional.State.Helpers (oracle) using (cmdWriteNames ; cmdReadNames ; run)

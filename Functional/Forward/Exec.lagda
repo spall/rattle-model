@@ -1,8 +1,8 @@
 
 \begin{code}[hide]
-open import Functional.State using (State ; F ; Cmd ; save ; System ; Memory ; extend)
+open import Functional.State using (State ; Oracle ; Cmd ; save ; System ; Memory ; extend)
 
-module Functional.Forward.Exec (oracle : F) where
+module Functional.Forward.Exec (oracle : Oracle) where
 
 open import Agda.Builtin.Equality
 open import Functional.State.Helpers (oracle) as St using (cmdReadNames)

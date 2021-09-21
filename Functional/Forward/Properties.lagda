@@ -1,9 +1,8 @@
 
 \begin{code}[hide]
-{-# OPTIONS --allow-unsolved-metas #-}
-open import Functional.State using (F ; System ; Memory ; Cmd ; extend ; save)
+open import Functional.State using (Oracle ; System ; Memory ; Cmd ; extend ; save)
 
-module Functional.Forward.Properties (oracle : F) where
+module Functional.Forward.Properties (oracle : Oracle) where
 
 open import Functional.State.Helpers (oracle) as St hiding (run)
 open import Functional.State.Properties (oracle) as StP using (lemma3 ; lemma4 ; run-≡)

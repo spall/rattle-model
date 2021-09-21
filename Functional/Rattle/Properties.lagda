@@ -1,7 +1,7 @@
 \begin{code}[hide]
-open import Functional.State using (F ; System ; Memory ; Cmd ; extend ; State ; save)
+open import Functional.State using (Oracle ; System ; Memory ; Cmd ; extend ; State ; save)
 
-module Functional.Rattle.Properties (oracle : F) where
+module Functional.Rattle.Properties (oracle : Oracle) where
 
 open import Agda.Builtin.Equality
 

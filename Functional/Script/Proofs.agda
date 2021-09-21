@@ -1,7 +1,7 @@
 
-open import Functional.State as St using (F ; System ; Cmd ; extend ; read ; Memory)
+open import Functional.State as St using (Oracle ; System ; Cmd ; extend ; read ; Memory)
 
-module Functional.Script.Proofs (oracle : F) where
+module Functional.Script.Proofs (oracle : Oracle) where
 
 open import Agda.Builtin.Equality
 open import Functional.State.Helpers (oracle) using (cmdWriteNames ; run ; cmdReadNames ; cmdWrites)

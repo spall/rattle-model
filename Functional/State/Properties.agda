@@ -1,7 +1,7 @@
 
-open import Functional.State using (F ; System ; extend ; Cmd) 
+open import Functional.State using (Oracle ; System ; extend ; Cmd) 
 
-module Functional.State.Properties (oracle : F) where
+module Functional.State.Properties (oracle : Oracle) where
 
 open import Agda.Builtin.Equality
 open import Functional.File using (Files ; FileName ; FileNames)

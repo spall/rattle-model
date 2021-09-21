@@ -1,7 +1,7 @@
 \begin{code}[hide]
-open import Functional.State as St using (F ; System ; Cmd)
+open import Functional.State as St using (Oracle ; System ; Cmd)
 
-module Functional.Script.Exec (oracle : F) where
+module Functional.Script.Exec (oracle : Oracle) where
 
 open import Common.List.Properties as CLP using (_before_en_ ; before-∷ʳ⁺)
 open import Functional.State.Helpers (oracle) using (run ; cmdReadNames ; cmdWriteNames ; cmdReadWriteNames)

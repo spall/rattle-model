@@ -1,8 +1,8 @@
 
 \begin{code}[hide]
-open import Functional.State using (F ; Cmd ; System ; CmdProof ; CmdFunction ; extend)
+open import Functional.State using (Oracle ; Cmd ; System ; CmdProof ; CmdFunction ; extend)
 
-module Functional.State.Helpers (oracle : F) where
+module Functional.State.Helpers (oracle : Oracle) where
 
 open import Functional.File using (Files ; FileNames)
 open import Data.Product using (map ; proj₁ ; proj₂ ; _×_)

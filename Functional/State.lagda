@@ -35,24 +35,24 @@ Cmd = String
 \newcommand{\cmdF}{%
 \begin{code}
 CmdFunction : Set
-CmdFunction = System → Files × Files
+CmdFunction = System → List File × List File
 \end{code}}
 
 
 \newcommand{\cmdP}{%
 \begin{code}
-reads : CmdFunction → System → FileNames
+reads : CmdFunction → System → List FileName
 reads f s = map proj₁ (proj₁ (f s))
 
 CmdProof : CmdFunction → Set
-CmdProof f = ∀ s₁ s₂ → (∀ f₁ → f₁ ∈ reads f s₁ -> s₁ f₁ ≡ s₂ f₁)
-           -> f s₁ ≡ f s₂ 
+CmdProof f = ∀ s₁ s₂ → (∀ f₁ → f₁ ∈ reads f s₁ → s₁ f₁ ≡ s₂ f₁)
+           → f s₁ ≡ f s₂ 
 \end{code}}
 
 \newcommand{\oracle}{%
 \begin{code}
-F : Set
-F = Cmd -> Σ[ f ∈ CmdFunction ](CmdProof f)
+Oracle : Set
+Oracle = Cmd -> Σ[ f ∈ CmdFunction ](CmdProof f)
 \end{code}}
 
 \newcommand{\mem}{%

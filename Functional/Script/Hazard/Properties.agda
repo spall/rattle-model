@@ -1,6 +1,6 @@
-open import Functional.State using (F ;  System ; Cmd)
+open import Functional.State using (Oracle ;  System ; Cmd)
 
-module Functional.Script.Hazard.Properties (oracle : F) where
+module Functional.Script.Hazard.Properties (oracle : Oracle) where
 open import Functional.State.Properties (oracle) as St hiding (lemma3 ; lemma4 ; lemma2)
 open import Functional.State.Helpers (oracle) using (run ; cmdWriteNames ; cmdReadNames)
 open import Functional.Script.Exec (oracle) using (script ; buildReadNames ; buildWriteNames)
