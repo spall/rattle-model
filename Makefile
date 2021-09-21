@@ -14,6 +14,9 @@ latex/Functional/File.tex : Functional/File.lagda
 latex/Functional/Script/Hazard/Base.tex : Functional/Script/Hazard/Base.lagda
 	agda --latex --only-scope-checking Functional/Script/Hazard/Base.lagda
 
+latex/Functional/Script/Proofs.tex : Functional/Script/Proofs.lagda
+	agda --latex --only-scope-checking Functional/Script/Proofs.lagda
+
 latex/Functional/Script/Exec.tex : Functional/Script/Exec.lagda
 	agda --latex --only-scope-checking Functional/Script/Exec.lagda
 

@@ -1,4 +1,5 @@
 
+\begin{code}[hide]
 open import Functional.State as St using (Oracle ; Cmd ; extend ; read ; Memory)
 
 module Functional.Script.Proofs (oracle : Oracle) where
@@ -8,7 +9,7 @@ open import Functional.State.Helpers (oracle) using (cmdWriteNames ; run ; cmdRe
 open import Functional.State.Properties (oracle) using (lemma5)
 open import Functional.Script.Exec (oracle) using (script ; buildWriteNames ; buildReadNames)
 open import Functional.Script.Hazard (oracle) using (HazardFree ; FileInfo)
-open import Functional.Script.Hazard.Properties (oracle) using (hf-∷ʳ-l ; hf-drop-mid ; hf=>disjoint ; hf=>disjointRW ; hf=>disjointWW ; hf=>disjointWR)
+open import Functional.Script.Hazard.Properties (oracle) using (hf-∷ʳ-l ; hf-drop-mid ; hf=>disjoint ; hf=>disjointRW ; hf=>disjointWW ; hf=>disjointWR ; hf-∷ʳ-r)
 open import Data.Sum using (inj₁ ; inj₂)
 open import Data.List using (_∷ʳ_ ; List)
 open import Data.List.Properties using (unfold-reverse ; reverse-involutive ; ++-identityʳ ; length-reverse)
@@ -27,7 +28,7 @@ open import Relation.Binary.PropositionalEquality using (subst ; subst₂ ; sym 
 open import Data.List.Relation.Unary.All as All using (All ; _∷_ ; lookup)
 open import Data.List.Relation.Unary.All.Properties as AllP hiding (++⁺)
 open import Relation.Nullary using (¬_)
-open import Functional.Build (oracle) using (Build ; UniqueEvidence)
+open import Functional.Build (oracle) using (Build ; UniqueEvidence ; PreCond)
 open import Functional.Script.Properties (oracle) using (exec-f₁≡ ; exec-≡f₁ ; writes≡)
 
 {- If we follow the concept of hazardfree, it doesn't make sense, for 
@@ -67,7 +68,7 @@ unique-reverse (x₁ ∷ xs) (px ∷ u) with ++⁺ (unique-reverse xs u) (All.[]
 
 {- length equivalence just makes the proof smaller -}
 -- all of those unique and disjoint things are called UniqueEvidence now so replace to make it look better.
-reordered-inner : ∀ {s} b₁ b₂ ls → {length b₁ ≡ length b₂} → b₁ ↭ b₂ → UniqueEvidence b₂ b₁ (map proj₁ ls) → HazardFree s (reverse b₁) [] ls → HazardFree s b₂ (reverse b₁) ls → (∀ f₁ → script (reverse b₁) s f₁ ≡ script b₂ s f₁)
+reordered-inner : ∀ {s} b₁ b₂ ls → {length b₁ ≡ length b₂} → b₁ ↭ b₂ → UniqueEvidence b₂ b₁ (map proj₁ ls) → HazardFree s (reverse b₁) (reverse b₁) ls → HazardFree s b₂ (reverse b₁) ls → (∀ f₁ → script (reverse b₁) s f₁ ≡ script b₂ s f₁)
 reordered-inner [] [] ls ↭₁ (ub₂ , ub₁ , uls , dsj) hf₁ hf₂ = λ f₁ → refl
 {- we remove x from both builds ; 
    then show adding x back in gives us equivalent system still -}
@@ -81,10 +82,10 @@ reordered-inner {s} (x ∷ b₁) b₂ ls ↭₁ (ub₂ , (px ∷ ub₁) , uls , 
         dsj₂ y with ∈-++⁻ xs (proj₁ y)
         ... | inj₁ v∈xs = dsj (subst (λ x₁ → _ ∈ x₁) (sym b₂≡xs++x∷ys) (∈-++⁺ˡ v∈xs) , proj₂ y)
         ... | inj₂ v∈ys = dsj (subst (λ x₁ → _ ∈ x₁) (sym b₂≡xs++x∷ys) (∈-++⁺ʳ xs (there v∈ys)) , proj₂ y)
-        hf₃ : HazardFree s (reverse b₁) [] ls
-        hf₃ = hf-∷ʳ-l (reverse b₁) (subst (λ x₁ → HazardFree s x₁ [] ls) (unfold-reverse x b₁) hf)
         ub₄ : Unique (reverse b₁ ∷ʳ x)
         ub₄ = subst (λ x₁ → Unique x₁) (unfold-reverse x b₁) (unique-reverse (x ∷ b₁) (px ∷ ub₁))
+        hf₃ : HazardFree s (reverse b₁) (reverse b₁) ls
+        hf₃ = hf-∷ʳ-l (reverse b₁) (hf-∷ʳ-r (reverse b₁ ∷ʳ x) (reverse b₁) ub₄ (subst (λ x₁ → HazardFree s x₁ x₁ ls) (unfold-reverse x b₁) hf))
         hf₄ : HazardFree s (xs ++ ys) (reverse b₁) ls
         hf₄ = hf-drop-mid xs ys (reverse b₁) (λ x₁ → x₂∈ x₁) ub₃ ub₄ uls (subst (λ x₁ → Disjoint x₁ _) b₂≡xs++x∷ys dsj) (subst₂ (λ x₁ x₂ → HazardFree s x₁ x₂ ls) b₂≡xs++x∷ys (unfold-reverse x b₁) hf₂)
               where x₂∈ : ∀ {x₂} → x₂ ∈ xs ++ x ∷ ys → x₂ ∈ reverse b₁ ∷ʳ x
@@ -122,6 +123,17 @@ reordered-inner {s} (x ∷ b₁) b₂ ls ↭₁ (ub₂ , (px ∷ ub₁) , uls , 
 ↭-reverse : ∀ (xs : Build) → xs ↭ reverse xs
 ↭-reverse xs = subst (λ x → x ↭ reverse xs) (++-identityʳ xs) (++↭ʳ++ xs [])
 
-reordered : ∀ {s} b₁ b₂ ls → b₁ ↭ b₂ → UniqueEvidence b₂ b₁ (map proj₁ ls) → HazardFree s b₁ [] ls → HazardFree s b₂ b₁ ls → (∀ f₁ → script b₁ s f₁ ≡ script b₂ s f₁)
-reordered b₁ b₂ ls ↭₁ (ub₂ , ub₁ , uls , dsj) hf₁ hf₂ f₁ with reordered-inner (reverse b₁) b₂ ls {trans (length-reverse b₁) (↭-length ↭₁)} (↭-trans (↭-sym (↭-reverse b₁)) ↭₁) (ub₂ , (unique-reverse b₁ ub₁) , uls , dsj) (subst (λ x → HazardFree _ x [] ls) (sym (reverse-involutive b₁)) hf₁) (subst (λ x → HazardFree _ b₂ x ls) (sym (reverse-involutive b₁)) hf₂) f₁
+reordered : ∀ {s} b₁ b₂ ls → b₁ ↭ b₂ → UniqueEvidence b₂ b₁ (map proj₁ ls) → HazardFree s b₁ b₁ ls → HazardFree s b₂ b₁ ls → (∀ f₁ → script b₁ s f₁ ≡ script b₂ s f₁)
+reordered b₁ b₂ ls ↭₁ (ub₂ , ub₁ , uls , dsj) hf₁ hf₂ f₁ with reordered-inner (reverse b₁) b₂ ls {trans (length-reverse b₁) (↭-length ↭₁)} (↭-trans (↭-sym (↭-reverse b₁)) ↭₁) (ub₂ , (unique-reverse b₁ ub₁) , uls , dsj) (subst (λ x → HazardFree _ x x ls) (sym (reverse-involutive b₁)) hf₁) (subst (λ x → HazardFree _ b₂ x ls) (sym (reverse-involutive b₁)) hf₂) f₁
 ... | ≡₁ = subst (λ x → script x _ f₁ ≡ script b₂ _ f₁) (reverse-involutive b₁) ≡₁
+\end{code}
+
+\newcommand{\reordered}{%
+\begin{code}
+reordered≡ : ∀ s br bc → PreCond s br bc → HazardFree s br bc [] → HazardFree s bc bc [] → (∀ f₁ → script bc s f₁ ≡ script br s f₁)
+\end{code}}
+\begin{code}[hide]
+reordered≡ s br bc (dsb , ubr , ubc , pm) hf₁ hf₂ = reordered {s} bc br [] pm (ubr , (ubc , ([] , g₁))) hf₂ hf₁
+  where g₁ : Disjoint br []
+        g₁ ()
+\end{code}

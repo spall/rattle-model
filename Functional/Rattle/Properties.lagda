@@ -34,7 +34,7 @@ open import Data.Sum using (inj₂ ; from-inj₂ ; inj₁ ; _⊎_)
 open import Data.Sum.Properties using (inj₂-injective)
 open import Functional.Script.Exec (oracle) as Script
 open import Functional.Script.Properties (oracle) using (dsj-≡)
-open import Functional.Script.Proofs (oracle) using (reordered)
+open import Functional.Script.Proofs (oracle) using (reordered ; reordered≡)
 
 open import Functional.Script.Hazard (oracle) using (Hazard ; HazardFree ; FileInfo ; :: ; ¬SpeculativeHazard ; hazardContradiction ; ∃Hazard ; [] ; HFC ; hazardfree?) renaming (save to rec)
 
@@ -90,32 +90,34 @@ runSoundness st ls st₁ ls₁ b x ≡₁ with run? x st
 ... | true = doRunSoundness st ls b x ≡₁
 \end{code}
 
-\newcommand{\soundness}{%
-\begin{code}
-soundness : ∀ {st₁} {ls₁} st ls b₁ b₂ → rattle b₁ b₂ (st , ls) ≡ inj₂ (st₁ , ls₁) → rattle_unchecked b₁ st ≡ st₁
-\end{code}}
 \begin{code}[hide]
-soundness st ls [] b₂ ≡₁ = cong proj₁ (inj₂-injective ≡₁)
-soundness st ls (x ∷ b₁) b₂  ≡₁ with runWError {b₂} (st , ls) x | inspect (runWError {b₂} (st , ls)) x
+soundness-inner : ∀ {st₁} {ls₁} st ls b₁ b₂ → rattle b₁ b₂ (st , ls) ≡ inj₂ (st₁ , ls₁) → rattle_unchecked b₁ st ≡ st₁
+soundness-inner st ls [] b₂ ≡₁ = cong proj₁ (inj₂-injective ≡₁)
+soundness-inner st ls (x ∷ b₁) b₂  ≡₁ with runWError {b₂} (st , ls) x | inspect (runWError {b₂} (st , ls)) x
 ... | inj₂ (st₂ , ls₂) | [ ≡₂ ] with runSoundness st ls st₂ ls₂ b₂ x ≡₂
-... | ≡st₂ = subst (λ x₁ → rattle_unchecked b₁ x₁ ≡ _) (sym ≡st₂) (soundness st₂ ls₂ b₁ b₂ ≡₁)
+... | ≡st₂ = subst (λ x₁ → rattle_unchecked b₁ x₁ ≡ _) (sym ≡st₂) (soundness-inner st₂ ls₂ b₁ b₂ ≡₁)
 
 OKBuild : State → FileInfo → Build → Build → Set
 OKBuild (s , mm) ls b₁ b₂ = DisjointBuild s b₁ × MemoryProperty mm × UniqueEvidence b₁ b₂ (map proj₁ ls)
 \end{code}
 
-\newcommand{\completeness}{%
+\newcommand{\soundness}{%
 \begin{code}
-completeness : ∀ st ls b₁ b₂ → OKBuild st ls b₁ b₂ → HazardFree (proj₁ st) b₁ b₂ ls
-             → ∃[ st₁ ](∃[ ls₁ ](rattle b₁ b₂ (st , ls) ≡ inj₂ (st₁ , ls₁)))
+soundness : ∀ {st} {ls} s br bc → rattle br bc ((s , []) , []) ≡ inj₂ (st , ls) → rattle_unchecked br (s , []) ≡ st 
 \end{code}}
 \begin{code}[hide]
-completeness st ls [] _ (dsb , mp , (ub₁ , ub₂ , uls , dsj)) hf = st , ls , refl
-completeness st@(s , mm) ls (x ∷ b₁) b₂ ((Cons .x ds .b₁ dsb) , mp , ((px ∷ ub₁) , ub₂ , uls , dsj₁))  (:: .s .ls .x .b₁ .b₂ ¬hz hf) with x ∈? map proj₁ mm
+soundness s br bc ≡₁ = soundness-inner (s , []) [] br bc ≡₁
+\end{code}
+
+\begin{code}[hide]
+completeness-inner : ∀ st ls b₁ b₂ → OKBuild st ls b₁ b₂ → HazardFree (proj₁ st) b₁ b₂ ls
+             → ∃[ st₁ ](∃[ ls₁ ](rattle b₁ b₂ (st , ls) ≡ inj₂ (st₁ , ls₁)))
+completeness-inner st ls [] _ (dsb , mp , (ub₁ , ub₂ , uls , dsj)) hf = st , ls , refl
+completeness-inner st@(s , mm) ls (x ∷ b₁) b₂ ((Cons .x ds .b₁ dsb) , mp , ((px ∷ ub₁) , ub₂ , uls , dsj₁))  (:: .s .ls .x .b₁ .b₂ ¬hz hf) with x ∈? map proj₁ mm
 ... | yes x∈ with maybeAll {s} (get x mm x∈)
 ... | nothing with checkHazard s x {b₂} ls
 ... | just hz = ⊥-elim (¬hz hz)
-... | nothing = completeness st₂ ls₂ b₁ b₂ (dsb , mp₂ , (ub₁ , ub₂ , uls₂ , dsj₂)) hf
+... | nothing = completeness-inner st₂ ls₂ b₁ b₂ (dsb , mp₂ , (ub₁ , ub₂ , uls₂ , dsj₂)) hf
   where dsj₂ : Disjoint b₁ (x ∷ map proj₁ ls)
         dsj₂ = λ x₁ → dsj₁ (there (proj₁ x₁) , tail (λ v≡x → lookup px (proj₁ x₁) (sym v≡x)) (proj₂ x₁))
         st₂ : State
@@ -127,8 +129,8 @@ completeness st@(s , mm) ls (x ∷ b₁) b₂ ((Cons .x ds .b₁ dsb) , mp , ((p
         mp₂ : MemoryProperty (proj₂ st₂)
         mp₂ = MemoryProperty.Cons x s (λ f₁ x₂ → lemma3 f₁ (proj₂ (proj₁ (oracle x) s)) λ x₃ → ds (x₂ , x₃)) mp
 
-completeness st@(s , mm) ls (x ∷ b₁) b₂ ((Cons .x x₁ .b₁ dsb) , mp , ((px ∷ ub₁) , ub₂ , uls , dsj₁))  (:: .s .ls .x .b₁ .b₂ ¬hz hf) | yes x∈ | just all₁ with noEffect x (λ f₁ → refl) mp x∈ all₁
-... | ∀₁ = completeness st ls b₁ b₂ ((dsj-≡ (St.run x s) s b₁ ∀₁ dsb) , mp , (ub₁ , ub₂ , uls , dsj₃))  hf₂
+completeness-inner st@(s , mm) ls (x ∷ b₁) b₂ ((Cons .x x₁ .b₁ dsb) , mp , ((px ∷ ub₁) , ub₂ , uls , dsj₁))  (:: .s .ls .x .b₁ .b₂ ¬hz hf) | yes x∈ | just all₁ with noEffect x (λ f₁ → refl) mp x∈ all₁
+... | ∀₁ = completeness-inner st ls b₁ b₂ ((dsj-≡ (St.run x s) s b₁ ∀₁ dsb) , mp , (ub₁ , ub₂ , uls , dsj₃))  hf₂
   where dsj₃ : Disjoint b₁ (map proj₁ ls)
         dsj₃ = λ x₂ → dsj₁ (there (proj₁ x₂) , proj₂ x₂)
         dsj₂ : Disjoint b₁ (x ∷ map proj₁ ls)
@@ -138,29 +140,36 @@ completeness st@(s , mm) ls (x ∷ b₁) b₂ ((Cons .x x₁ .b₁ dsb) , mp , (
         hf₂ : HazardFree s b₁ b₂ ls
         hf₂ = hf-still b₁ [] ((x , cmdReadNames x s , cmdWriteNames x s) ∷ []) ls (λ f₁ x₂ → sym (∀₁ f₁)) ub₁ uls₂ dsj₂ hf
         
-completeness st@(s , mm) ls (x ∷ b₁) b₂ ((Cons .x ds .b₁ dsb) , mp , ((px ∷ ub₁) , ub₂ , uls , dsj₁))  (:: .s .ls .x .b₁ .b₂ ¬hz hf) |  no x∉ with checkHazard s x {b₂} ls
+completeness-inner st@(s , mm) ls (x ∷ b₁) b₂ ((Cons .x ds .b₁ dsb) , mp , ((px ∷ ub₁) , ub₂ , uls , dsj₁))  (:: .s .ls .x .b₁ .b₂ ¬hz hf) |  no x∉ with checkHazard s x {b₂} ls
 ... | just hz = ⊥-elim (¬hz hz)
-... | nothing = completeness (St.run x s , save x ((cmdReadNames x s) ++ (cmdWriteNames x s)) (St.run x s) mm) (rec s x ls) b₁ b₂ (dsb , (MemoryProperty.Cons x s (λ f₁ x₂ → lemma3 f₁ (proj₂ (proj₁ (oracle x) s)) λ x₃ → ds (x₂ , x₃)) mp) , (ub₁ , ub₂ , (g₂ (map proj₁ ls) (λ x₁ → dsj₁ (here refl , x₁)) ∷ uls) , dsj₂)) hf 
+... | nothing = completeness-inner (St.run x s , save x ((cmdReadNames x s) ++ (cmdWriteNames x s)) (St.run x s) mm) (rec s x ls) b₁ b₂ (dsb , (MemoryProperty.Cons x s (λ f₁ x₂ → lemma3 f₁ (proj₂ (proj₁ (oracle x) s)) λ x₃ → ds (x₂ , x₃)) mp) , (ub₁ , ub₂ , (g₂ (map proj₁ ls) (λ x₁ → dsj₁ (here refl , x₁)) ∷ uls) , dsj₂)) hf 
   where dsj₂ : Disjoint b₁ (x ∷ map proj₁ ls)
         dsj₂ = λ x₁ → dsj₁ (there (proj₁ x₁) , tail (λ v≡x → lookup px (proj₁ x₁) (sym v≡x)) (proj₂ x₁))
 \end{code}
 
-\newcommand{\lemmasr}{%
+\newcommand{\completeness}{%
 \begin{code}
-script≡rattle : ∀ {s₁} {s₂} m b₁ → (∀ f₁ → s₁ f₁ ≡ s₂ f₁) → DisjointBuild s₂ b₁ → MemoryProperty m
-              → (∀ f₁ → script b₁ s₁ f₁ ≡ proj₁ (rattle_unchecked b₁ (s₂ , m)) f₁)
+completeness : ∀ s br bc → PreCond s br bc → HazardFree s br bc [] → ∃[ st ](∃[ ls ](rattle br bc ((s , []) , []) ≡ inj₂ (st , ls)))
 \end{code}}
 \begin{code}[hide]
-script≡rattle mm [] ∀₁ dsb mp = ∀₁ 
-script≡rattle {s₁} {s₂} mm (x ∷ b₁) ∀₁ (Cons .x dsj .b₁ dsb) mp f₁ with x ∈? map proj₁ mm
-... | no x∉ = script≡rattle {St.run x s₁} {St.run x s₂} (save x (cmdReadNames x s₂ ++ cmdWriteNames x s₂) (St.run x s₂) mm) b₁ (run-≡ x ∀₁) dsb mp₁ f₁
+completeness s br bc (dsb , ubr , ubc , _) hf = completeness-inner (s , []) [] br bc (dsb , ([] , ubr , (ubc , (Data.List.Relation.Unary.AllPairs.[] , g₁)))) hf
+  where g₁ : Disjoint br []
+        g₁ ()
+\end{code}
+
+\begin{code}[hide]
+script≡rattle-inner : ∀ {s₁} {s₂} m b₁ → (∀ f₁ → s₁ f₁ ≡ s₂ f₁) → DisjointBuild s₂ b₁ → MemoryProperty m
+              → (∀ f₁ → script b₁ s₁ f₁ ≡ proj₁ (rattle_unchecked b₁ (s₂ , m)) f₁)
+script≡rattle-inner mm [] ∀₁ dsb mp = ∀₁ 
+script≡rattle-inner {s₁} {s₂} mm (x ∷ b₁) ∀₁ (Cons .x dsj .b₁ dsb) mp f₁ with x ∈? map proj₁ mm
+... | no x∉ = script≡rattle-inner {St.run x s₁} {St.run x s₂} (save x (cmdReadNames x s₂ ++ cmdWriteNames x s₂) (St.run x s₂) mm) b₁ (run-≡ x ∀₁) dsb mp₁ f₁
   where mp₁ : MemoryProperty (save x (cmdReadNames x s₂ ++ cmdWriteNames x s₂) (St.run x s₂) mm)
         mp₁ = Cons x s₂ (λ f₂ x₁ → lemma3 f₂ (proj₂ (proj₁ (oracle x) s₂)) λ x₂ → dsj (x₁ , x₂)) mp
 ... | yes x∈ with maybeAll {s₂} (get x mm x∈)
-... | nothing = script≡rattle {St.run x s₁} {St.run x s₂} (save x (cmdReadNames x s₂ ++ cmdWriteNames x s₂) (St.run x s₂) mm) b₁ (run-≡ x ∀₁) dsb mp₁ f₁
+... | nothing = script≡rattle-inner {St.run x s₁} {St.run x s₂} (save x (cmdReadNames x s₂ ++ cmdWriteNames x s₂) (St.run x s₂) mm) b₁ (run-≡ x ∀₁) dsb mp₁ f₁
   where mp₁ : MemoryProperty (save x (cmdReadNames x s₂ ++ cmdWriteNames x s₂) (St.run x s₂) mm)
         mp₁ = Cons x s₂ (λ f₂ x₁ → lemma3 f₂ (proj₂ (proj₁ (oracle x) s₂)) λ x₂ → dsj (x₁ , x₂)) mp
-... | just all₁ = script≡rattle {St.run x s₁} {s₂} mm b₁ ∀₂ (dsj-≡ (St.run x s₂) s₂ b₁ ∀₃ dsb) mp f₁
+... | just all₁ = script≡rattle-inner {St.run x s₁} {s₂} mm b₁ ∀₂ (dsj-≡ (St.run x s₂) s₂ b₁ ∀₃ dsb) mp f₁
   where ∀₂ : ∀ f₁ → St.run x s₁ f₁ ≡ s₂ f₁
         ∀₂ f₁ = sym (noEffect x ∀₁ mp x∈ all₁ f₁)
         ∀₃ : ∀ f₁ → s₂ f₁ ≡ St.run x s₂ f₁
@@ -171,21 +180,30 @@ script≡rattle {s₁} {s₂} mm (x ∷ b₁) ∀₁ (Cons .x dsj .b₁ dsb) mp 
 ≡toScript s br bc = ∃[ s₁ ](∃[ m ](∃[ ls ](rattle br bc ((s , []) , []) ≡ inj₂ ((s₁ , m) , ls) × ∀ f₁ → s₁ f₁ ≡ script bc s f₁)))
 \end{code}
 
+\newcommand{\lemmasr}{%
+\begin{code}
+script≡rattle_unchecked : ∀ s b → DisjointBuild s b → (∀ f₁ → script b s f₁ ≡ proj₁ (rattle_unchecked b (s , [])) f₁)
+\end{code}}
+\begin{code}[hide]
+script≡rattle_unchecked s b dsb = script≡rattle-inner [] b (λ f₁ → refl) dsb []
+\end{code}
+
 \begin{code}[hide]
 -- correctness is if you have any build then either you get the right answer (the one the script gave) or you get an error and there was a hazard.
 \end{code}
 \newcommand{\correct}{%
 \begin{code}
 correct_rattle : ∀ s bc → PreCond s bc bc → ¬ HazardFree s bc bc [] ⊎ ≡toScript s bc bc
-\end{code}}
-\begin{code}[hide]
 correct_rattle s bc pc with rattle bc bc ((s , []) , []) | inspect (rattle bc bc) ((s , []) , [])
 ... | inj₁ hz | [ ≡₁ ] = inj₁ g₁
   where g₁ : ¬ HazardFree s bc bc []
-        g₁ hf with completeness (s , []) [] bc bc ({!!} , {!!}) hf
+        g₁ hf with completeness s bc bc pc hf
         ... | a , fst , ≡₂ = contradiction (trans (sym ≡₁) ≡₂) λ ()
-... | inj₂ ((s₁ , mm₁) , ls₁) | [ ≡₁ ] = inj₂ (s₁ , mm₁ , ls₁ , refl , λ f₁ → sym (trans (script≡rattle [] bc (λ f₂ → refl) {!!} {!!} f₁) (cong-app (cong proj₁ (soundness (s , []) [] bc bc ≡₁)) f₁)))
-\end{code}
+... | inj₂ ((s₁ , mm₁) , ls₁) | [ ≡₁ ] = inj₂ (s₁ , mm₁ , ls₁ , refl , ∀≡)
+  where ∀≡ : ∀ f₁ → s₁ f₁ ≡ script bc s f₁
+        ∀≡ f₁ = sym (trans (script≡rattle_unchecked s bc (proj₁ pc) f₁)
+                           (cong-app (cong proj₁ (soundness s bc bc ≡₁)) f₁))
+\end{code}}
 
 
 \begin{code}[hide]
@@ -281,16 +299,22 @@ semi-correct s mm ls b₁ b₂ dsb mp ue b₂↭b₁ with hazardfree? s b₁ b�
 ... | no hz = inj₁ hz
 ... | yes hf with hazardfree? s b₂ b₂ ls
 ... | no hz = inj₂ (inj₁ hz)
-... | yes hf₁ with completeness (s , mm) ls b₁ b₂ (dsb , mp , ue) hf
-... | (s₁ , mm₁) , ls₁ , ≡₁ = inj₂ (inj₂ (s₁ , mm₁ , ls₁ , ≡₁ , λ f₁ → sym (trans (reordered b₂ b₁ ls b₂↭b₁ ue {!!} hf f₁) (trans (script≡rattle mm b₁ (λ f₂ → refl) dsb mp f₁) (cong-app (cong proj₁ (soundness (s , mm) ls b₁ b₂ ≡₁)) f₁)))))
+... | yes hf₁ with completeness-inner (s , mm) ls b₁ b₂ (dsb , mp , ue) hf
+... | (s₁ , mm₁) , ls₁ , ≡₁ = inj₂ (inj₂ (s₁ , mm₁ , ls₁ , ≡₁ , λ f₁ → sym (trans (reordered b₂ b₁ ls b₂↭b₁ ue {!!} hf f₁) (trans (script≡rattle-inner mm b₁ (λ f₂ → refl) dsb mp f₁) (cong-app (cong proj₁ (soundness-inner (s , mm) ls b₁ b₂ ≡₁)) f₁)))))
+-- 
 \end{code}
+
 
 \newcommand{\correctP}{%
 \begin{code}
 semi_correct : ∀ s br bc → PreCond s br bc → ¬ HazardFree s br bc [] ⊎ ¬ HazardFree s bc bc [] ⊎ ≡toScript s br bc
+semi_correct s br bc pc with hazardfree? s br bc []
+... | no hz = inj₁ hz
+... | yes hf₁ with hazardfree? s bc bc []
+... | no hz = inj₂ (inj₁ hz)
+... | yes hf₂ with completeness s br bc pc hf₁
+... | (s₁ , m₁) , ls , ≡₁ = inj₂ (inj₂ (s₁ , m₁ , ls , ≡₁ , ∀≡))
+  where ∀≡ : ∀ f₁ → s₁ f₁ ≡ script bc s f₁
+        ∀≡ f₁ = sym (trans (reordered≡ s br bc pc hf₁ hf₂ f₁) (trans (script≡rattle_unchecked s br (proj₁ pc) f₁) (cong-app (cong proj₁ (soundness s br bc ≡₁)) f₁)))
 \end{code}}
-\begin{code}[hide]
-semi_correct s br bc (dsb , ubr , ubc , bc↭br) = semi-correct s [] [] br bc dsb [] (ubr , (ubc , (Data.List.Relation.Unary.AllPairs.[] , g₁))) bc↭br
-  where g₁ : Disjoint br []
-        g₁ ()
-\end{code}
+
