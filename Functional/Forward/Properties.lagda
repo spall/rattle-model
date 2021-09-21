@@ -18,7 +18,7 @@ open import Data.Maybe as Maybe using (Maybe ; just ; nothing)
 open import Data.Maybe.Relation.Binary.Pointwise using (dec ; Pointwise)
 open import Data.String.Properties using (_≟_ ; _==_)
 open import Data.List.Relation.Binary.Equality.DecPropositional _≟_ using (_≡?_)
-open import Data.List using (List ; [] ; map ; foldr ; _∷_ ; _++_)
+open import Data.List using (List ; [] ; map ; foldr ; _∷_ ; _++_ ; concatMap)
 open import Relation.Nullary using (yes ; no)
 open import Relation.Binary.PropositionalEquality using (decSetoid ; trans ; sym ; subst ; cong ; cong₂)
 open import Data.Product using (_×_ ; ∃-syntax)
@@ -27,10 +27,15 @@ open import Data.List.Membership.DecSetoid (decSetoid _≟_) using (_∈_ ; _∈
 open import Data.List.Relation.Unary.Any using (tail ; here ; there)
 open import Data.List.Relation.Binary.Disjoint.Propositional using (Disjoint)
 open import Function.Base using (_∘_)
-open import Data.List.Membership.Propositional.Properties using (∈-++⁺ˡ ; ∈-++⁺ʳ)
+open import Data.List.Membership.Propositional.Properties using (∈-++⁺ˡ ; ∈-++⁺ʳ ; ∈-++⁻)
 open import Data.List.Properties using (∷-injective)
-open import Functional.Script.Hazard (oracle) using (HazardFree ; ::)
-open import Functional.Script.Hazard.Properties (oracle) using (hf-still)
+open import Functional.Script.Hazard (oracle) using (HazardFree ; :: ; files ; filesRead; Hazard ; ReadWrite ; WriteWrite) renaming (save to rec)
+open import Functional.Script.Hazard.Properties (oracle) using (hf-still) renaming (g₂ to ∉toAll)
+open import Data.List.Relation.Unary.Unique.Propositional using (Unique)
+open import Data.List.Relation.Unary.AllPairs using (_∷_)
+open import Functional.Script.Properties (oracle) using (DisjointBuild ; Cons ; dsj-≡)
+open import Data.List.Relation.Binary.Subset.Propositional using (_⊆_)
+open import Data.Sum using (_⊎_ ; inj₁ ; inj₂)
 
 open import Relation.Nullary.Negation using (contradiction)
 
@@ -120,26 +125,102 @@ run≡ sys₁ sys₂ mm x ∀₁ is f₁ with x ∈? map proj₁ mm
 ... | ci = trans (StP.lemma2 {sys₁} {sys₂} (proj₂ (oracle x) sys₁ sys₂ λ f₂ _ → ∀₁ f₂) (∀₁ f₁))
                         (ci all₁ f₁)
 
-correct-inner : ∀ {s₁} {s₂} m b {b₁} {ls} → (∀ f₁ → s₁ f₁ ≡ s₂ f₁) → HazardFree s₁ b b₁ ls → (∀ f₁ → proj₁ (forward (s₁ , m) b) f₁ ≡ script s₂ b f₁)
-correct-inner m [] ∀₁ hf = ∀₁
-correct-inner {s₁} {s₂} m (x ∷ b) ∀₁ (:: _ _ .x .b _ x₁ hf) f₁ with x ∈? map proj₁ m
-... | no x∉mem = correct-inner (save x (cmdReadNames x s₁) (St.run x s₁) m) b (run-≡ x ∀₁) hf f₁
+helper : ∀ {s} ls ls₁ x → Disjoint (cmdWriteNames x s) ls₁ -> (concatMap (λ x₁ → cmdReadWriteNames x₁ s) ls) ⊆ ls₁ -> All (λ x₁ → Disjoint (cmdWriteNames x s) (cmdReadWriteNames x₁ s)) ls
+helper [] ls₁ x dsj ⊆₁ = All.[]
+helper {sys} (x₁ ∷ ls) ls₁ x dsj ⊆₁ = (λ x₂ → dsj ((proj₁ x₂) , ⊆₁ (∈-++⁺ˡ (proj₂ x₂)))) All.∷ (helper ls ls₁ x dsj λ x₂ → ⊆₁ (∈-++⁺ʳ (cmdReadWrites x₁ sys) x₂))
 
+
+∃hazard : ∀ {v}{s}{x} ls {b} → v ∈ cmdWriteNames x s → v ∈ files ls → Hazard s x b ls
+∃hazard ls v∈ws v∈files with ∈-++⁻ (filesRead ls) v∈files
+... | inj₁ ∈₁ = ReadWrite _ _ _ _ v∈ws ∈₁
+... | inj₂ ∈₂ = WriteWrite _ _ _ _ v∈ws ∈₂
+
+helper3 : ∀ {s₁} {x₁} x → Disjoint (cmdWriteNames x₁ s₁) (cmdReadWriteNames x s₁) → cmdReadWrites x (St.run x₁ s₁) ≡ cmdReadWrites x s₁
+helper3 {s₁} {x₁} x dsj = cong₂ _++_ ≡₁ ≡₂
+  where ≡₀ : proj₁ (oracle x) (St.run x₁ s₁) ≡ proj₁ (oracle x) s₁
+        ≡₀ = sym (proj₂ (oracle x) s₁ (St.run x₁ s₁) λ f₁ x₂ → (lemma3 f₁ (cmdWrites x₁ s₁) λ x₃ → dsj (x₃ , ∈-++⁺ˡ x₂)))
+        ≡₁ : cmdReadNames x (St.run x₁ s₁) ≡ cmdReadNames x s₁
+        ≡₁ = cong (map proj₁ ∘ proj₁) ≡₀
+        ≡₂ : cmdWriteNames x (St.run x₁ s₁) ≡ cmdWriteNames x s₁
+        ≡₂ = cong (map proj₁ ∘ proj₂) ≡₀
+
+helper2 : ∀ {s₁} {x₂} ls → All (λ x₁ → Disjoint (cmdWriteNames x₂ s₁) (cmdReadWriteNames x₁ s₁)) ls → concatMap (λ x₁ → cmdReadWrites x₁ (St.run x₂ s₁)) ls ≡ concatMap (λ x₁ → cmdReadWrites x₁ s₁) ls
+helper2 [] all₁ = refl
+helper2 (x ∷ ls) (px All.∷ all₁) with helper2 ls all₁
+... | a = cong₂ _++_ (helper3 x px) a
+
+correct-inner : ∀ {s₁} {s₂} {ls} m b {b₁} → (∀ f₁ → s₁ f₁ ≡ s₂ f₁) → DisjointBuild s₁ b → Unique b → Unique (map proj₁ ls) → Disjoint b (map proj₁ ls) → concatMap (λ x₁ → cmdReadWrites x₁ s₁) (map proj₁ m) ⊆ files ls → IdempotentState cmdReadNames s₁ m → HazardFree s₁ b b₁ ls → (∀ f₁ → proj₁ (forward (s₁ , m) b) f₁ ≡ script s₂ b f₁)
+correct-inner m [] ∀₁ _ _ _ _ _ is hf = ∀₁
+correct-inner {s₁} {s₂} {ls} m (x ∷ b) ∀₁ (Cons x dc b dsb) (px ∷ ub) uls dsj ⊆₁ is (:: _ _ .x .b _ ¬hz hf) f₁ with x ∈? map proj₁ m
+... | no x∉mem = correct-inner (save x (cmdReadNames x s₁) (St.run x s₁) m) b (run-≡ x ∀₁) dsb ub
+                 (∉toAll _ (λ x₂ → dsj ((here refl) , x₂)) ∷ uls)
+                 (λ x₂ → dsj ((there (proj₁ x₂)) , tail (λ x₃ → lookup px (proj₁ x₂) (sym x₃)) (proj₂ x₂)))
+                 ⊆₂ is₂ hf f₁
+  where all₁ : All (λ x₁ → Disjoint (cmdWriteNames x s₁) (cmdReadWriteNames x₁ s₁)) (map proj₁ m)
+        all₁ = helper (map proj₁ m) _ x (λ x₂ → ¬hz (∃hazard _ (proj₁ x₂) (proj₂ x₂))) ⊆₁
+        is₂ : IdempotentState cmdReadNames (St.run x s₁) (save x (cmdReadNames x s₁) (St.run x s₁) m)
+        is₂ = preserves x dc all₁ is
+        -- ( is
+        ≡₀ : proj₁ (oracle x) (St.run x s₁) ≡ proj₁ (oracle x) s₁
+        ≡₀ = sym (proj₂ (oracle x) s₁ (St.run x s₁) λ f₂ x₁ → lemma3 f₂ (cmdWrites x s₁) λ x₂ → dc (x₁ , x₂))
+        ≡₁ : cmdReadNames x (St.run x s₁) ≡ cmdReadNames x s₁
+        ≡₁ = cong (map proj₁ ∘ proj₁) ≡₀
+        ≡₂ : cmdWriteNames x (St.run x s₁) ≡ cmdWriteNames x s₁
+        ≡₂ = cong (map proj₁ ∘ proj₂) ≡₀
+        ⊆₂ : concatMap (λ x₁ → cmdReadWrites x₁ (St.run x s₁)) (x ∷ map proj₁ m) ⊆ files (rec s₁ x ls)
+        ⊆₂ x₂ with ∈-++⁻ (cmdReadWrites x (St.run x s₁)) x₂
+        ... | inj₁ ∈₁ with ∈-++⁻ (cmdReadNames x (St.run x s₁)) ∈₁
+        ... | inj₁ ∈rs = ∈-++⁺ˡ (∈-++⁺ˡ (subst (λ x₃ → _ ∈ x₃) ≡₁ ∈rs))
+        ... | inj₂ ∈ws = ∈-++⁺ʳ (filesRead (rec s₁ x ls)) (∈-++⁺ˡ (subst (λ x₃ → _ ∈ x₃) ≡₂ ∈ws))
+        ⊆₂ x₂ | inj₂ ∈₂ with ∈-++⁻ (filesRead ls) (⊆₁ (subst (λ x₃ → _ ∈ x₃) (helper2 (map proj₁ m) all₁) ∈₂))
+        ... | inj₁ ∈₁ = ∈-++⁺ˡ (∈-++⁺ʳ (cmdReadNames x s₁) ∈₁)
+        ... | inj₂ ∈₁ = ∈-++⁺ʳ (filesRead (rec s₁ x ls)) (∈-++⁺ʳ (cmdWriteNames x s₁) ∈₁)
 ... | yes x∈mem with maybeAll {s₁} (get x m x∈mem)
-... | nothing = correct-inner (save x (cmdReadNames x s₁) (St.run x s₁) m) b (run-≡ x ∀₁) hf f₁
-... | just all₁ = correct-inner m b ∀₂ hf₂ f₁
-  where ∀₂ : ∀ f₁ → s₁ f₁ ≡ St.run x s₂ f₁
-        ∀₂ = {!!}
-        ∀₃ : ∀ f₁ → s₁ f₁ ≡ St.run x s₁ f₁
-        ∀₃ = {!!}
+-- yes, it is extremely stupid that this is duplicated. i will fix it later
+... | nothing = correct-inner (save x (cmdReadNames x s₁) (St.run x s₁) m) b (run-≡ x ∀₁) dsb ub
+                 (∉toAll _ (λ x₂ → dsj ((here refl) , x₂)) ∷ uls)
+                 (λ x₂ → dsj ((there (proj₁ x₂)) , tail (λ x₃ → lookup px (proj₁ x₂) (sym x₃)) (proj₂ x₂)))
+                 ⊆₂ is₂ hf f₁
+  where all₁ : All (λ x₁ → Disjoint (cmdWriteNames x s₁) (cmdReadWriteNames x₁ s₁)) (map proj₁ m)
+        all₁ = helper (map proj₁ m) _ x (λ x₂ → ¬hz (∃hazard _ (proj₁ x₂) (proj₂ x₂))) ⊆₁
+        is₂ : IdempotentState cmdReadNames (St.run x s₁) (save x (cmdReadNames x s₁) (St.run x s₁) m)
+        is₂ = preserves x dc all₁ is
+        -- ( is
+        ≡₀ : proj₁ (oracle x) (St.run x s₁) ≡ proj₁ (oracle x) s₁
+        ≡₀ = sym (proj₂ (oracle x) s₁ (St.run x s₁) λ f₂ x₁ → lemma3 f₂ (cmdWrites x s₁) λ x₂ → dc (x₁ , x₂))
+        ≡₁ : cmdReadNames x (St.run x s₁) ≡ cmdReadNames x s₁
+        ≡₁ = cong (map proj₁ ∘ proj₁) ≡₀
+        ≡₂ : cmdWriteNames x (St.run x s₁) ≡ cmdWriteNames x s₁
+        ≡₂ = cong (map proj₁ ∘ proj₂) ≡₀
+        ⊆₂ : concatMap (λ x₁ → cmdReadWrites x₁ (St.run x s₁)) (x ∷ map proj₁ m) ⊆ files (rec s₁ x ls)
+        ⊆₂ x₂ with ∈-++⁻ (cmdReadWrites x (St.run x s₁)) x₂
+        ... | inj₁ ∈₁ with ∈-++⁻ (cmdReadNames x (St.run x s₁)) ∈₁
+        ... | inj₁ ∈rs = ∈-++⁺ˡ (∈-++⁺ˡ (subst (λ x₃ → _ ∈ x₃) ≡₁ ∈rs))
+        ... | inj₂ ∈ws = ∈-++⁺ʳ (filesRead (rec s₁ x ls)) (∈-++⁺ˡ (subst (λ x₃ → _ ∈ x₃) ≡₂ ∈ws))
+        ⊆₂ x₂ | inj₂ ∈₂ with ∈-++⁻ (filesRead ls) (⊆₁ (subst (λ x₃ → _ ∈ x₃) (helper2 (map proj₁ m) all₁) ∈₂))
+        ... | inj₁ ∈₁ = ∈-++⁺ˡ (∈-++⁺ʳ (cmdReadNames x s₁) ∈₁)
+        ... | inj₂ ∈₁ = ∈-++⁺ʳ (filesRead (rec s₁ x ls)) (∈-++⁺ʳ (cmdWriteNames x s₁) ∈₁)
+... | just all₁ with getCmdIdempotent m x is x∈mem
+... | ci = correct-inner m b ∀₂ (dsj-≡ (St.run x s₁) s₁ b ∀₃ dsb) ub uls (λ x₂ → dsj (there (proj₁ x₂) , proj₂ x₂)) ⊆₁ is hf₂ f₁
+  where ∀₃ : ∀ f₁ → s₁ f₁ ≡ St.run x s₁ f₁
+        ∀₃ f₁ = (sym (ci all₁ f₁))
+        ∀₂ : ∀ f₁ → s₁ f₁ ≡ St.run x s₂ f₁
+        ∀₂ f₁ = trans (∀₃ f₁) (StP.lemma2 (proj₂ (oracle x) s₁ s₂ λ f₃ x₂ → ∀₁ f₃) (∀₁ f₁))
         hf₂ : HazardFree s₁ b _ _
-        hf₂ = hf-still b [] ((x , cmdReadNames x s₁ , cmdWriteNames x s₁) ∷ []) _ (λ f₂ x₂ → sym (∀₃ f₂)) {!!} {!!} {!!} hf
+        hf₂ = hf-still b [] ((x , cmdReadNames x s₁ , cmdWriteNames x s₁) ∷ []) _ (λ f₂ x₂ → sym (∀₃ f₂)) ub (∉toAll _ (λ x₂ → dsj ((here refl) , x₂)) ∷ uls) (λ x₂ → dsj (there (proj₁ x₂) , tail (λ x₃ → lookup px (proj₁ x₂) (sym x₃)) (proj₂ x₂))) hf
+\end{code}
+
+\begin{code}[hide]
+correct : ∀ {s} b ls → DisjointBuild s b → Unique b → Unique (map proj₁ ls) → Disjoint b (map proj₁ ls) → HazardFree s b b ls → (∀ f₁ → proj₁ (forward (s , _) b) f₁ ≡ script s b f₁)
+correct b ls dsb ub uls dsj hf = correct-inner [] b (λ f₁ → refl) dsb ub uls dsj (λ ()) [] hf
 \end{code}
 
 \newcommand{\correctF}{%
 \begin{code}
-correct : ∀ s b ls → HazardFree s b [] ls → (∀ f₁ → proj₁ (forward (s , _) b) f₁ ≡ script s b f₁)
+forward_correct : ∀ {s} b → HazardFree s b b [] → (∀ f₁ → proj₁ (forward (s , []) b) f₁ ≡ script s b f₁)
 \end{code}}
 \begin{code}[hide]
-correct s b ls hf f₁ = {!!}
+forward_correct b hf = correct b [] {!!} {!!} Data.List.Relation.Unary.AllPairs.[] g₁ hf
+  where g₁ : Disjoint b []
+        g₁ ()
 \end{code}
