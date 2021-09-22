@@ -176,7 +176,8 @@ g₂ (x ∷ xs) x∉xs = (λ x₃ → x∉xs (here x₃)) All.∷ (g₂ xs λ x�
 
 \newcommand{\runWError}{%
 \begin{code}
-runWError : ∀ {b} x s m ls → Hazard s x b ls ⊎ (FileSystem × Memory) × FileInfo
+runWError : ∀ {b} x s m ls
+  → Hazard s x b ls ⊎ (FileSystem × Memory) × FileInfo
 \end{code}}
 \begin{code}[hide]
 runWError x s m ls with (run? x (s , m))
@@ -186,7 +187,8 @@ runWError x s m ls with (run? x (s , m))
 
 \newcommand{\Rexec}{%
 \begin{code}
-rattle_unchecked : Build → (FileSystem × Memory) → (FileSystem × Memory)
+rattle_unchecked : Build → (FileSystem × Memory)
+                 → (FileSystem × Memory)
 \end{code}}
 \begin{code}[hide]
 rattle_unchecked [] st = st
@@ -195,8 +197,8 @@ rattle_unchecked (x ∷ b) st = rattle_unchecked b (runR x st)
 
 \newcommand{\rattle}{%
 \begin{code}
-rattle : ∀ (b₁ b₂ : Build) → (FileSystem × Memory) × FileInfo
-       → ∃Hazard b₂ ⊎ (FileSystem × Memory) × FileInfo
+rattle : (br bc : Build) → (FileSystem × Memory) × FileInfo
+       → ∃Hazard bc ⊎ (FileSystem × Memory) × FileInfo
 \end{code}}
 \begin{code}[hide]
 rattle [] b₂ st = inj₂ st
