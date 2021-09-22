@@ -28,7 +28,7 @@ open import Data.List.Membership.DecSetoid (decSetoid _≟_) using (_∈_ ; _∈
 open import Relation.Nullary using (yes ; no ; ¬_)
 open import Relation.Nullary.Negation using (contradiction)
 open import Data.List.Relation.Unary.Any using (tail ; here ; there)
-open import Functional.Rattle.Exec (oracle) using (rattle ; runWError ; run ; doRun ; rattle_unchecked ; doRunWError ; checkHazard ; g₂)
+open import Functional.Rattle.Exec (oracle) using (rattle ; runWError ; runR ; doRun ; rattle_unchecked ; doRunWError ; checkHazard ; g₂)
 open import Functional.Build (oracle) using (Build ; UniqueEvidence ; PreCond ; DisjointBuild ; Cons)
 open import Data.Sum using (inj₂ ; from-inj₂ ; inj₁ ; _⊎_)
 open import Data.Sum.Properties using (inj₂-injective)
@@ -84,17 +84,17 @@ doRunSoundness : ∀ st ls {st₁} {ls₁} b x → doRunWError {b} (st , ls) x �
 doRunSoundness st ls b x ≡₁ with checkHazard (proj₁ st) x {b} ls
 ... | nothing = cong proj₁ (inj₂-injective ≡₁)
 
-runSoundness : ∀ st ls st₁ ls₁ b x → runWError {b} (st , ls) x ≡ inj₂ (st₁ , ls₁) → run st x ≡ st₁
-runSoundness st ls st₁ ls₁ b x ≡₁ with run? x st
+runSoundness : ∀ s m ls st₁ ls₁ b x → runWError {b} x s m ls ≡ inj₂ (st₁ , ls₁) → runR x (s , m) ≡ st₁
+runSoundness s m ls st₁ ls₁ b x ≡₁ with run? x (s , m)
 ... | false = cong proj₁ (inj₂-injective ≡₁)
-... | true = doRunSoundness st ls b x ≡₁
+... | true = doRunSoundness (s , m) ls b x ≡₁
 \end{code}
 
 \begin{code}[hide]
 soundness-inner : ∀ {st₁} {ls₁} st ls b₁ b₂ → rattle b₁ b₂ (st , ls) ≡ inj₂ (st₁ , ls₁) → rattle_unchecked b₁ st ≡ st₁
 soundness-inner st ls [] b₂ ≡₁ = cong proj₁ (inj₂-injective ≡₁)
-soundness-inner st ls (x ∷ b₁) b₂  ≡₁ with runWError {b₂} (st , ls) x | inspect (runWError {b₂} (st , ls)) x
-... | inj₂ (st₂ , ls₂) | [ ≡₂ ] with runSoundness st ls st₂ ls₂ b₂ x ≡₂
+soundness-inner (s , m) ls (x ∷ b₁) b₂  ≡₁ with runWError {b₂} x s m ls | inspect (runWError {b₂} x s m) ls
+... | inj₂ (st₂ , ls₂) | [ ≡₂ ] with runSoundness s m ls st₂ ls₂ b₂ x ≡₂
 ... | ≡st₂ = subst (λ x₁ → rattle_unchecked b₁ x₁ ≡ _) (sym ≡st₂) (soundness-inner st₂ ls₂ b₁ b₂ ≡₁)
 
 OKBuild : State → FileInfo → Build → Build → Set

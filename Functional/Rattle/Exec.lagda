@@ -156,40 +156,51 @@ doRunWError ((s , mm) , ls) x with checkHazard s x ls
 ... | just hz = inj₁ hz
 ... | nothing = let sys₁ = St.run x s in
                 inj₂ ((sys₁ , save x ((cmdReadNames x s) ++ (cmdWriteNames x s)) sys₁ mm) , rec s x ls)
+\end{code}
 
-
-run : State -> Cmd -> State
-run st cmd = if (run? cmd st)
+\newcommand{\runR}{%
+\begin{code}
+runR : Cmd → (FileSystem × Memory) → (FileSystem × Memory)
+\end{code}}
+\begin{code}[hide]
+runR cmd st = if (run? cmd st)
              then doRun st cmd
              else st
+\end{code}
 
+\begin{code}[hide]
 g₂ : ∀ {x} xs → x ∉ xs → All (λ y → ¬ x ≡ y) xs
 g₂ [] x∉xs = All.[]
 g₂ (x ∷ xs) x∉xs = (λ x₃ → x∉xs (here x₃)) All.∷ (g₂ xs λ x₃ → x∉xs (there x₃))
+\end{code}
 
-
-runWError : ∀ {b} → (((s , mm) , ls) : State × FileInfo) → (x : Cmd) → Hazard s x b ls ⊎ State × FileInfo
-runWError (st , ls) x with (run? x st)
-... | false = inj₂ (st , ls)
-... | true = doRunWError (st , ls) x
+\newcommand{\runWError}{%
+\begin{code}
+runWError : ∀ {b} x s m ls → Hazard s x b ls ⊎ (FileSystem × Memory) × FileInfo
+\end{code}}
+\begin{code}[hide]
+runWError x s m ls with (run? x (s , m))
+... | false = inj₂ ((s , m) , ls)
+... | true = doRunWError ((s , m) , ls) x
 \end{code}
 
 \newcommand{\Rexec}{%
 \begin{code}
-rattle_unchecked : Build → State → State
+rattle_unchecked : Build → (FileSystem × Memory) → (FileSystem × Memory)
 \end{code}}
 \begin{code}[hide]
 rattle_unchecked [] st = st
-rattle_unchecked (x ∷ b) st = rattle_unchecked b (run st x)
+rattle_unchecked (x ∷ b) st = rattle_unchecked b (runR x st)
 \end{code}
 
 \newcommand{\rattle}{%
 \begin{code}
-rattle : ∀ (b₁ : Build) b₂ st → ∃Hazard b₂ ⊎ State × FileInfo
+rattle : ∀ (b₁ b₂ : Build) → (FileSystem × Memory) × FileInfo
+       → ∃Hazard b₂ ⊎ (FileSystem × Memory) × FileInfo
 \end{code}}
 \begin{code}[hide]
 rattle [] b₂ st = inj₂ st
-rattle (x ∷ b₁) b₂ st with runWError st x
+rattle (x ∷ b₁) b₂ st@((s , m) , ls) with runWError x s m ls
 ... | inj₁ hz = inj₁ (proj₁ (proj₁ st) , x , proj₂ st , hz)
 ... | inj₂ (st₁ , ls₁) = rattle b₁ b₂ (st₁ , ls₁)
 \end{code}
