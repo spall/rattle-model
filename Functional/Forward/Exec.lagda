@@ -52,8 +52,8 @@ doRun (sys , mm) cmd = let sys₂ = St.run cmd sys in
 
 \newcommand{\runF}{%
 \begin{code}
-run : State -> Cmd -> State
-run st cmd = if (run? cmd st)
+runF : State -> Cmd -> State
+runF st cmd = if (run? cmd st)
                then doRun st cmd
                else st
 \end{code}}
@@ -62,7 +62,7 @@ run st cmd = if (run? cmd st)
 \begin{code}
 fabricate : Build → State → State
 fabricate [] st = st
-fabricate (x ∷ b) st = fabricate b (run st x)
+fabricate (x ∷ b) st = fabricate b (runF st x)
 \end{code}}
 
 \begin{code}[hide]
