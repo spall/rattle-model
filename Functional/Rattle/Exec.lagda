@@ -160,7 +160,8 @@ doRunWError ((s , mm) , ls) x with checkHazard s x ls
 
 \newcommand{\runR}{%
 \begin{code}
-runR : Cmd → (FileSystem × Memory) → (FileSystem × Memory)
+runR : Cmd → (FileSystem × Memory)
+     → (FileSystem × Memory)
 \end{code}}
 \begin{code}[hide]
 runR cmd st = if (run? cmd st)
