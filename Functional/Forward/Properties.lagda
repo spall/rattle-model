@@ -117,7 +117,7 @@ getCmdIdempotent ((x₁ , fs) ∷ mm) x (Cons (IC .x₁ .fs _ ≡₂ x₃) is) x
 ... | no ¬x≡x₁ = getCmdIdempotent mm x is (tail ¬x≡x₁ x∈)
 
 
-run≡ : (sys₁ sys₂ : FileSystem) (mm : Memory) (x : Cmd) -> (∀ f₁ → sys₁ f₁ ≡ sys₂ f₁) -> IdempotentState cmdReadNames sys₂ mm -> ∀ f₁ → St.run x sys₁ f₁ ≡ proj₁ (runF (sys₂ , mm) x) f₁
+run≡ : (sys₁ sys₂ : FileSystem) (mm : Memory) (x : Cmd) -> (∀ f₁ → sys₁ f₁ ≡ sys₂ f₁) -> IdempotentState cmdReadNames sys₂ mm -> ∀ f₁ → St.run x sys₁ f₁ ≡ proj₁ (runF x (sys₂ , mm)) f₁
 run≡ sys₁ sys₂ mm x ∀₁ is f₁ with x ∈? map proj₁ mm
 ... | no x∉ = StP.lemma2 {sys₁} {sys₂} (proj₂ (oracle x) sys₁ sys₂ λ f₂ _ → ∀₁ f₂) (∀₁ f₁)
 ... | yes x∈ with maybeAll {sys₂} (get x mm x∈)

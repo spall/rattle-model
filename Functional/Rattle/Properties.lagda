@@ -315,6 +315,8 @@ semi_correct s br bc pc with hazardfree? s br bc []
 ... | yes hf₂ with completeness s br bc pc hf₁
 ... | (s₁ , m₁) , ls , ≡₁ = inj₂ (inj₂ (s₁ , m₁ , ls , ≡₁ , ∀≡))
   where ∀≡ : ∀ f₁ → s₁ f₁ ≡ script bc s f₁
-        ∀≡ f₁ = sym (trans (reordered≡ s br bc pc hf₁ hf₂ f₁) (trans (script≡rattle_unchecked s br (proj₁ pc) f₁) (cong-app (cong proj₁ (soundness s br bc ≡₁)) f₁)))
+        ∀≡ f₁ = sym (trans (reordered≡ s br bc pc hf₁ hf₂ f₁)
+                           (trans (script≡rattle_unchecked s br (proj₁ pc) f₁)
+                                  (cong-app (cong proj₁ (soundness s br bc ≡₁)) f₁)))
 \end{code}}
 

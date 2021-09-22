@@ -130,7 +130,8 @@ reordered b₁ b₂ ls ↭₁ (ub₂ , ub₁ , uls , dsj) hf₁ hf₂ f₁ with 
 
 \newcommand{\reordered}{%
 \begin{code}
-reordered≡ : ∀ s br bc → PreCond s br bc → HazardFree s br bc [] → HazardFree s bc bc [] → (∀ f₁ → script bc s f₁ ≡ script br s f₁)
+reordered≡ : ∀ s br bc → PreCond s br bc → HazardFree s br bc [] → HazardFree s bc bc []
+           → (∀ f₁ → script bc s f₁ ≡ script br s f₁)
 \end{code}}
 \begin{code}[hide]
 reordered≡ s br bc (dsb , ubr , ubc , pm) hf₁ hf₂ = reordered {s} bc br [] pm (ubr , (ubc , ([] , g₁))) hf₂ hf₁

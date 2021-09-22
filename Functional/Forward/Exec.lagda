@@ -52,17 +52,17 @@ doRun (sys , mm) cmd = let sys₂ = St.run cmd sys in
 
 \newcommand{\runF}{%
 \begin{code}
-runF : State -> Cmd -> State
-runF st cmd = if (run? cmd st)
+runF : Cmd → (FileSystem × Memory) → (FileSystem × Memory)
+runF cmd st = if (run? cmd st)
                then doRun st cmd
                else st
 \end{code}}
 
 \newcommand{\forward}{%
 \begin{code}
-fabricate : Build → State → State
+fabricate : Build → (FileSystem × Memory) → (FileSystem × Memory)
 fabricate [] st = st
-fabricate (x ∷ b) st = fabricate b (runF st x)
+fabricate (x ∷ b) st = fabricate b (runF x st)
 \end{code}}
 
 \begin{code}[hide]
