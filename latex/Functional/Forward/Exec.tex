@@ -40,7 +40,7 @@
 \AgdaSymbol{as}\AgdaSpace{}%
 \AgdaModule{St}\AgdaSpace{}%
 \AgdaKeyword{using}\AgdaSpace{}%
-\AgdaSymbol{(}\AgdaFunction{cmdReadNames}\AgdaSymbol{)}\<%
+\AgdaSymbol{(}\AgdaPostulate{cmdReadNames}\AgdaSymbol{)}\<%
 \\
 \>[0]\AgdaKeyword{open}\AgdaSpace{}%
 \AgdaKeyword{import}\AgdaSpace{}%
@@ -342,7 +342,7 @@
 \AgdaFunction{Memory}\AgdaSymbol{)}\AgdaSpace{}%
 \AgdaSymbol{->}\AgdaSpace{}%
 \AgdaBound{x}\AgdaSpace{}%
-\AgdaOperator{\AgdaFunction{∈}}\AgdaSpace{}%
+\AgdaOperator{\AgdaPostulate{∈}}\AgdaSpace{}%
 \AgdaFunction{map}\AgdaSpace{}%
 \AgdaField{proj₁}\AgdaSpace{}%
 \AgdaBound{ls}\AgdaSpace{}%
@@ -402,7 +402,7 @@
 \AgdaBound{mm}\AgdaSymbol{)}\AgdaSpace{}%
 \AgdaKeyword{with}\AgdaSpace{}%
 \AgdaBound{cmd}\AgdaSpace{}%
-\AgdaOperator{\AgdaFunction{∈?}}\AgdaSpace{}%
+\AgdaOperator{\AgdaPostulate{∈?}}\AgdaSpace{}%
 \AgdaFunction{map}\AgdaSpace{}%
 \AgdaField{proj₁}\AgdaSpace{}%
 \AgdaBound{mm}\<%
@@ -446,7 +446,7 @@
 \AgdaKeyword{let}%
 \>[349I]\AgdaBound{sys₂}\AgdaSpace{}%
 \AgdaSymbol{=}\AgdaSpace{}%
-\AgdaFunction{St.run}\AgdaSpace{}%
+\AgdaPostulate{St.run}\AgdaSpace{}%
 \AgdaBound{cmd}\AgdaSpace{}%
 \AgdaBound{sys}\AgdaSpace{}%
 \AgdaKeyword{in}\<%
@@ -456,7 +456,7 @@
 \AgdaOperator{\AgdaInductiveConstructor{,}}\AgdaSpace{}%
 \AgdaFunction{save}\AgdaSpace{}%
 \AgdaBound{cmd}\AgdaSpace{}%
-\AgdaSymbol{(}\AgdaFunction{cmdReadNames}\AgdaSpace{}%
+\AgdaSymbol{(}\AgdaPostulate{cmdReadNames}\AgdaSpace{}%
 \AgdaBound{cmd}\AgdaSpace{}%
 \AgdaBound{sys}\AgdaSymbol{)}\AgdaSpace{}%
 \AgdaBound{sys₂}\AgdaSpace{}%
@@ -465,14 +465,16 @@
 
 \newcommand{\runF}{%
 \begin{code}%
-\>[0]\AgdaFunction{runF}\AgdaSpace{}%
-\AgdaSymbol{:}\AgdaSpace{}%
+\>[0]\AgdaFunction{runF}%
+\>[363I]\AgdaSymbol{:}\AgdaSpace{}%
 \AgdaFunction{Cmd}\AgdaSpace{}%
 \AgdaSymbol{→}\AgdaSpace{}%
 \AgdaSymbol{(}\AgdaFunction{FileSystem}\AgdaSpace{}%
 \AgdaOperator{\AgdaFunction{×}}\AgdaSpace{}%
-\AgdaFunction{Memory}\AgdaSymbol{)}\AgdaSpace{}%
-\AgdaSymbol{→}\AgdaSpace{}%
+\AgdaFunction{Memory}\AgdaSymbol{)}\<%
+\\
+\>[.][@{}l@{}]\<[363I]%
+\>[5]\AgdaSymbol{→}\AgdaSpace{}%
 \AgdaSymbol{(}\AgdaFunction{FileSystem}\AgdaSpace{}%
 \AgdaOperator{\AgdaFunction{×}}\AgdaSpace{}%
 \AgdaFunction{Memory}\AgdaSymbol{)}\<%
@@ -481,12 +483,12 @@
 \AgdaBound{cmd}\AgdaSpace{}%
 \AgdaBound{st}\AgdaSpace{}%
 \AgdaSymbol{=}%
-\>[376I]\AgdaOperator{\AgdaFunction{if}}\AgdaSpace{}%
+\>[375I]\AgdaOperator{\AgdaFunction{if}}\AgdaSpace{}%
 \AgdaSymbol{(}\AgdaFunction{run?}\AgdaSpace{}%
 \AgdaBound{cmd}\AgdaSpace{}%
 \AgdaBound{st}\AgdaSymbol{)}\<%
 \\
-\>[376I][@{}l@{\AgdaIndent{0}}]%
+\>[375I][@{}l@{\AgdaIndent{0}}]%
 \>[15]\AgdaOperator{\AgdaFunction{then}}\AgdaSpace{}%
 \AgdaFunction{doRun}\AgdaSpace{}%
 \AgdaBound{st}\AgdaSpace{}%
@@ -499,14 +501,16 @@
 
 \newcommand{\forward}{%
 \begin{code}%
-\>[0]\AgdaFunction{fabricate}\AgdaSpace{}%
-\AgdaSymbol{:}\AgdaSpace{}%
-\AgdaFunction{Build}\AgdaSpace{}%
+\>[0]\AgdaFunction{fabricate}%
+\>[383I]\AgdaSymbol{:}\AgdaSpace{}%
+\AgdaPostulate{Build}\AgdaSpace{}%
 \AgdaSymbol{→}\AgdaSpace{}%
 \AgdaSymbol{(}\AgdaFunction{FileSystem}\AgdaSpace{}%
 \AgdaOperator{\AgdaFunction{×}}\AgdaSpace{}%
-\AgdaFunction{Memory}\AgdaSymbol{)}\AgdaSpace{}%
-\AgdaSymbol{→}\AgdaSpace{}%
+\AgdaFunction{Memory}\AgdaSymbol{)}\<%
+\\
+\>[.][@{}l@{}]\<[383I]%
+\>[10]\AgdaSymbol{→}\AgdaSpace{}%
 \AgdaSymbol{(}\AgdaFunction{FileSystem}\AgdaSpace{}%
 \AgdaOperator{\AgdaFunction{×}}\AgdaSpace{}%
 \AgdaFunction{Memory}\AgdaSymbol{)}\<%
