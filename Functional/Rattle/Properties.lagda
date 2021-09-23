@@ -181,9 +181,7 @@ script≡rattle-inner {s₁} {s₂} mm (x ∷ b₁) ∀₁ (Cons .x dsj .b₁ ds
 \newcommand{\eqtoscript}{%
 \begin{code}
 ≡toScript : FileSystem → Build → Build → Set
-≡toScript s br bc
-  = ∃[ s₁ ](∃[ m ](∃[ ls ](rattle br bc ((s , []) , []) ≡ inj₂ ((s₁ , m) , ls)
-                          × ∀ f₁ → s₁ f₁ ≡ script bc s f₁)))
+≡toScript s br bc = ∃[ s₁ ](∃[ m ](∃[ ls ](rattle br bc ((s , []) , []) ≡ inj₂ ((s₁ , m) , ls) × ∀ f₁ → s₁ f₁ ≡ script bc s f₁)))
 \end{code}}
 
 \newcommand{\lemmasr}{%
