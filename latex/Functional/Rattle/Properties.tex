@@ -2327,7 +2327,10 @@
 %
 \\[\AgdaEmptyExtraSkip]%
 \>[0]\AgdaComment{-- rattle produces a State and the System in that state is equivalent to the one produced by script}\<%
-\\
+\end{code}
+
+\newcommand{\eqtoscript}{%
+\begin{code}%
 \>[0]\AgdaFunction{≡toScript}\AgdaSpace{}%
 \AgdaSymbol{:}\AgdaSpace{}%
 \AgdaFunction{FileSystem}\AgdaSpace{}%
@@ -2341,15 +2344,17 @@
 \>[0]\AgdaFunction{≡toScript}\AgdaSpace{}%
 \AgdaBound{s}\AgdaSpace{}%
 \AgdaBound{br}\AgdaSpace{}%
-\AgdaBound{bc}\AgdaSpace{}%
-\AgdaSymbol{=}\AgdaSpace{}%
+\AgdaBound{bc}\<%
+\\
+\>[0][@{}l@{\AgdaIndent{0}}]%
+\>[2]\AgdaSymbol{=}\AgdaSpace{}%
 \AgdaFunction{∃[}\AgdaSpace{}%
 \AgdaBound{s₁}\AgdaSpace{}%
 \AgdaFunction{]}\AgdaSymbol{(}\AgdaFunction{∃[}\AgdaSpace{}%
 \AgdaBound{m}\AgdaSpace{}%
 \AgdaFunction{]}\AgdaSymbol{(}\AgdaFunction{∃[}\AgdaSpace{}%
-\AgdaBound{ls}\AgdaSpace{}%
-\AgdaFunction{]}\AgdaSymbol{(}\AgdaPostulate{rattle}\AgdaSpace{}%
+\AgdaBound{ls}%
+\>[1975I]\AgdaFunction{]}\AgdaSymbol{(}\AgdaPostulate{rattle}\AgdaSpace{}%
 \AgdaBound{br}\AgdaSpace{}%
 \AgdaBound{bc}\AgdaSpace{}%
 \AgdaSymbol{((}\AgdaBound{s}\AgdaSpace{}%
@@ -2363,8 +2368,10 @@
 \AgdaOperator{\AgdaInductiveConstructor{,}}\AgdaSpace{}%
 \AgdaBound{m}\AgdaSymbol{)}\AgdaSpace{}%
 \AgdaOperator{\AgdaInductiveConstructor{,}}\AgdaSpace{}%
-\AgdaBound{ls}\AgdaSymbol{)}\AgdaSpace{}%
-\AgdaOperator{\AgdaFunction{×}}\AgdaSpace{}%
+\AgdaBound{ls}\AgdaSymbol{)}\<%
+\\
+\>[1975I][@{}l@{\AgdaIndent{0}}]%
+\>[26]\AgdaOperator{\AgdaFunction{×}}\AgdaSpace{}%
 \AgdaSymbol{∀}\AgdaSpace{}%
 \AgdaBound{f₁}\AgdaSpace{}%
 \AgdaSymbol{→}\AgdaSpace{}%
@@ -2375,7 +2382,7 @@
 \AgdaBound{bc}\AgdaSpace{}%
 \AgdaBound{s}\AgdaSpace{}%
 \AgdaBound{f₁}\AgdaSymbol{)))}\<%
-\end{code}
+\end{code}}
 
 \newcommand{\lemmasr}{%
 \begin{code}%
@@ -2488,7 +2495,7 @@
 \\
 \>[0][@{}l@{\AgdaIndent{0}}]%
 \>[2]\AgdaKeyword{where}%
-\>[2092I]\AgdaFunction{g₁}\AgdaSpace{}%
+\>[2090I]\AgdaFunction{g₁}\AgdaSpace{}%
 \AgdaSymbol{:}\AgdaSpace{}%
 \AgdaOperator{\AgdaFunction{¬}}\AgdaSpace{}%
 \AgdaPostulate{HazardFree}\AgdaSpace{}%
@@ -2497,7 +2504,7 @@
 \AgdaBound{bc}\AgdaSpace{}%
 \AgdaInductiveConstructor{[]}\<%
 \\
-\>[.][@{}l@{}]\<[2092I]%
+\>[.][@{}l@{}]\<[2090I]%
 \>[8]\AgdaFunction{g₁}\AgdaSpace{}%
 \AgdaBound{hf}\AgdaSpace{}%
 \AgdaKeyword{with}\AgdaSpace{}%
@@ -2551,7 +2558,7 @@
 \\
 \>[0][@{}l@{\AgdaIndent{0}}]%
 \>[2]\AgdaKeyword{where}%
-\>[2144I]\AgdaFunction{∀≡}\AgdaSpace{}%
+\>[2142I]\AgdaFunction{∀≡}\AgdaSpace{}%
 \AgdaSymbol{:}\AgdaSpace{}%
 \AgdaSymbol{∀}\AgdaSpace{}%
 \AgdaBound{f₁}\AgdaSpace{}%
@@ -2564,20 +2571,20 @@
 \AgdaBound{s}\AgdaSpace{}%
 \AgdaBound{f₁}\<%
 \\
-\>[.][@{}l@{}]\<[2144I]%
+\>[.][@{}l@{}]\<[2142I]%
 \>[8]\AgdaFunction{∀≡}\AgdaSpace{}%
 \AgdaBound{f₁}\AgdaSpace{}%
 \AgdaSymbol{=}\AgdaSpace{}%
 \AgdaFunction{sym}\AgdaSpace{}%
 \AgdaSymbol{(}\AgdaFunction{trans}%
-\>[2160I]\AgdaSymbol{(}\AgdaOperator{\AgdaFunction{script≡rattle\AgdaUnderscore{}unchecked}}\AgdaSpace{}%
+\>[2158I]\AgdaSymbol{(}\AgdaOperator{\AgdaFunction{script≡rattle\AgdaUnderscore{}unchecked}}\AgdaSpace{}%
 \AgdaBound{s}\AgdaSpace{}%
 \AgdaBound{bc}\AgdaSpace{}%
 \AgdaSymbol{(}\AgdaField{proj₁}\AgdaSpace{}%
 \AgdaBound{pc}\AgdaSymbol{)}\AgdaSpace{}%
 \AgdaBound{f₁}\AgdaSymbol{)}\<%
 \\
-\>[.][@{}l@{}]\<[2160I]%
+\>[.][@{}l@{}]\<[2158I]%
 \>[27]\AgdaSymbol{(}\AgdaFunction{cong-app}\AgdaSpace{}%
 \AgdaSymbol{(}\AgdaFunction{cong}\AgdaSpace{}%
 \AgdaField{proj₁}\AgdaSpace{}%
@@ -2702,11 +2709,11 @@
 \\
 \>[0][@{}l@{\AgdaIndent{0}}]%
 \>[2]\AgdaKeyword{where}%
-\>[2259I]\AgdaComment{--g₃ : ∀ \{v\} → v ∈ cmdWriteNames x s → v ∈ files ls₂ → ⊥}\<%
+\>[2257I]\AgdaComment{--g₃ : ∀ \{v\} → v ∈ cmdWriteNames x s → v ∈ files ls₂ → ⊥}\<%
 \\
 \>[0]\<%
 \\
-\>[.][@{}l@{}]\<[2259I]%
+\>[.][@{}l@{}]\<[2257I]%
 \>[8]\AgdaFunction{g₁}\AgdaSpace{}%
 \AgdaSymbol{:}\AgdaSpace{}%
 \AgdaSymbol{∀}\AgdaSpace{}%
@@ -2979,7 +2986,7 @@ we would have a speculative hazard if
 
 \begin{code}[hide]%
 \>[0]\AgdaFunction{semi-correct}%
-\>[2435I]\AgdaSymbol{:}\AgdaSpace{}%
+\>[2433I]\AgdaSymbol{:}\AgdaSpace{}%
 \AgdaSymbol{∀}\AgdaSpace{}%
 \AgdaBound{s}\AgdaSpace{}%
 \AgdaBound{m}\AgdaSpace{}%
@@ -3052,7 +3059,7 @@ we would have a speculative hazard if
 \AgdaBound{s}\AgdaSpace{}%
 \AgdaBound{f₁}\AgdaSymbol{)))}\<%
 \\
-\>[.][@{}l@{}]\<[2435I]%
+\>[.][@{}l@{}]\<[2433I]%
 \>[13]\AgdaComment{-- ≡toScript (s , m) ls b₁ b₂ b₂}\<%
 \\
 \>[0]\AgdaFunction{semi-correct}\AgdaSpace{}%
@@ -3290,7 +3297,7 @@ we would have a speculative hazard if
 \\
 \>[0][@{}l@{\AgdaIndent{0}}]%
 \>[2]\AgdaKeyword{where}%
-\>[2708I]\AgdaFunction{∀≡}\AgdaSpace{}%
+\>[2706I]\AgdaFunction{∀≡}\AgdaSpace{}%
 \AgdaSymbol{:}\AgdaSpace{}%
 \AgdaSymbol{∀}\AgdaSpace{}%
 \AgdaBound{f₁}\AgdaSpace{}%
@@ -3303,13 +3310,13 @@ we would have a speculative hazard if
 \AgdaBound{s}\AgdaSpace{}%
 \AgdaBound{f₁}\<%
 \\
-\>[.][@{}l@{}]\<[2708I]%
+\>[.][@{}l@{}]\<[2706I]%
 \>[8]\AgdaFunction{∀≡}\AgdaSpace{}%
 \AgdaBound{f₁}\AgdaSpace{}%
 \AgdaSymbol{=}\AgdaSpace{}%
 \AgdaFunction{sym}\AgdaSpace{}%
 \AgdaSymbol{(}\AgdaFunction{trans}%
-\>[2724I]\AgdaSymbol{(}\AgdaPostulate{reordered≡}\AgdaSpace{}%
+\>[2722I]\AgdaSymbol{(}\AgdaPostulate{reordered≡}\AgdaSpace{}%
 \AgdaBound{s}\AgdaSpace{}%
 \AgdaBound{br}\AgdaSpace{}%
 \AgdaBound{bc}\AgdaSpace{}%
@@ -3318,16 +3325,16 @@ we would have a speculative hazard if
 \AgdaBound{hf₂}\AgdaSpace{}%
 \AgdaBound{f₁}\AgdaSymbol{)}\<%
 \\
-\>[.][@{}l@{}]\<[2724I]%
+\>[.][@{}l@{}]\<[2722I]%
 \>[27]\AgdaSymbol{(}\AgdaFunction{trans}%
-\>[2732I]\AgdaSymbol{(}\AgdaOperator{\AgdaFunction{script≡rattle\AgdaUnderscore{}unchecked}}\AgdaSpace{}%
+\>[2730I]\AgdaSymbol{(}\AgdaOperator{\AgdaFunction{script≡rattle\AgdaUnderscore{}unchecked}}\AgdaSpace{}%
 \AgdaBound{s}\AgdaSpace{}%
 \AgdaBound{br}\AgdaSpace{}%
 \AgdaSymbol{(}\AgdaField{proj₁}\AgdaSpace{}%
 \AgdaBound{pc}\AgdaSymbol{)}\AgdaSpace{}%
 \AgdaBound{f₁}\AgdaSymbol{)}\<%
 \\
-\>[.][@{}l@{}]\<[2732I]%
+\>[.][@{}l@{}]\<[2730I]%
 \>[34]\AgdaSymbol{(}\AgdaFunction{cong-app}\AgdaSpace{}%
 \AgdaSymbol{(}\AgdaFunction{cong}\AgdaSpace{}%
 \AgdaField{proj₁}\AgdaSpace{}%

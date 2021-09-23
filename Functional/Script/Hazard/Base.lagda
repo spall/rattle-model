@@ -246,10 +246,11 @@ data Hazard : FileSystem → Cmd → Build → FileInfo → Set where
                 → v ∈ cmdRead (save s x ls) x₂ → v ∈ cmdWrote (save s x ls) x₁ → Hazard s x b ls
 \end{code}}
 
-\begin{code}[hide]
+\newcommand{\exhaz}{%
+\begin{code}
 ∃Hazard : Build → Set
 ∃Hazard b = ∃[ sys ](∃[ x ](∃[ ls ](Hazard sys x b ls)))
-\end{code}
+\end{code}}
 
 \newcommand{\hfcmd}{%
 \begin{code}

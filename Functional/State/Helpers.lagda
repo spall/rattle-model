@@ -24,9 +24,6 @@ cmdReads = proj₁ ∘₂ getCmdFunction
 cmdWrites : Cmd → FileSystem → Files
 cmdWrites = proj₂ ∘₂ getCmdFunction
 
-writes : Cmd → FileSystem → Files
-writes = proj₂ ∘₂ getCmdFunction
-
 cmdWriteNames : Cmd → FileSystem → FileNames
 cmdWriteNames = getNames ∘₂ cmdWrites
 
@@ -45,6 +42,9 @@ trace = (map getNames getNames) ∘₂ cmdFiles
 
 \newcommand{\run}{%
 \begin{code}
+writes : Cmd → FileSystem → Files
+writes = proj₂ ∘₂ getCmdFunction
+
 run : Cmd → FileSystem → FileSystem
 run x s = foldr extend s (writes x s)
 \end{code}}
