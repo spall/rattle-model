@@ -1,13 +1,13 @@
 \begin{code}[hide]
-open import Functional.State using (Oracle ; FileSystem ; Memory ; Cmd ; extend ; State ; save)
+open import Functional.State using (Oracle ; FileSystem ; Memory ; Cmd ; extend ; State ; save ; reads)
 
 module Functional.Rattle.Properties (oracle : Oracle) where
 
 open import Agda.Builtin.Equality
 
-open import Functional.State.Helpers (oracle) as St using (cmdReadNames ; cmdWriteNames)
+open import Functional.State.Helpers (oracle) as St using (cmdReadNames ; cmdWriteNames ; cmdWrites)
 open import Functional.State.Properties (oracle) using (lemma3 ; lemma4 ; run-≡)
-open import Common.List.Properties using (∈-resp-≡ ; l11)
+open import Common.List.Properties using (∈-resp-≡ ; l11 ; _before_∈_ ; l4 ; concatMap-++-commute)
 open import Functional.Forward.Properties (oracle) using (cmdReadWrites ; IdempotentState ; IdempotentCmd ; cmdIdempotent)
 open import Functional.Forward.Exec (oracle) using (get ; maybeAll ; run?)
 open import Functional.File using (FileName ; FileContent)
@@ -17,34 +17,36 @@ open import Data.List.Relation.Binary.Disjoint.Propositional using (Disjoint)
 open import Data.Product using (proj₁ ; proj₂ ; _,_ ; _×_ ; ∃-syntax)
 open import Data.Product.Properties using (,-injectiveʳ ; ,-injectiveˡ)
 open import Data.List.Relation.Unary.All using (All ; lookup)
-open import Data.List using (List ; map ; _++_ ; foldr ; _∷_ ; [] ; concatMap ; reverse ; _∷ʳ_)
-open import Data.List.Properties using (∷-injective ; unfold-reverse)
+open import Data.List using (List ; map ; _++_ ; foldr ; _∷_ ; [] ; concatMap ; reverse ; _∷ʳ_ ; length)
+open import Data.List.Properties using (∷-injective ; unfold-reverse ; ++-assoc ; reverse-++-commute ; reverse-involutive ; ∷-injectiveˡ ; ∷-injectiveʳ)
 open import Data.Maybe using (Maybe ; nothing ; just)
-open import Relation.Binary.PropositionalEquality using (trans ; cong ; cong-app ; sym ; decSetoid ; cong₂ ; subst ; inspect ; [_])
-open import Data.List.Membership.Propositional.Properties using (∈-++⁺ˡ ; ∈-++⁺ʳ ; ∈-++⁻ ; ∈-concat⁻)
+open import Relation.Binary.PropositionalEquality using (trans ; cong ; cong-app ; sym ; decSetoid ; cong₂ ; subst ; subst₂ ; inspect ; [_])
+open import Data.List.Membership.Propositional.Properties using (∈-++⁺ˡ ; ∈-++⁺ʳ ; ∈-++⁻ ; ∈-concat⁻ ; ∈-∃++)
 open import Function.Base using (_∘_)
 open import Data.String.Properties using (_≟_ ; _==_)
 open import Data.List.Membership.DecSetoid (decSetoid _≟_) using (_∈_ ; _∈?_ ; _∉_)
 open import Relation.Nullary using (yes ; no ; ¬_)
 open import Relation.Nullary.Negation using (contradiction)
 open import Data.List.Relation.Unary.Any using (tail ; here ; there)
+open import Data.List.Relation.Unary.Any.Properties using (reverse⁺ ; reverse⁻)
 open import Functional.Rattle.Exec (oracle) using (rattle ; runWError ; runR ; doRun ; rattle_unchecked ; doRunWError ; checkHazard ; g₂)
 open import Functional.Build (oracle) using (Build ; UniqueEvidence ; PreCond ; DisjointBuild ; Cons)
 open import Data.Sum using (inj₂ ; from-inj₂ ; inj₁ ; _⊎_)
 open import Data.Sum.Properties using (inj₂-injective)
 open import Functional.Script.Exec (oracle) as Script
-open import Functional.Script.Properties (oracle) using (dsj-≡)
-open import Functional.Script.Proofs (oracle) using (reordered ; reordered≡)
+open import Functional.Script.Properties (oracle) using (dsj-≡ ; exec-≡f₁ ; writes≡ ; exec-∷≡ ; exec≡₃) 
+open import Functional.Script.Proofs (oracle) using (reordered ; reordered≡ ; unique-reverse ; unique-drop-mid)
 
-open import Functional.Script.Hazard (oracle) using (Hazard ; HazardFree ; FileInfo ; :: ; ¬SpeculativeHazard ; hazardContradiction ; ∃Hazard ; [] ; HFC ; hazardfree?) renaming (save to rec)
+open import Functional.Script.Hazard (oracle) using (Hazard ; HazardFree ; FileInfo ; _∷_ ; ∃Hazard ; [] ; hazardfree? ; ReadWrite ; WriteWrite ; Speculative ; filesRead ; filesWrote ; files ; cmdsRun ; cmdWrote ; ∈-cmdWrote∷ ; ∈-cmdRead∷l ; ∈-filesWrote) renaming (save to rec)
 
-open import Functional.Script.Hazard.Properties (oracle) using (hf-still)
+open import Functional.Script.Hazard.Properties (oracle) using (hf-still ; hf=>disjointWR ; hf=>disjointRW ; hf=>disjointWW ; hf-drop-mid)
 open import Data.Empty using (⊥ ; ⊥-elim)
 
 open import Data.List.Relation.Unary.Unique.Propositional using (Unique)
 open import Data.List.Relation.Unary.AllPairs using (_∷_)
 open import Data.List.Relation.Binary.Subset.Propositional using (_⊆_)
-open import Data.List.Relation.Binary.Permutation.Propositional using (_↭_)
+open import Data.List.Relation.Binary.Permutation.Propositional using (_↭_ ; ↭-sym)
+open import Data.List.Relation.Binary.Permutation.Propositional.Properties using (∈-resp-↭ ; ↭-length ; drop-mid)
 
 
 
@@ -113,7 +115,7 @@ soundness s br bc ≡₁ = soundness-inner (s , []) [] br bc ≡₁
 completeness-inner : ∀ st ls b₁ b₂ → OKBuild st ls b₁ b₂ → HazardFree (proj₁ st) b₁ b₂ ls
              → ∃[ st₁ ](∃[ ls₁ ](rattle b₁ b₂ (st , ls) ≡ inj₂ (st₁ , ls₁)))
 completeness-inner st ls [] _ (dsb , mp , (ub₁ , ub₂ , uls , dsj)) hf = st , ls , refl
-completeness-inner st@(s , mm) ls (x ∷ b₁) b₂ ((Cons .x ds .b₁ dsb) , mp , ((px ∷ ub₁) , ub₂ , uls , dsj₁))  (:: .s .ls .x .b₁ .b₂ ¬hz hf) with x ∈? map proj₁ mm
+completeness-inner st@(s , mm) ls (x ∷ b₁) b₂ ((Cons .x ds .b₁ dsb) , mp , ((px ∷ ub₁) , ub₂ , uls , dsj₁))  (¬hz ∷ hf) with x ∈? map proj₁ mm
 ... | yes x∈ with maybeAll {s} (get x mm x∈)
 ... | nothing with checkHazard s x {b₂} ls
 ... | just hz = ⊥-elim (¬hz hz)
@@ -129,7 +131,7 @@ completeness-inner st@(s , mm) ls (x ∷ b₁) b₂ ((Cons .x ds .b₁ dsb) , mp
         mp₂ : MemoryProperty (proj₂ st₂)
         mp₂ = MemoryProperty.Cons x s (λ f₁ x₂ → lemma3 f₁ (proj₂ (proj₁ (oracle x) s)) λ x₃ → ds (x₂ , x₃)) mp
 
-completeness-inner st@(s , mm) ls (x ∷ b₁) b₂ ((Cons .x x₁ .b₁ dsb) , mp , ((px ∷ ub₁) , ub₂ , uls , dsj₁))  (:: .s .ls .x .b₁ .b₂ ¬hz hf) | yes x∈ | just all₁ with noEffect x (λ f₁ → refl) mp x∈ all₁
+completeness-inner st@(s , mm) ls (x ∷ b₁) b₂ ((Cons .x x₁ .b₁ dsb) , mp , ((px ∷ ub₁) , ub₂ , uls , dsj₁))  (¬hz ∷ hf) | yes x∈ | just all₁ with noEffect x (λ f₁ → refl) mp x∈ all₁
 ... | ∀₁ = completeness-inner st ls b₁ b₂ ((dsj-≡ (St.run x s) s b₁ ∀₁ dsb) , mp , (ub₁ , ub₂ , uls , dsj₃))  hf₂
   where dsj₃ : Disjoint b₁ (map proj₁ ls)
         dsj₃ = λ x₂ → dsj₁ (there (proj₁ x₂) , proj₂ x₂)
@@ -140,7 +142,7 @@ completeness-inner st@(s , mm) ls (x ∷ b₁) b₂ ((Cons .x x₁ .b₁ dsb) , 
         hf₂ : HazardFree s b₁ b₂ ls
         hf₂ = hf-still b₁ [] ((x , cmdReadNames x s , cmdWriteNames x s) ∷ []) ls (λ f₁ x₂ → sym (∀₁ f₁)) ub₁ uls₂ dsj₂ hf
         
-completeness-inner st@(s , mm) ls (x ∷ b₁) b₂ ((Cons .x ds .b₁ dsb) , mp , ((px ∷ ub₁) , ub₂ , uls , dsj₁))  (:: .s .ls .x .b₁ .b₂ ¬hz hf) |  no x∉ with checkHazard s x {b₂} ls
+completeness-inner st@(s , mm) ls (x ∷ b₁) b₂ ((Cons .x ds .b₁ dsb) , mp , ((px ∷ ub₁) , ub₂ , uls , dsj₁))  (¬hz ∷ hf) |  no x∉ with checkHazard s x {b₂} ls
 ... | just hz = ⊥-elim (¬hz hz)
 ... | nothing = completeness-inner (St.run x s , save x ((cmdReadNames x s) ++ (cmdWriteNames x s)) (St.run x s) mm) (rec s x ls) b₁ b₂ (dsb , (MemoryProperty.Cons x s (λ f₁ x₂ → lemma3 f₁ (proj₂ (proj₁ (oracle x) s)) λ x₃ → ds (x₂ , x₃)) mp) , (ub₁ , ub₂ , (g₂ (map proj₁ ls) (λ x₁ → dsj₁ (here refl , x₁)) ∷ uls) , dsj₂)) hf 
   where dsj₂ : Disjoint b₁ (x ∷ map proj₁ ls)
@@ -216,52 +218,264 @@ correct_rattle s bc pc with rattle bc bc ((s , []) , []) | inspect (rattle bc bc
 -- which means it produces a state.
 -- then we use soundness to prove theyre equal to their non hazard versions ; then we use the reordering proof to show they're equivalent??
 
-extra-lemma : ∀ s x y b₁ b₂ ls → x ∈ b₂ → y ∈ b₂ → ¬ HazardFree s b₂ b₁ ls
-extra-lemma s x y b₁ (x₁ ∷ b₂) ls x∈b₁ y∈b₁ (:: .s .ls .x₁ .b₂ .b₁ ¬hz hf) = {!!}
-
 -- for every pair of commands in b₂ (x , y) where x is before y; if x writes to something y reads; then (x , y) in b₁ too.
 
-preservesHazards : ∀ s ls b₁ b₂ → b₁ ⊆ b₂ → Unique b₁ → Unique b₂ → ¬ HazardFree s b₁ [] ls → ¬ HazardFree s b₂ b₁ ls
-preservesHazards s ls b₁ b₂ ⊆₁ ue ue₁ ¬hf hf = ¬hf {!!}
-  where --g₃ : ∀ {v} → v ∈ cmdWriteNames x s → v ∈ files ls₂ → ⊥
-  
-        g₁ : ∀ s b₁ b₂ ls₁ ls₂ → HazardFree s b₂ b₁ ls₁ → HazardFree s b₁ [] ls₂
-        g₁ s b₁ [] ls₁ ls₂ hf = {!!}
-        g₁ s b₁ (x ∷ b₂) ls₁ ls₂ hf = {!!}
+before=>∈ : ∀ {x₁} {x₂} {xs} → x₁ before x₂ ∈ xs → (x₁ ∈ xs × x₂ ∈ xs)
+before=>∈ (ys , zs , ≡₁ , x₂∈zs) = (subst (λ x → _ ∈ x) (sym ≡₁) (∈-++⁺ʳ ys (here refl)))
+                                   , (subst (λ x → _ ∈ x) (sym ≡₁) (∈-++⁺ʳ ys (there x₂∈zs)))
 
-{- if you have a pair of commands in b₂. (x , y) either or speculative hazard in b₂
- 
+still-hazard : ∀ {s} {ls} x₁ x b → ¬ x₁ ≡ x → x ∉ (map proj₁ ls) → Hazard s x₁ (b ++ x ∷ []) ls → Hazard s x₁ b ls
+still-hazard x₁ x b _ x∉ls (ReadWrite x₂ x₃) = (ReadWrite x₂ x₃)
+still-hazard x₁ x b _ x∉ls (WriteWrite x₂ x₃) = (WriteWrite x₂ x₃)
+still-hazard x₁ x b ¬x₁≡x x∉ls (Speculative x₂ x₃ x₄ x₅ x₆ x₇ x₈)
+  = Speculative x₂ x₃ x₄ x₃∈b ¬bf x₇ x₈
+    where x₃∈b : x₃ ∈ b
+          x₃∈b with ∈-++⁻ b x₅
+          ... | inj₁ x₃∈₁ = x₃∈₁
+          ... | inj₂ (here px₁) with before=>∈ x₄
+          ... | here px , ∈₂ = contradiction (sym (trans (sym px₁) px)) ¬x₁≡x
+          ... | there ∈₁ , ∈₂ = contradiction (subst (λ x₉ → x₉ ∈ _) px₁ ∈₁) x∉ls
+          ¬bf : ¬ (x₂ before x₃ ∈ b)
+          ¬bf (xs , ys , ≡₁ , ∈₁) = x₆ (xs , ys ++ x ∷ [] , trans (cong (_++ x ∷ []) ≡₁) (++-assoc xs (x₂ ∷ ys) (x ∷ [])) , ∈-++⁺ˡ ∈₁)
+
+script-rec : ∀ (b : Build) s ls → FileInfo
+script-rec [] s ls = ls
+script-rec (x ∷ b) s ls = script-rec b (St.run x s) (rec s x ls)
+
+script-rec-++ : ∀ {s} {as} {bs} xs → script-rec xs s (as ++ bs) ≡ script-rec xs s as ++ bs
+script-rec-++ [] = refl
+script-rec-++ (x ∷ xs) = script-rec-++ xs
+
+before-reverse : ∀ x₁ x₂ (xs : Build) → x₁ before x₂ ∈ xs → x₂ before x₁ ∈ (reverse xs)
+before-reverse x₁ x₂ xs (ys , zs , ≡₁ , x₂∈zs) with ∈-∃++ x₂∈zs
+... | (as , bs , ≡₂) = reverse bs , reverse (ys ++ x₁ ∷ as) , ≡₃ , reverse⁺ (∈-++⁺ʳ ys (here refl))
+  where ≡₃ : reverse xs ≡ reverse bs ++ x₂ ∷ reverse (ys ++ x₁ ∷ as)
+        ≡₃ with trans (subst (λ x → xs ≡ ys ++ x₁ ∷ x) ≡₂ ≡₁) (sym (++-assoc ys (x₁ ∷ as) (x₂ ∷ bs)))
+        ... | a = trans (cong reverse a)
+                        (trans (reverse-++-commute (ys ++ x₁ ∷ as) (x₂ ∷ bs))
+                               (trans (cong (_++ reverse (ys ++ x₁ ∷ as)) (unfold-reverse x₂ bs))
+                                      (l4 x₂ (reverse bs))))
+
+
+extra-lemma2 : ∀ {s} {ls} x b₁ b₂ → (cmdsRun (script-rec b₁ s ls)) ≡ reverse b₂ → Disjoint (files (script-rec b₁ s ls)) (cmdWriteNames x (script b₁ s)) → x ∉ (map proj₁ ls) → x ∉ b₁ → HazardFree s b₁ b₂ ls → HazardFree s (b₁ ++ x ∷ []) (b₂ ++ x ∷ []) ls
+extra-lemma2 x [] b₂ ≡₁ dsj _ _ [] = g₁ ∷ []
+  where g₁ : ¬ Hazard _ x (b₂ ++ x ∷ []) _
+        g₁ (ReadWrite x x₁) = dsj (∈-++⁺ˡ x₁ , x)
+        g₁ (WriteWrite x x₁) = dsj (∈-++⁺ʳ _ x₁ , x)
+        g₁ (Speculative x₁ x₂ y x₃ x₄ x₅ x₆) with before-reverse x₂ x₁ (x ∷ reverse b₂) (subst (λ x₇ → x₂ before x₁ ∈ x₇) (cong (x ∷_) ≡₁) y)
+        ... | bf = x₄ (subst (λ x₁₀ → x₁ before x₂ ∈ x₁₀) (trans (unfold-reverse x (reverse b₂)) (cong (_++ x ∷ []) (reverse-involutive b₂))) bf)
+extra-lemma2 {s} {ls} x (x₁ ∷ b₁) b₂ ≡₁ dsj x∉ls x∉b₁ (x₂ ∷ hf) = (g₁ x∉ls x₂) ∷ (extra-lemma2 x b₁ b₂ ≡₁ dsj x∉₁ (λ x₃ → x∉b₁ (there x₃)) hf)
+  where g₁ : ∀ {s} {ls} → x ∉ (map proj₁ ls) → ¬ Hazard s x₁ b₂ ls → ¬ Hazard s x₁ (b₂ ++ x ∷ []) ls
+        g₁ x∉ls ¬hz hz = ¬hz (still-hazard _ x b₂ (λ x₄ → x∉b₁ (here (sym x₄))) x∉ls hz)
+        x∉₁ : x ∉ x₁ ∷ map proj₁ ls
+        x∉₁ (here px) = x∉b₁ (here px)
+        x∉₁ (there x∈ls) = x∉ls x∈ls
+
+-- kind of a dumb function that could be inlined?
+helper4 : ∀ {f₁} {s} bs x → f₁ ∈ cmdReadNames x s → Disjoint (cmdReadNames x s) (buildWriteNames s bs) → f₁ ∉ buildWriteNames s bs
+helper4 bs x f₁∈reads dsj f₁∈writes = dsj (f₁∈reads , f₁∈writes)
+
+helper3 : ∀ {s} as bs xs x → Disjoint (cmdReadNames x (script as s)) (buildWriteNames (script as s) bs) → (∀ f₁ → script (as ++ bs) s f₁ ≡ script xs s f₁) → proj₁ (oracle x) (script as s) ≡ proj₁ (oracle x) (script xs s)
+helper3 {s} as bs xs x dsj ∀₁ = proj₂ (oracle x) (script as s) (script xs s) λ f₁ x₁ → trans (exec-≡f₁ s f₁ as bs (f₁∉₁ x₁)) (∀₁ f₁)
+  where f₁∉₁ : ∀ {f₁} → f₁ ∈ cmdReadNames x (script as s) → f₁ ∉ buildWriteNames (script as s) bs
+        f₁∉₁ f₁∈reads = helper4 bs x f₁∈reads dsj
+
+helper5 : ∀ {s} xs x → Disjoint (cmdWriteNames x s) xs → All (λ f₁ → s f₁ ≡ St.run x s f₁) xs
+helper5 [] x dsj = All.[]
+helper5 {s} (x₁ ∷ xs) x dsj = (lemma3 x₁ (cmdWrites x s) λ x₂ → dsj (x₂ , here refl)) All.∷ (helper5 xs x λ x₂ → dsj ((proj₁ x₂) , there (proj₂ x₂)))
+
+-- putting x in middle doesnt change result if x doesnt write to file. 
+helper6 : ∀ {s} {f₁} xs x → f₁ ∉ cmdWriteNames x s → All (λ f₁ → s f₁ ≡ St.run x s f₁) (buildReadNames (St.run x s) xs) → script (x ∷ xs) s f₁ ≡ script xs s f₁
+helper6 {s} xs x f₁∉ all₁ = sym (exec-∷≡ _ s (St.run x s) xs all₁ (lemma3 _ (cmdWrites x s) f₁∉))
+
+helper7 : ∀ {s} {s₁} f₁ xs ys → xs ≡ ys → f₁ ∈ map proj₁ xs → foldr extend s xs f₁ ≡ foldr extend s₁ ys f₁
+helper7 g₁ ((f , v) ∷ xs) ((f₁ , v₁) ∷ ys) ≡₁ f₁∈ with f ≟ g₁ | f₁ ≟ g₁
+... | yes f≡g₁ | yes f₁≡g₁ = cong just (,-injectiveʳ (∷-injectiveˡ ≡₁))
+... | yes f≡g₁ | no ¬f₁≡g₁ = contradiction (trans (sym (,-injectiveˡ (∷-injectiveˡ ≡₁))) f≡g₁) ¬f₁≡g₁
+... | no ¬f≡g₁ | yes f₁≡g₁ = contradiction (trans (,-injectiveˡ (∷-injectiveˡ ≡₁)) f₁≡g₁) ¬f≡g₁
+... | no ¬f≡g₁ | no ¬f₁≡g₁ = helper7 g₁ xs ys (∷-injectiveʳ ≡₁) (tail (λ x → ¬f≡g₁ (sym x)) f₁∈)
+
+helper8 : ∀ {s} {f₁} xs → f₁ ∉ (buildWriteNames s xs) → script xs s f₁ ≡ s f₁
+helper8 [] f₁∉ = refl
+helper8 {s} {f₁} (x ∷ xs) f₁∉ = trans (helper8 xs λ x₁ → f₁∉ (∈-++⁺ʳ (cmdWriteNames x s) x₁))
+                                      (sym (lemma3 f₁ (cmdWrites x s) λ x₁ → f₁∉ (∈-++⁺ˡ x₁)))
+
+script≡ : ∀ {s} xs ys → script (xs ++ ys) s ≡ script ys (script xs s)
+script≡ [] ys = refl
+script≡ (x ∷ xs) ys = script≡ xs ys
+
+add-back : ∀ {s} as bs xs x → Disjoint (cmdWriteNames x (script as s)) (buildWriteNames (St.run x (script as s)) bs) → Disjoint (cmdReadNames x (script as s)) (buildWriteNames (St.run x (script as s)) bs) → Disjoint (cmdWriteNames x (script as s)) (buildReadNames (St.run x (script as s)) bs) → (∀ f₁ → script (as ++ bs) s f₁ ≡ script xs s f₁) → (∀ f₁ → script (as ++ x ∷ bs) s f₁ ≡ script (xs ++ x ∷ []) s f₁)
+add-back {s} as bs xs x dsj₀ dsj dsj₁ ∀₁ f₁ with helper5 (buildReadNames (St.run x (script as s)) bs) x dsj₁
+... | all₁ with writes≡ (script as s) (St.run x (script as s)) bs all₁
+... | ≡₁   with helper3 as bs xs x (subst (λ x₁ → Disjoint _ x₁) (sym ≡₁) dsj) ∀₁
+... | x≡   with f₁ ∈? cmdWriteNames x (script as s)
+-- we know as ++ x ≡ xs ++ x. just show bs doesnt change what x wrote to.
+... | yes f₁∈ = trans ≡₂ ≡₃
+  where ≡₂ : script (as ++ x ∷ bs) s f₁ ≡ St.run x (script as s) f₁
+        ≡₂ = trans (cong-app (script≡ as (x ∷ bs)) f₁) (helper8 bs λ x₁ → dsj₀ (f₁∈ , x₁))
+        ≡₃ : St.run x (script as s) f₁ ≡ script (xs ++ x ∷ []) s f₁
+        ≡₃ = trans (helper7 {script as s} {script xs s} f₁ (cmdWrites x (script as s)) (cmdWrites x (script xs s)) (cong proj₂ x≡) f₁∈)
+                   (sym (cong-app (script≡ xs (x ∷ [])) f₁))
+        
+... | no f₁∉ with trans (cong-app (script≡ as (x ∷ bs)) f₁) (trans (helper6 bs x f₁∉ all₁) (sym (cong-app (script≡ as bs) f₁)))
+                  -- script xs s f₁ ≡ script (xs ++ x ∷ []) s f₁
+... | ≡₂     with trans (lemma3 _ (cmdWrites x (script xs s)) (subst (λ x₁ → _ ∉ x₁) (cong (map proj₁ ∘ proj₂) x≡) f₁∉)) (cong-app (exec≡₃ x xs) f₁)
+... | ≡₃ = trans ≡₂ (trans (∀₁ f₁) ≡₃)
+
+
+reordered1 : ∀ {s} {ls} xs ys → length xs ≡ length ys → xs ↭ ys → UniqueEvidence xs ys (map proj₁ ls)
+           → HazardFree s xs (reverse ys) ls → (∀ f₁ → script xs s f₁ ≡ script (reverse ys) s f₁)
+reordered1 [] [] _ p _ hf f₁ = refl
+reordered1 {s} {ls} xs (x ∷ ys) _ p (uxs , ux ∷ uys , uls , dsj) hf f₁ with ∈-∃++ (∈-resp-↭ (↭-sym p) (here refl))
+... | (as , bs , ≡₁) with add-back as bs (reverse ys) x dsj₁ dsj₂ dsj₃ (reordered1 (as ++ bs) ys (↭-length ↭₂) ↭₂ (uas++bs , uys , uls , dsj₀) hf₁)
+  where ↭₂ : as ++ bs ↭ ys
+        ↭₂ = drop-mid as [] (subst (λ x₁ → x₁ ↭ x ∷ ys) ≡₁ p)
+        uas++bs : Unique (as ++ bs)
+        uas++bs = unique-drop-mid as (subst (λ x₁ → Unique x₁) ≡₁ uxs)
+        dsj₀ : Disjoint (as ++ bs) (map proj₁ ls)
+        dsj₀ x₂ with ∈-++⁻ as (proj₁ x₂)
+        ... | inj₁ _∈as = dsj (subst (λ x₁ → _ ∈ x₁) (sym ≡₁) (∈-++⁺ˡ _∈as) , (proj₂ x₂))
+        ... | inj₂ _∈bs = dsj (subst (λ x₁ → _ ∈ x₁) (sym ≡₁) (∈-++⁺ʳ as (there _∈bs)) , (proj₂ x₂))
+        ⊆₁ : as ++ x ∷ bs ⊆ reverse ys ++ x ∷ []
+        ⊆₁ x₁∈as++x∷bs = subst (λ x₂ → _ ∈ x₂)
+                               (unfold-reverse x ys)
+                               (reverse⁺ (∈-resp-↭ p (subst (λ x₂ → _ ∈ x₂) (sym ≡₁) x₁∈as++x∷bs)))
+        hf₀ : HazardFree s (as ++ x ∷ bs) ((reverse ys) ++ x ∷ []) _
+        hf₀ = subst₂ (λ x₂ x₃ → HazardFree s x₂ x₃ _) ≡₁ (unfold-reverse x ys) hf
+        hf₁ : HazardFree s (as ++ bs) (reverse ys) _
+        hf₁ = hf-drop-mid as bs (reverse ys) ⊆₁
+                          (subst (λ x₁ → Unique x₁) ≡₁ uxs)
+                          (subst (λ x₁ → Unique x₁) (unfold-reverse x ys) (unique-reverse (x ∷ ys) (ux ∷ uys)))
+                          uls
+                          (subst (λ x₁ → Disjoint x₁ _) ≡₁ dsj)
+                          hf₀
+        bs⊆reverse-ys : bs ⊆ reverse ys
+        bs⊆reverse-ys x₃ = reverse⁺ (∈-resp-↭ ↭₂ (∈-++⁺ʳ as x₃))
+        x∉reverse-ys : x ∉ reverse ys
+        x∉reverse-ys x∈reverse-ys = lookup ux (reverse⁻ x∈reverse-ys) refl
+        dsj₁ : Disjoint (cmdWriteNames x (script as _)) (buildWriteNames (St.run x (script as _)) bs)
+        dsj₁ = hf=>disjointWW s x as bs (reverse ys) _  bs⊆reverse-ys x∉reverse-ys hf₀
+        dsj₂ : Disjoint (cmdReadNames x (script as _)) (buildWriteNames (St.run x (script as _)) bs)
+        dsj₂ = hf=>disjointRW s x as bs (reverse ys) _ bs⊆reverse-ys x∉reverse-ys hf₀
+        dsj₃ : Disjoint (cmdWriteNames x (script as _)) (buildReadNames (St.run x (script as _)) bs)
+        dsj₃ = hf=>disjointWR s x as bs (reverse ys) _ bs⊆reverse-ys x∉reverse-ys hf₀
+... | ∀₂ = subst₂ (λ x₂ x₃ → script x₂ _ f₁ ≡ script x₃ _ f₁) (sym ≡₁) (sym (unfold-reverse x ys)) (∀₂ f₁)
+
+
+
+add-back-read : ∀ {s} {ls} as bs xs x → filesRead (script-rec xs s ls) ⊆ filesRead (script-rec (as ++ bs) s ls)
+              → filesRead (script-rec (xs ++ x ∷ []) s ls) ⊆ filesRead (script-rec (as ++ x ∷ bs) s ls)
+add-back-read {s} {ls} as bs xs x ⊆₁ x₂ with ∈-++⁻ (filesRead (script-rec xs s ls)) {!!}
+{- proves filesRead (script-rec (xs ++ x ∷ []) s ls ≡ filesRead script-rec xs ++ cmdwriteNames x -}
+... | inj₁ ∈₁ with ⊆₁ ∈₁
+... | a = {!!}
+{- prove (filesRead (script-rec (as ++ bs) s ls subset of (filesRead (script-rec (as ++ x ∷ bs) s ls
 -}
+add-back-read {s} {ls} xs as bs x ⊆₁ x₂ | inj₂ ∈₁ = {!!}
+{- prove (cmdWriteNames x (script xs s)) subset of filesRead (script-rec (as ++ x ∷ bs))... -}
 
-{- we know:
-  x is in b₂ ; 
-  x ∈ b₁ ; 
-  x wrote to something a command in ls₂ read.   ; we should know ls₁ is a subset of ls₂
-  if the command in ls₂ is in ls₁ 
+filesRead-sub :  ∀ {s} {ls} xs ys → length xs ≡ length ys → xs ↭ ys → HazardFree s xs (reverse ys) ls → filesRead (script-rec (reverse ys) s ls) ⊆ filesRead (script-rec xs s ls)
+filesRead-sub [] [] _ p hf = λ x₂ → x₂
+filesRead-sub {s} xs (x ∷ ys) _ p hf with ∈-∃++ (∈-resp-↭ (↭-sym p) (here refl))
+... | (as , bs , ≡₁) with add-back-read as bs (reverse ys) x (filesRead-sub (as ++ bs) ys (↭-length ↭₂) ↭₂ hf₁)
+  where ↭₂ : as ++ bs ↭ ys
+        ↭₂ = drop-mid as [] (subst (λ x₁ → x₁ ↭ x ∷ ys) ≡₁ p)
+        hf₀ : HazardFree s (as ++ x ∷ bs) ((reverse ys) ++ x ∷ []) _
+        hf₀ = subst₂ (λ x₂ x₃ → HazardFree s x₂ x₃ _) ≡₁ (unfold-reverse x ys) hf
+        hf₁ : HazardFree s (as ++ bs) (reverse ys) _
+        hf₁ = hf-drop-mid as bs (reverse ys) {!!} -- (λ x₂ → ∈-resp-↭ (subst₂ (λ x₀ x₁ → x₀ ↭ x₁) ≡₁ (unfold-reverse x (reverse ys)) p) x₂)
+                          {!!} {!!} {!!} {!!} hf₀
+... | a = subst₂ (λ x₂ x₃ → filesRead (script-rec x₂ s _) ⊆ filesRead (script-rec x₃ s _)) (sym (unfold-reverse x ys)) (sym ≡₁) a
 
-  if there is a read/write or write/write hazard. => either there is a read/write write/write hazard or a speculative hazard.
- 
+
+extra-lemma3-reads : ∀ {s} {ls} bs xs x → x ∉ bs → x ∉ xs → bs ⊆ xs → HazardFree s bs (xs ++ x ∷ []) ls → Disjoint (filesRead (script-rec bs s [])) (cmdWrote ls x)
+extra-lemma3-reads {s} {ls} (x₁ ∷ bs) xs x x∉bs x∉xs bs⊆xs (¬hz ∷ hf) (fst , v∈ls) with ∈-++⁻ (filesRead (script-rec bs (St.run x₁ s) [])) (subst (λ x₂ → _ ∈ x₂) ≡₁ fst)
+  where ≡₁ : filesRead (script-rec bs (St.run x₁ s) (rec s x₁ [])) ≡ filesRead (script-rec bs (St.run x₁ s) []) ++ (filesRead (rec s x₁ []))
+        ≡₁ = trans (cong filesRead (script-rec-++ bs)) (concatMap-++-commute (proj₁ ∘ proj₂) (script-rec bs (St.run x₁ s) []) (rec s x₁ []))
+... | inj₁ ∈₁ = (extra-lemma3-reads bs xs x (λ x₂ → x∉bs (there x₂)) x∉xs (λ x₂ → bs⊆xs (there x₂)) hf) (∈₁ , ∈-cmdWrote∷ (x₁ , _ , _) x ls v∈ls λ x₁≡x → x∉bs (here (sym x₁≡x)))
+... | inj₂ ∈₁ = ¬hz (Speculative x x₁ bf (∈-++⁺ˡ (bs⊆xs (here refl))) (¬bf xs (bs⊆xs (here refl)) x∉xs) (∈-cmdRead∷l (x₁ , _ , _) ls (∈₂ ∈₁)) (∈-cmdWrote∷ (x₁ , _ , _) x ls v∈ls λ x₁≡x → x∉bs (here (sym x₁≡x))))
+  where ∈₂ : ∀ {v} → v ∈ cmdReadNames x₁ s ++ [] → v ∈ cmdReadNames x₁ s
+        ∈₂ v∈ with ∈-++⁻ (cmdReadNames x₁ s) v∈
+        ... | inj₁ v∈₁ = v∈₁
+        ... | inj₂ ()
+        bf : x₁ before x ∈ (x₁ ∷ cmdsRun ls)
+        bf = [] , cmdsRun ls , refl , {!!}
+        ¬bf : ∀ xs → x₁ ∈ xs → x ∉ xs → ¬ (x before x₁ ∈ (xs ++ x ∷ []))
+        ¬bf (x₂ ∷ xs) _  x∉x₂∷xs ([] , zs , ≡₁ , ∈₁) = contradiction (here (sym (∷-injectiveˡ ≡₁))) x∉x₂∷xs
+        ¬bf (x₃ ∷ xs) x₁∈xs x∉xs (x₂ ∷ ys , zs , ≡₁ , ∈₁) = ¬bf xs (tail {!!} x₁∈xs) (λ x₄ → x∉xs (there x₄)) {!!}
+
+extra-lemma3-writes : ∀ {s} {ls} bs xs x → x ∉ bs → x ∉ xs → bs ⊆ xs → HazardFree s bs (xs ++ x ∷ []) ls → Disjoint (filesWrote (script-rec bs s [])) (cmdWrote ls x)
+extra-lemma3-writes {s} {ls} (x₁ ∷ bs) xs x x∉bs x∉xs bs⊆xs (¬hz ∷ hf) (fst , v∈ls) with ∈-++⁻ (filesWrote (script-rec bs (St.run x₁ s) [])) (subst (λ x₂ → _ ∈ x₂) ≡₁ fst)
+  where ≡₁ : filesWrote (script-rec bs (St.run x₁ s) (rec s x₁ [])) ≡ filesWrote (script-rec bs (St.run x₁ s) []) ++ (filesWrote (rec s x₁ []))
+        ≡₁ = trans (cong filesWrote (script-rec-++ bs)) (concatMap-++-commute (proj₂ ∘ proj₂) (script-rec bs (St.run x₁ s) []) (rec s x₁ []))
+... | inj₁ ∈₁ = (extra-lemma3-writes bs xs x (λ x₂ → x∉bs (there x₂)) x∉xs (λ x₂ → bs⊆xs (there x₂)) hf)
+                (∈₁ , ∈-cmdWrote∷ (x₁ , _ , _) x ls v∈ls λ x₁≡x → x∉bs (here (sym x₁≡x)))
+... | inj₂ ∈₁ = ¬hz (WriteWrite (∈₂ ∈₁) (∈-filesWrote ls v∈ls))
+  where ∈₂ : ∀ {v} → v ∈ cmdWriteNames x₁ s ++ [] → v ∈ cmdWriteNames x₁ s
+        ∈₂ v∈ with ∈-++⁻ (cmdWriteNames x₁ s) v∈
+        ... | inj₁ v∈₁ = v∈₁
+        ... | inj₂ ()
+        
+extra-lemma3 : ∀ {s} {ls} bs xs x → x ∉ bs → x ∉ xs → bs ⊆ xs → HazardFree s bs (xs ++ x ∷ []) ls → Disjoint (files (script-rec bs s [])) (cmdWrote ls x)
+extra-lemma3 {s} bs xs x x∉bs x∉xs bs⊆xs hf x₂ with ∈-++⁻ (filesRead (script-rec bs s [])) (proj₁ x₂)
+... | inj₁ ∈₁ = contradiction (∈₁ , (proj₂ x₂)) (extra-lemma3-reads bs xs x x∉bs x∉xs bs⊆xs hf)
+... | inj₂ ∈₁ = contradiction (∈₁ , (proj₂ x₂)) (extra-lemma3-writes bs xs x x∉bs x∉xs bs⊆xs hf)
 
 
--}
+extra-lemma : ∀ {s} {ls} as bs xs x → HazardFree s (as ++ x ∷ bs) (xs ++ x ∷ []) ls → Disjoint (files (script-rec as s ls)) (cmdWriteNames x (script as s)) × Disjoint (files (script-rec bs (St.run x (script as s)) [])) (cmdWriteNames x (script as s))
+extra-lemma {s} {ls} [] bs xs x (¬hz ∷ hf) = dsj , (extra-lemma3 bs xs x {!!} {!!} {!!} (subst (λ x₁ → HazardFree x₁ _ _ _) (cong (St.run x) refl) hf))
+  where dsj : Disjoint (files ls) (cmdWriteNames x (script [] s))
+        dsj x₂ with ∈-++⁻ (filesRead ls) (proj₁ x₂)
+        ... | inj₁ ∈₁ = ¬hz (ReadWrite (proj₂ x₂) ∈₁)
+        ... | inj₂ ∈₁ = ¬hz (WriteWrite (proj₂ x₂) ∈₁)
+extra-lemma (x₂ ∷ as) bs xs x (_ ∷ hf) = extra-lemma as bs xs x hf
 
--- :: s ls x b₁ [] (λ _ _ _ ∈[] _ _ → contradiction ∈[] (λ ())) (λ x₂ → contradiction ({!!} , {!!}) (¬sh {!!} {!!} {!!} {!!} {!!})) {!!}
+preserves-help2 : ∀ {s} {ls} as bs ys x → filesWrote (script-rec (reverse ys) s ls) ⊆ filesWrote (script-rec as s ls) ++ filesWrote (script-rec bs (St.run x (script as s)) [])
+preserves-help2 = {!!}
 
-{- preserving hazards:  Need to prove if the reordered build is hazardfree; then the original build is hazardfree.  
+preserves-help1 : ∀ {s} {ls} as bs ys x → filesRead (script-rec (reverse ys) s ls) ⊆ filesRead (script-rec as s ls) ++ filesRead (script-rec bs (St.run x (script as s)) [])
+preserves-help1 = {!!}
 
-we know: there is a hazard there; read/write or write/write. we know x writes to something that
-the build previously wrote.  somehow we need to produce a contradiction. 
+preservesHazardFree : ∀ {s} {ls} xs ys → length xs ≡ length ys → xs ↭ ys → HazardFree s xs (reverse ys) ls → HazardFree s (reverse ys) (reverse ys) ls
+preservesHazardFree [] [] _ p hf = []
+preservesHazardFree {s} {ls} xs (x ∷ ys) _ p hf with ∈-∃++ (∈-resp-↭ (↭-sym p) (here refl))
+... | (as , bs , ≡₁) with extra-lemma2 x (reverse ys) (reverse ys) {!!} dsj {!!} {!!} (preservesHazardFree (as ++ bs) ys (↭-length ↭₂) ↭₂ hf₁)
+  where ↭₂ : as ++ bs ↭ ys
+        ↭₂ = drop-mid as [] (subst (λ x₁ → x₁ ↭ x ∷ ys) ≡₁ p)
+        hf₀ : HazardFree s (as ++ x ∷ bs) ((reverse ys) ++ x ∷ []) _
+        hf₀ = subst₂ (λ x₂ x₃ → HazardFree s x₂ x₃ _) ≡₁ (unfold-reverse x ys) hf
+        hf₁ : HazardFree s (as ++ bs) (reverse ys) _
+        hf₁ = hf-drop-mid as bs (reverse ys) {!!} -- (λ x₂ → ∈-resp-↭ (subst₂ (λ x₀ x₁ → x₀ ↭ x₁) ≡₁ (unfold-reverse x (reverse ys)) p) x₂)
+                          {!!} {!!} {!!} {!!} hf₀
 
-we would have a speculative hazard if 
+        dsj : Disjoint (files (script-rec (reverse ys) _ ls)) (cmdWriteNames x (script (reverse ys) _))
+        dsj x₁ with extra-lemma as bs (reverse ys) x (subst₂ (λ x₂ x₃ → HazardFree s x₂ x₃ ls) ≡₁ (unfold-reverse x ys) hf)
+        ... | a₁ , a₂ with ∈-++⁻ (filesRead (script-rec (reverse ys) _ ls)) (proj₁ x₁)
+        ... | inj₁ ∈₁ with ∈-++⁻ (filesRead (script-rec as s ls)) (⊆₁ ∈₁) 
+          where ⊆₁ : filesRead (script-rec (reverse ys) s ls) ⊆ filesRead (script-rec as s ls) ++ filesRead (script-rec bs (St.run x (script as s)) [])
+                ⊆₁ = {!!}
+        ... | inj₁ ∈₂ = a₁ (∈-++⁺ˡ ∈₂ , {!!})
+        ... | inj₂ ∈₂ = a₂ (∈-++⁺ˡ ∈₂ , {!!})
+        -- in filesWrite (script-rec (reverse ys) ...
+        dsj x₁ | (a₁ , a₂) | inj₂ ∈₁ with ∈-++⁻ (filesWrote (script-rec as s ls)) (⊆₁ ∈₁)
+          where ⊆₁ : filesWrote (script-rec (reverse ys) s ls) ⊆ filesWrote (script-rec as s ls) ++ filesWrote (script-rec bs (St.run x (script as s)) [])
+                ⊆₁ = {!!}
+        ... | inj₁ ∈₂ = a₁ (∈-++⁺ʳ (filesRead (script-rec as s ls)) ∈₂ , {!!})
+        ... | inj₂ ∈₂ = a₂ (∈-++⁺ʳ (filesRead (script-rec bs (St.run x (script as s)) [])) ∈₂ , {!!})
 
--}
 
+... | a₂ = subst (λ x₁ → HazardFree _ x₁ x₁ _) (sym (unfold-reverse x ys)) {!!}
+
+
+preservesHazards : ∀ s ls b₁ b₂ → b₁ ⊆ b₂ → Unique b₁ → Unique b₂ → ¬ HazardFree s b₁ b₁ ls → ¬ HazardFree s b₂ b₁ ls
+preservesHazards s ls b₁ b₂ ⊆₁ ue ue₁ ¬hf hf = ¬hf {!!} -- (preservesHazardFree s ls b₁ b₂ hf)
 \end{code}
 
 \begin{code}[hide]
 correct2 : ∀ br bc s m ls → OKBuild (s , m) ls br bc → bc ↭ br → ¬ HazardFree s bc bc ls ⊎ ∃[ s₁ ](∃[ m₁ ](∃[ ls₁ ](rattle br bc ((s , m) , ls) ≡ inj₂ ((s₁ , m₁) , ls₁) × ∀ f₁ → s₁ f₁ ≡ script bc s f₁)))
 correct2 b₁ b₂ s mm ls (dsb , mp , ue) p with rattle b₁ b₂ ((s , mm) , ls) | inspect (rattle b₁ b₂) ((s , mm) , ls)
 ... | inj₁ hz | [ ≡₁ ] = {!!}
+
 {- proof plan:
   we know the reorderd build produced a hazard. this doesnt mean the original build has a hazard.  
   we could prove this case if we know the incorrect build doesn't corrupt the "inputs" of the build. 
