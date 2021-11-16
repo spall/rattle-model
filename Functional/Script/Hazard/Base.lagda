@@ -140,11 +140,15 @@ cmdWrote (x ∷ ls) p with (proj₁ x) ≟ p
 ... | yes x≡p = proj₂ (proj₂ x)
 ... | no ¬x≡p = cmdWrote ls p
 
-
 cmdWrote∷-≡ : ∀ x ls → cmdWrote (x ∷ ls) (proj₁ x) ≡ proj₂ (proj₂ x)
 cmdWrote∷-≡ x ls with (proj₁ x) ≟ (proj₁ x)
 ... | yes x≡x = refl
 ... | no ¬x≡x = contradiction refl ¬x≡x
+
+∈-filesWrote : ∀ {v} {x} ls → v ∈ cmdWrote ls x → v ∈ filesWrote ls
+∈-filesWrote {v} {x} ((x₁ , _ , ws) ∷ ls) v∈ with x₁ ≟ x
+... | yes x₁≡x = ∈-++⁺ˡ v∈
+... | no ¬x₁≡x = ∈-++⁺ʳ ws (∈-filesWrote ls v∈)
 
 ∈-cmdWrote∷l : ∀ {v} x ls → v ∈ proj₂ (proj₂ x) → v ∈ cmdWrote (x ∷ ls) (proj₁ x)
 ∈-cmdWrote∷l x ls v∈ with (proj₁ x) ≟ (proj₁ x)
@@ -217,12 +221,6 @@ lemma1 x (x₁ ∷ xs) v∈ with (proj₁ x₁) ≟ x
 --  ¬speculativehazard def only makes sense with unique FileINfo and build
 \end{code}
 
-\newcommand{\speculative}{%
-\begin{code}
-¬SpeculativeHazard : Build → FileInfo → Set
-¬SpeculativeHazard b ls = ∀ x₁ x₂ → x₂ before x₁ ∈ (cmdsRun ls) → x₂ ∈ b → ¬ x₁ before x₂ ∈ b → Disjoint (cmdRead ls x₂) (cmdWrote ls x₁)
-\end{code}}
-
 \begin{code}[hide]
 {- we have a Speculative hazard if a required command read something a speculative command wrote to. 
  So we need to be able to determine: 
@@ -240,9 +238,9 @@ lemma1 x (x₁ ∷ xs) v∈ with (proj₁ x₁) ≟ x
 \newcommand{\hazard}{%
 \begin{code}
 data Hazard : FileSystem → Cmd → Build → FileInfo → Set where
-  ReadWrite   : ∀ s x {b} ls v → v ∈ (cmdWriteNames x s) → v ∈ (filesRead ls) → Hazard s x b ls
-  WriteWrite  : ∀ s x {b} ls v → v ∈ (cmdWriteNames x s) → v ∈ (filesWrote ls) → Hazard s x b ls
-  Speculative : ∀ s x b ls x₁ x₂ v → x₂ before x₁ ∈ (x ∷ (cmdsRun ls)) → x₂ ∈ b → ¬ x₁ before x₂ ∈ b
+  ReadWrite   : ∀ {s} {x} {b} {ls} {v} → v ∈ (cmdWriteNames x s) → v ∈ (filesRead ls) → Hazard s x b ls
+  WriteWrite  : ∀ {s} {x} {b} {ls} {v} → v ∈ (cmdWriteNames x s) → v ∈ (filesWrote ls) → Hazard s x b ls
+  Speculative : ∀ {s} {x} {b} {ls} {v} x₁ x₂ → x₂ before x₁ ∈ (x ∷ (cmdsRun ls)) → x₂ ∈ b → ¬ x₁ before x₂ ∈ b
                 → v ∈ cmdRead (save s x ls) x₂ → v ∈ cmdWrote (save s x ls) x₁ → Hazard s x b ls
 \end{code}}
 
@@ -252,24 +250,11 @@ data Hazard : FileSystem → Cmd → Build → FileInfo → Set where
 ∃Hazard b = ∃[ sys ](∃[ x ](∃[ ls ](Hazard sys x b ls)))
 \end{code}}
 
-\newcommand{\hfcmd}{%
-\begin{code}
-data HazardFreeCmd : FileSystem → Cmd → Build → FileInfo → Set where
-  HFC : ∀ {s} {ls} {x} {b₂} → ¬SpeculativeHazard b₂ (save s x ls) → Disjoint (cmdWriteNames x s) (files ls) → HazardFreeCmd s x b₂ ls
-\end{code}}
-\begin{code}[hide]
-hazardContradiction : ∀ s x b₂ ls → (hz : Hazard s x b₂ ls) → HazardFreeCmd s x b₂ ls → ⊥
-hazardContradiction s x b ls hz (HFC ¬sh dsj) with hz
-... | ReadWrite .s .x .ls v v∈cw v∈rs = contradiction (v∈cw , ∈-++⁺ˡ v∈rs) dsj
-... | WriteWrite .s .x .ls v v∈cw v∈ws = contradiction (v∈cw , ∈-++⁺ʳ (filesRead ls) v∈ws) dsj
-... | Speculative .s .x .b .ls x₁ x₂ v bf x₂∈b ¬bf v∈rs v∈ws = contradiction (v∈rs , v∈ws) (¬sh x₁ x₂ bf x₂∈b ¬bf)
-\end{code}
-
 \newcommand{\hazardfree}{%
 \begin{code}
 data HazardFree : FileSystem → Build → Build → FileInfo → Set where
   [] : ∀ {s} {b} {ls} → HazardFree s [] b ls
-  :: : ∀ s ls x b₁ b₂ → ¬ Hazard s x b₂ ls → HazardFree (run x s) b₁ b₂ (save s x ls) → HazardFree s (x ∷ b₁) b₂ ls
+  _∷_ : ∀ {s} {x} {b₁} {b₂} {ls} → ¬ Hazard s x b₂ ls → HazardFree (run x s) b₁ b₂ (save s x ls) → HazardFree s (x ∷ b₁) b₂ ls
 \end{code}}
 
 
@@ -385,28 +370,28 @@ speculativeHazard-x? x b₂ (x₁ ∷ ls) ls₁ rs | no p₁ with speculativeHaz
 
 hazard? : ∀ s x b₂ ls → Dec (Hazard s x b₂ ls)
 hazard? s x b₂ ls with intersection?2 (cmdWriteNames x s) (filesRead ls)
-... | yes (v , ∈₁ , ∈₂) = true Relation.Nullary.because Relation.Nullary.ofʸ (ReadWrite s x {b₂} ls v ∈₁ ∈₂)
+... | yes (v , ∈₁ , ∈₂) = true Relation.Nullary.because Relation.Nullary.ofʸ (ReadWrite ∈₁ ∈₂)
 ... | no ¬x₁ with intersection?2 (cmdWriteNames x s) (filesWrote ls)
-... | yes (v , ∈₁ , ∈₂) = true Relation.Nullary.because Relation.Nullary.ofʸ (WriteWrite s x {b₂} ls v ∈₁ ∈₂)
+... | yes (v , ∈₁ , ∈₂) = true Relation.Nullary.because Relation.Nullary.ofʸ (WriteWrite ∈₁ ∈₂)
 ... | no ¬x₂ with ¬speculative? b₂ (save s x ls)
 ... | yes (x₁ , x₂ , v , bf , x₂∈b₂ , ¬bf , v∈₁ , v∈₂)
-  = true Relation.Nullary.because Relation.Nullary.ofʸ (Speculative s x b₂ ls x₁ x₂ v bf x₂∈b₂ ¬bf v∈₁ v∈₂)
+  = true Relation.Nullary.because Relation.Nullary.ofʸ (Speculative x₁ x₂ bf x₂∈b₂ ¬bf v∈₁ v∈₂)
 ... | no ¬sh = false Relation.Nullary.because Relation.Nullary.ofⁿ g₁
   where g₁ : ¬ Hazard s x b₂ ls
-        g₁ (ReadWrite .s _ .ls v x x₁) = ¬x₁ (v , (x , x₁))
-        g₁ (WriteWrite .s _ .ls v x x₁) = ¬x₂ (v , (x , x₁))
-        g₁ (Speculative .s _ .b₂ .ls x₁ x₂ v y x₃ x₄ x₅ x₆)
-          = ¬sh (x₁ , x₂ , v , y , x₃ , x₄ , x₅ , x₆)
+        g₁ (ReadWrite x x₁) = ¬x₁ (_ , (x , x₁))
+        g₁ (WriteWrite x x₁) = ¬x₂ (_ , (x , x₁))
+        g₁ (Speculative x₁ x₂ y x₃ x₄ x₅ x₆)
+          = ¬sh (x₁ , x₂ , _ , y , x₃ , x₄ , x₅ , x₆)
 
 hazardfree? : ∀ s b₁ b₂ ls → Dec (HazardFree s b₁ b₂ ls)
 hazardfree? s [] b₂ ls = true Relation.Nullary.because Relation.Nullary.ofʸ []
 hazardfree? s (x ∷ b₁) b₂ ls with hazard? s x b₂ ls
 ... | yes hz = false Relation.Nullary.because Relation.Nullary.ofⁿ g₁
   where g₁ : ¬ HazardFree s (x ∷ b₁) b₂ ls
-        g₁ (:: .s .ls _ .b₁ .b₂ ¬hz hf) = ¬hz hz
+        g₁ (¬hz ∷ hf) = ¬hz hz
 ... | no ¬hz with hazardfree? (run x s) b₁ b₂ (save s x ls)
-... | yes hf = true Relation.Nullary.because Relation.Nullary.ofʸ (:: s ls x b₁ b₂ ¬hz hf)
+... | yes hf = true Relation.Nullary.because Relation.Nullary.ofʸ (¬hz ∷ hf)
 ... | no ¬hf = false Relation.Nullary.because Relation.Nullary.ofⁿ g₁
   where g₁ : ¬ HazardFree s (x ∷ b₁) b₂ ls
-        g₁ (:: .s .ls _ .b₁ .b₂ x hf) = ¬hf hf
+        g₁ (_ ∷ hf) = ¬hf hf
 \end{code}
