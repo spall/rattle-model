@@ -1,4 +1,3 @@
-g
 \begin{code}[hide]
 open import Functional.State using (State ; Oracle ; Cmd ; FileSystem ; Memory ; save)
 
