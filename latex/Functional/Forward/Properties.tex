@@ -1,5 +1,10 @@
 
 \begin{code}[hide]%
+\>[0]\AgdaSymbol{\{-\#}\AgdaSpace{}%
+\AgdaKeyword{OPTIONS}\AgdaSpace{}%
+\AgdaPragma{--allow-unsolved-metas}\AgdaSpace{}%
+\AgdaSymbol{\#-\}}\<%
+\\
 \>[0]\AgdaKeyword{open}\AgdaSpace{}%
 \AgdaKeyword{import}\AgdaSpace{}%
 \AgdaModule{Functional.State}\AgdaSpace{}%
@@ -998,7 +1003,7 @@
 \\
 \>[0][@{}l@{\AgdaIndent{0}}]%
 \>[2]\AgdaKeyword{where}%
-\>[839I]\AgdaFunction{≡₀}\AgdaSpace{}%
+\>[842I]\AgdaFunction{≡₀}\AgdaSpace{}%
 \AgdaSymbol{:}\AgdaSpace{}%
 \AgdaField{proj₁}\AgdaSpace{}%
 \AgdaSymbol{(}\AgdaBound{oracle}\AgdaSpace{}%
@@ -1012,7 +1017,7 @@
 \AgdaBound{x}\AgdaSymbol{)}\AgdaSpace{}%
 \AgdaBound{sys}\<%
 \\
-\>[.][@{}l@{}]\<[839I]%
+\>[.][@{}l@{}]\<[842I]%
 \>[8]\AgdaFunction{≡₀}\AgdaSpace{}%
 \AgdaSymbol{=}\AgdaSpace{}%
 \AgdaFunction{sym}\AgdaSpace{}%
@@ -1173,7 +1178,7 @@
 \AgdaBound{f₁∉}\AgdaSpace{}%
 \AgdaSymbol{=}\AgdaSpace{}%
 \AgdaFunction{trans}%
-\>[987I]\AgdaSymbol{(}\AgdaFunction{trans}\AgdaSpace{}%
+\>[990I]\AgdaSymbol{(}\AgdaFunction{trans}\AgdaSpace{}%
 \AgdaSymbol{(}\AgdaPostulate{lemma4}\AgdaSpace{}%
 \AgdaSymbol{\{}\AgdaPostulate{St.run}\AgdaSpace{}%
 \AgdaBound{x₁}\AgdaSpace{}%
@@ -1197,7 +1202,7 @@
 \AgdaFunction{≡₀}\AgdaSpace{}%
 \AgdaInductiveConstructor{refl}\AgdaSymbol{))}\<%
 \\
-\>[.][@{}l@{}]\<[987I]%
+\>[.][@{}l@{}]\<[990I]%
 \>[29]\AgdaSymbol{(}\AgdaFunction{trans}\AgdaSpace{}%
 \AgdaSymbol{(}\AgdaBound{ci}\AgdaSpace{}%
 \AgdaSymbol{(}\AgdaFunction{lemma2}\AgdaSpace{}%
@@ -1377,7 +1382,7 @@
 \\
 \>[0][@{}l@{\AgdaIndent{0}}]%
 \>[2]\AgdaKeyword{where}%
-\>[1167I]\AgdaFunction{g₁}\AgdaSpace{}%
+\>[1170I]\AgdaFunction{g₁}\AgdaSpace{}%
 \AgdaSymbol{:}\AgdaSpace{}%
 \AgdaSymbol{(}\AgdaBound{xs}\AgdaSpace{}%
 \AgdaBound{ys}\AgdaSpace{}%
@@ -1405,7 +1410,7 @@
 \AgdaOperator{\AgdaDatatype{≡}}\AgdaSpace{}%
 \AgdaBound{ys}\<%
 \\
-\>[.][@{}l@{}]\<[1167I]%
+\>[.][@{}l@{}]\<[1170I]%
 \>[8]\AgdaFunction{g₁}\AgdaSpace{}%
 \AgdaInductiveConstructor{[]}\AgdaSpace{}%
 \AgdaBound{ys}\AgdaSpace{}%
@@ -1523,7 +1528,7 @@
 \AgdaSymbol{=}\AgdaSpace{}%
 \AgdaInductiveConstructor{IC}\AgdaSpace{}%
 \AgdaBound{x}%
-\>[1289I]\AgdaSymbol{(}\AgdaFunction{map}\AgdaSpace{}%
+\>[1292I]\AgdaSymbol{(}\AgdaFunction{map}\AgdaSpace{}%
 \AgdaSymbol{(λ}\AgdaSpace{}%
 \AgdaBound{f}\AgdaSpace{}%
 \AgdaSymbol{→}\AgdaSpace{}%
@@ -1537,7 +1542,7 @@
 \AgdaBound{x}\AgdaSpace{}%
 \AgdaBound{sys}\AgdaSymbol{))}\<%
 \\
-\>[.][@{}l@{}]\<[1289I]%
+\>[.][@{}l@{}]\<[1292I]%
 \>[18]\AgdaSymbol{(}\AgdaPostulate{St.run}\AgdaSpace{}%
 \AgdaBound{x}\AgdaSpace{}%
 \AgdaBound{sys}\AgdaSymbol{)}\<%
@@ -1790,7 +1795,7 @@
 \AgdaBound{ci}\AgdaSpace{}%
 \AgdaSymbol{=}\AgdaSpace{}%
 \AgdaFunction{trans}%
-\>[1519I]\AgdaSymbol{(}\AgdaPostulate{StP.lemma2}\AgdaSpace{}%
+\>[1522I]\AgdaSymbol{(}\AgdaPostulate{StP.lemma2}\AgdaSpace{}%
 \AgdaSymbol{\{}\AgdaBound{sys₁}\AgdaSymbol{\}}\AgdaSpace{}%
 \AgdaSymbol{\{}\AgdaBound{sys₂}\AgdaSymbol{\}}\AgdaSpace{}%
 \AgdaSymbol{(}\AgdaField{proj₂}\AgdaSpace{}%
@@ -1807,7 +1812,7 @@
 \AgdaSymbol{(}\AgdaBound{∀₁}\AgdaSpace{}%
 \AgdaBound{f₁}\AgdaSymbol{))}\<%
 \\
-\>[1519I][@{}l@{\AgdaIndent{0}}]%
+\>[1522I][@{}l@{\AgdaIndent{0}}]%
 \>[24]\AgdaSymbol{(}\AgdaBound{ci}\AgdaSpace{}%
 \AgdaBound{all₁}\AgdaSpace{}%
 \AgdaBound{f₁}\AgdaSymbol{)}\<%
@@ -1994,7 +1999,7 @@
 \\
 \>[0][@{}l@{\AgdaIndent{0}}]%
 \>[2]\AgdaKeyword{where}%
-\>[1691I]\AgdaFunction{≡₀}\AgdaSpace{}%
+\>[1694I]\AgdaFunction{≡₀}\AgdaSpace{}%
 \AgdaSymbol{:}\AgdaSpace{}%
 \AgdaField{proj₁}\AgdaSpace{}%
 \AgdaSymbol{(}\AgdaBound{oracle}\AgdaSpace{}%
@@ -2008,7 +2013,7 @@
 \AgdaBound{x}\AgdaSymbol{)}\AgdaSpace{}%
 \AgdaBound{s₁}\<%
 \\
-\>[.][@{}l@{}]\<[1691I]%
+\>[.][@{}l@{}]\<[1694I]%
 \>[8]\AgdaFunction{≡₀}\AgdaSpace{}%
 \AgdaSymbol{=}\AgdaSpace{}%
 \AgdaFunction{sym}\AgdaSpace{}%
@@ -2285,7 +2290,7 @@
 \AgdaInductiveConstructor{no}\AgdaSpace{}%
 \AgdaBound{x∉mem}\AgdaSpace{}%
 \AgdaSymbol{=}%
-\>[1947I]\AgdaFunction{correct-inner}\AgdaSpace{}%
+\>[1950I]\AgdaFunction{correct-inner}\AgdaSpace{}%
 \AgdaSymbol{(}\AgdaFunction{save}\AgdaSpace{}%
 \AgdaBound{x}\AgdaSpace{}%
 \AgdaSymbol{(}\AgdaPostulate{cmdReadNames}\AgdaSpace{}%
@@ -2302,7 +2307,7 @@
 \AgdaBound{dsb}\AgdaSpace{}%
 \AgdaBound{ub}\<%
 \\
-\>[.][@{}l@{}]\<[1947I]%
+\>[.][@{}l@{}]\<[1950I]%
 \>[17]\AgdaSymbol{(}\AgdaPostulate{∉toAll}\AgdaSpace{}%
 \AgdaSymbol{\AgdaUnderscore{}}\AgdaSpace{}%
 \AgdaSymbol{(λ}\AgdaSpace{}%
@@ -2346,7 +2351,7 @@
 \\
 \>[0][@{}l@{\AgdaIndent{0}}]%
 \>[2]\AgdaKeyword{where}%
-\>[1996I]\AgdaFunction{all₁}\AgdaSpace{}%
+\>[1999I]\AgdaFunction{all₁}\AgdaSpace{}%
 \AgdaSymbol{:}\AgdaSpace{}%
 \AgdaDatatype{All}\AgdaSpace{}%
 \AgdaSymbol{(λ}\AgdaSpace{}%
@@ -2363,7 +2368,7 @@
 \AgdaField{proj₁}\AgdaSpace{}%
 \AgdaBound{m}\AgdaSymbol{)}\<%
 \\
-\>[.][@{}l@{}]\<[1996I]%
+\>[.][@{}l@{}]\<[1999I]%
 \>[8]\AgdaFunction{all₁}\AgdaSpace{}%
 \AgdaSymbol{=}\AgdaSpace{}%
 \AgdaFunction{helper}\AgdaSpace{}%
@@ -2668,7 +2673,7 @@
 \AgdaSymbol{|}\AgdaSpace{}%
 \AgdaInductiveConstructor{nothing}\AgdaSpace{}%
 \AgdaSymbol{=}%
-\>[2258I]\AgdaFunction{correct-inner}\AgdaSpace{}%
+\>[2261I]\AgdaFunction{correct-inner}\AgdaSpace{}%
 \AgdaSymbol{(}\AgdaFunction{save}\AgdaSpace{}%
 \AgdaBound{x}\AgdaSpace{}%
 \AgdaSymbol{(}\AgdaPostulate{cmdReadNames}\AgdaSpace{}%
@@ -2685,7 +2690,7 @@
 \AgdaBound{dsb}\AgdaSpace{}%
 \AgdaBound{ub}\<%
 \\
-\>[2258I][@{}l@{\AgdaIndent{0}}]%
+\>[2261I][@{}l@{\AgdaIndent{0}}]%
 \>[17]\AgdaSymbol{(}\AgdaPostulate{∉toAll}\AgdaSpace{}%
 \AgdaSymbol{\AgdaUnderscore{}}\AgdaSpace{}%
 \AgdaSymbol{(λ}\AgdaSpace{}%
@@ -2729,7 +2734,7 @@
 \\
 \>[0][@{}l@{\AgdaIndent{0}}]%
 \>[2]\AgdaKeyword{where}%
-\>[2307I]\AgdaFunction{all₁}\AgdaSpace{}%
+\>[2310I]\AgdaFunction{all₁}\AgdaSpace{}%
 \AgdaSymbol{:}\AgdaSpace{}%
 \AgdaDatatype{All}\AgdaSpace{}%
 \AgdaSymbol{(λ}\AgdaSpace{}%
@@ -2746,7 +2751,7 @@
 \AgdaField{proj₁}\AgdaSpace{}%
 \AgdaBound{m}\AgdaSymbol{)}\<%
 \\
-\>[.][@{}l@{}]\<[2307I]%
+\>[.][@{}l@{}]\<[2310I]%
 \>[8]\AgdaFunction{all₁}\AgdaSpace{}%
 \AgdaSymbol{=}\AgdaSpace{}%
 \AgdaFunction{helper}\AgdaSpace{}%
@@ -3079,7 +3084,7 @@
 \\
 \>[0][@{}l@{\AgdaIndent{0}}]%
 \>[2]\AgdaKeyword{where}%
-\>[2596I]\AgdaFunction{∀₃}\AgdaSpace{}%
+\>[2599I]\AgdaFunction{∀₃}\AgdaSpace{}%
 \AgdaSymbol{:}\AgdaSpace{}%
 \AgdaSymbol{∀}\AgdaSpace{}%
 \AgdaBound{f₁}\AgdaSpace{}%
@@ -3092,7 +3097,7 @@
 \AgdaBound{s₁}\AgdaSpace{}%
 \AgdaBound{f₁}\<%
 \\
-\>[.][@{}l@{}]\<[2596I]%
+\>[.][@{}l@{}]\<[2599I]%
 \>[8]\AgdaFunction{∀₃}\AgdaSpace{}%
 \AgdaBound{f₁}\AgdaSpace{}%
 \AgdaSymbol{=}\AgdaSpace{}%
@@ -3337,13 +3342,13 @@
 \\
 \>[0][@{}l@{\AgdaIndent{0}}]%
 \>[2]\AgdaKeyword{where}%
-\>[2822I]\AgdaFunction{g₁}\AgdaSpace{}%
+\>[2825I]\AgdaFunction{g₁}\AgdaSpace{}%
 \AgdaSymbol{:}\AgdaSpace{}%
 \AgdaFunction{Disjoint}\AgdaSpace{}%
 \AgdaBound{b}\AgdaSpace{}%
 \AgdaInductiveConstructor{[]}\<%
 \\
-\>[.][@{}l@{}]\<[2822I]%
+\>[.][@{}l@{}]\<[2825I]%
 \>[8]\AgdaFunction{g₁}\AgdaSpace{}%
 \AgdaSymbol{()}\<%
 \end{code}

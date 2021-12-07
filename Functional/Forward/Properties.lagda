@@ -1,5 +1,6 @@
 
 \begin{code}[hide]
+{-# OPTIONS --allow-unsolved-metas #-} 
 open import Functional.State using (Oracle ; FileSystem ; Memory ; Cmd ; extend ; save)
 
 module Functional.Forward.Properties (oracle : Oracle) where
