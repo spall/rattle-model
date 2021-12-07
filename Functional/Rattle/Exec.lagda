@@ -1,4 +1,4 @@
-
+g
 \begin{code}[hide]
 open import Functional.State using (State ; Oracle ; Cmd ; FileSystem ; Memory ; save)
 
@@ -162,12 +162,10 @@ doRunWError ((s , mm) , ls) x with checkHazard s x ls
 \begin{code}
 runR : Cmd → (FileSystem × Memory)
      → (FileSystem × Memory)
-\end{code}}
-\begin{code}[hide]
 runR cmd st = if (run? cmd st)
              then doRun st cmd
              else st
-\end{code}
+\end{code}}
 
 \begin{code}[hide]
 g₂ : ∀ {x} xs → x ∉ xs → All (λ y → ¬ x ≡ y) xs
@@ -179,31 +177,25 @@ g₂ (x ∷ xs) x∉xs = (λ x₃ → x∉xs (here x₃)) All.∷ (g₂ xs λ x�
 \begin{code}
 runWError : ∀ {b} x s m ls
   → Hazard s x b ls ⊎ (FileSystem × Memory) × FileInfo
-\end{code}}
-\begin{code}[hide]
 runWError x s m ls with (run? x (s , m))
 ... | false = inj₂ ((s , m) , ls)
 ... | true = doRunWError ((s , m) , ls) x
-\end{code}
+\end{code}}
 
 \newcommand{\Rexec}{%
 \begin{code}
 rattle_unchecked : Build → (FileSystem × Memory)
                  → (FileSystem × Memory)
-\end{code}}
-\begin{code}[hide]
 rattle_unchecked [] st = st
 rattle_unchecked (x ∷ b) st = rattle_unchecked b (runR x st)
-\end{code}
+\end{code}}
 
 \newcommand{\rattle}{%
 \begin{code}
 rattle : (br bc : Build) → (FileSystem × Memory) × FileInfo
        → ∃Hazard bc ⊎ (FileSystem × Memory) × FileInfo
-\end{code}}
-\begin{code}[hide]
 rattle [] b₂ st = inj₂ st
 rattle (x ∷ b₁) b₂ st@((s , m) , ls) with runWError x s m ls
 ... | inj₁ hz = inj₁ (proj₁ (proj₁ st) , x , proj₂ st , hz)
 ... | inj₂ (st₁ , ls₁) = rattle b₁ b₂ (st₁ , ls₁)
-\end{code}
+\end{code}}

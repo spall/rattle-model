@@ -92,10 +92,13 @@ FileInfo : Set
 FileInfo = List (Cmd × FileNames × FileNames)
 \end{code}}
 
-\begin{code}[hide]
+\newcommand{\save}{%
+\begin{code}
 save : FileSystem → Cmd → FileInfo → FileInfo
 save s x fi = (x , (cmdReadNames x s) , (cmdWriteNames x s)) ∷ fi
+\end{code}}
 
+\begin{code}[hide]
 cmdsRun : FileInfo → List Cmd
 cmdsRun = map proj₁
 
@@ -133,8 +136,13 @@ files ls = (filesRead ls) ++ (filesWrote ls)
 ∈-files-++ xs ys zs v∈files with ∈-++⁻ (filesRead (xs ++ zs)) v∈files
 ... | inj₁ v∈reads = ∈-++⁺ˡ (∈-filesRead-++ xs ys zs v∈reads)
 ... | inj₂ v∈writes = ∈-++⁺ʳ (filesRead (xs ++ ys ++ zs)) (∈-filesWrote-++ xs ys zs v∈writes)
+\end{code}
 
+\newcommand{\cmdWrote}{%
+\begin{code}
 cmdWrote : FileInfo → Cmd → List FileName
+\end{code}}
+\begin{code}[hide]
 cmdWrote [] p = []
 cmdWrote (x ∷ ls) p with (proj₁ x) ≟ p
 ... | yes x≡p = proj₂ (proj₂ x)
@@ -179,10 +187,13 @@ lemma2 x (x₁ ∷ xs) v∈ with (proj₁ x₁) ≟ x
 ∈-cmdWrote++mid x (x₁ ∷ xs) ys zs (px₁ ∷ u) v∈ with (proj₁ x₁) ≟ x
 ... | yes x₁≡x = v∈
 ... | no ¬x₁≡x = ∈-cmdWrote++mid x xs ys zs u v∈
+\end{code}
 
-
-
+\newcommand{\cmdRead}{%
+\begin{code}
 cmdRead : FileInfo → Cmd → List FileName
+\end{code}}
+\begin{code}[hide]
 cmdRead [] p = []
 cmdRead (x ∷ ls) p with (proj₁ x) ≟ p
 ... | yes x≡p = proj₁ (proj₂ x)

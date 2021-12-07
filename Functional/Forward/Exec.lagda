@@ -39,12 +39,17 @@ get : (x : Cmd) -> (ls : Memory) -> x ∈ map proj₁ ls -> List (FileName × Ma
 get x ((x₁ , fs) ∷ ls) x∈ with x ≟ x₁
 ... | yes x≡x₁ = fs
 ... | no ¬x≡x₁ = get x ls (tail ¬x≡x₁ x∈)
+\end{code}
 
+\newcommand{\runHuh}{%
+\begin{code}
 run? : Cmd -> State -> Bool
 run? cmd (sys , mm) with cmd ∈? map proj₁ mm
 ... | no cmd∉ = Bool.true
 ... | yes cmd∈ = is-nothing (maybeAll {sys} (get cmd mm cmd∈))
+\end{code}}
 
+\begin{code}[hide]
 doRun : State -> Cmd -> State
 doRun (sys , mm) cmd = let sys₂ = St.run cmd sys in
                            (sys₂ , save cmd (cmdReadNames cmd sys) sys₂ mm)

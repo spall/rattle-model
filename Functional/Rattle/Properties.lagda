@@ -200,6 +200,8 @@ script≡rattle_unchecked s b dsb = script≡rattle-inner [] b (λ f₁ → refl
 \newcommand{\correct}{%
 \begin{code}
 correct_rattle : ∀ s bc → PreCond s bc bc → ¬ HazardFree s bc bc [] ⊎ ≡toScript s bc bc
+\end{code}}
+\begin{code}[hide]
 correct_rattle s bc pc with rattle bc bc ((s , []) , []) | inspect (rattle bc bc) ((s , []) , [])
 ... | inj₁ hz | [ ≡₁ ] = inj₁ g₁
   where g₁ : ¬ HazardFree s bc bc []
@@ -209,7 +211,7 @@ correct_rattle s bc pc with rattle bc bc ((s , []) , []) | inspect (rattle bc bc
   where ∀≡ : ∀ f₁ → s₁ f₁ ≡ script bc s f₁
         ∀≡ f₁ = sym (trans (script≡rattle_unchecked s bc (proj₁ pc) f₁)
                            (cong-app (cong proj₁ (soundness s bc bc ≡₁)) f₁))
-\end{code}}
+\end{code}
 
 
 \begin{code}[hide]
