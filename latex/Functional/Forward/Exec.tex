@@ -40,7 +40,7 @@
 \AgdaSymbol{as}\AgdaSpace{}%
 \AgdaModule{St}\AgdaSpace{}%
 \AgdaKeyword{using}\AgdaSpace{}%
-\AgdaSymbol{(}\AgdaPostulate{cmdReadNames}\AgdaSymbol{)}\<%
+\AgdaSymbol{(}\AgdaFunction{cmdReadNames}\AgdaSymbol{)}\<%
 \\
 \>[0]\AgdaKeyword{open}\AgdaSpace{}%
 \AgdaKeyword{import}\AgdaSpace{}%
@@ -342,7 +342,7 @@
 \AgdaFunction{Memory}\AgdaSymbol{)}\AgdaSpace{}%
 \AgdaSymbol{->}\AgdaSpace{}%
 \AgdaBound{x}\AgdaSpace{}%
-\AgdaOperator{\AgdaPostulate{∈}}\AgdaSpace{}%
+\AgdaOperator{\AgdaFunction{∈}}\AgdaSpace{}%
 \AgdaFunction{map}\AgdaSpace{}%
 \AgdaField{proj₁}\AgdaSpace{}%
 \AgdaBound{ls}\AgdaSpace{}%
@@ -384,9 +384,10 @@
 \AgdaSymbol{(}\AgdaFunction{tail}\AgdaSpace{}%
 \AgdaBound{¬x≡x₁}\AgdaSpace{}%
 \AgdaBound{x∈}\AgdaSymbol{)}\<%
-\\
-%
-\\[\AgdaEmptyExtraSkip]%
+\end{code}
+
+\newcommand{\runHuh}{%
+\begin{code}%
 \>[0]\AgdaFunction{run?}\AgdaSpace{}%
 \AgdaSymbol{:}\AgdaSpace{}%
 \AgdaFunction{Cmd}\AgdaSpace{}%
@@ -402,7 +403,7 @@
 \AgdaBound{mm}\AgdaSymbol{)}\AgdaSpace{}%
 \AgdaKeyword{with}\AgdaSpace{}%
 \AgdaBound{cmd}\AgdaSpace{}%
-\AgdaOperator{\AgdaPostulate{∈?}}\AgdaSpace{}%
+\AgdaOperator{\AgdaFunction{∈?}}\AgdaSpace{}%
 \AgdaFunction{map}\AgdaSpace{}%
 \AgdaField{proj₁}\AgdaSpace{}%
 \AgdaBound{mm}\<%
@@ -426,9 +427,9 @@
 \AgdaBound{cmd}\AgdaSpace{}%
 \AgdaBound{mm}\AgdaSpace{}%
 \AgdaBound{cmd∈}\AgdaSymbol{))}\<%
-\\
-%
-\\[\AgdaEmptyExtraSkip]%
+\end{code}}
+
+\begin{code}[hide]%
 \>[0]\AgdaFunction{doRun}\AgdaSpace{}%
 \AgdaSymbol{:}\AgdaSpace{}%
 \AgdaFunction{State}\AgdaSpace{}%
@@ -446,7 +447,7 @@
 \AgdaKeyword{let}%
 \>[349I]\AgdaBound{sys₂}\AgdaSpace{}%
 \AgdaSymbol{=}\AgdaSpace{}%
-\AgdaPostulate{St.run}\AgdaSpace{}%
+\AgdaFunction{St.run}\AgdaSpace{}%
 \AgdaBound{cmd}\AgdaSpace{}%
 \AgdaBound{sys}\AgdaSpace{}%
 \AgdaKeyword{in}\<%
@@ -456,7 +457,7 @@
 \AgdaOperator{\AgdaInductiveConstructor{,}}\AgdaSpace{}%
 \AgdaFunction{save}\AgdaSpace{}%
 \AgdaBound{cmd}\AgdaSpace{}%
-\AgdaSymbol{(}\AgdaPostulate{cmdReadNames}\AgdaSpace{}%
+\AgdaSymbol{(}\AgdaFunction{cmdReadNames}\AgdaSpace{}%
 \AgdaBound{cmd}\AgdaSpace{}%
 \AgdaBound{sys}\AgdaSymbol{)}\AgdaSpace{}%
 \AgdaBound{sys₂}\AgdaSpace{}%
@@ -503,7 +504,7 @@
 \begin{code}%
 \>[0]\AgdaFunction{fabricate}%
 \>[383I]\AgdaSymbol{:}\AgdaSpace{}%
-\AgdaPostulate{Build}\AgdaSpace{}%
+\AgdaFunction{Build}\AgdaSpace{}%
 \AgdaSymbol{→}\AgdaSpace{}%
 \AgdaSymbol{(}\AgdaFunction{FileSystem}\AgdaSpace{}%
 \AgdaOperator{\AgdaFunction{×}}\AgdaSpace{}%

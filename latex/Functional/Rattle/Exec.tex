@@ -1,4 +1,4 @@
-
+g
 \begin{code}[hide]%
 \>[0]\AgdaKeyword{open}\AgdaSpace{}%
 \AgdaKeyword{import}\AgdaSpace{}%
@@ -303,7 +303,7 @@
 \AgdaModule{Functional.Script.Hazard}\AgdaSpace{}%
 \AgdaSymbol{(}\AgdaBound{oracle}\AgdaSymbol{)}\AgdaSpace{}%
 \AgdaKeyword{using}\AgdaSpace{}%
-\AgdaSymbol{(}Hazard \AgdaSymbol{;} WriteWrite \AgdaSymbol{;} ReadWrite \AgdaSymbol{;} Speculative \AgdaSymbol{;} filesRead \AgdaSymbol{;} filesWrote \AgdaSymbol{;} cmdRead \AgdaSymbol{;} cmdWrote \AgdaSymbol{;} cmdsRun \AgdaSymbol{;} FileInfo \AgdaSymbol{;} ∈-cmdWrote∷ \AgdaSymbol{;} ∈-cmdRead∷ \AgdaSymbol{;} ∃Hazard \AgdaSymbol{;} ¬SpeculativeHazard \AgdaSymbol{;} before?\AgdaSymbol{)}\AgdaSpace{}%
+\AgdaSymbol{(}Hazard \AgdaSymbol{;} WriteWrite \AgdaSymbol{;} ReadWrite \AgdaSymbol{;} Speculative \AgdaSymbol{;} filesRead \AgdaSymbol{;} filesWrote \AgdaSymbol{;} cmdRead \AgdaSymbol{;} cmdWrote \AgdaSymbol{;} cmdsRun \AgdaSymbol{;} FileInfo \AgdaSymbol{;} ∈-cmdWrote∷ \AgdaSymbol{;} ∈-cmdRead∷ \AgdaSymbol{;} ∃Hazard \AgdaSymbol{;} before?\AgdaSymbol{)}\AgdaSpace{}%
 \AgdaKeyword{renaming}\AgdaSpace{}%
 \AgdaSymbol{(}save \AgdaSymbol{to} rec\AgdaSymbol{)}\<%
 \\
@@ -1165,13 +1165,8 @@ read write
 \>[2]\AgdaSymbol{=}\AgdaSpace{}%
 \AgdaInductiveConstructor{just}\AgdaSpace{}%
 \AgdaSymbol{(}\AgdaPostulate{Speculative}\AgdaSpace{}%
-\AgdaBound{s}\AgdaSpace{}%
-\AgdaBound{x}\AgdaSpace{}%
-\AgdaBound{b}\AgdaSpace{}%
-\AgdaBound{ls}\AgdaSpace{}%
 \AgdaBound{x₁}\AgdaSpace{}%
 \AgdaBound{x₂}\AgdaSpace{}%
-\AgdaBound{v}\AgdaSpace{}%
 \AgdaBound{bf}\AgdaSpace{}%
 \AgdaBound{x₁∈b}\AgdaSpace{}%
 \AgdaBound{¬bf}\AgdaSpace{}%
@@ -1228,10 +1223,6 @@ read write
 \AgdaSymbol{=}\AgdaSpace{}%
 \AgdaInductiveConstructor{just}\AgdaSpace{}%
 \AgdaSymbol{(}\AgdaPostulate{WriteWrite}\AgdaSpace{}%
-\AgdaBound{s}\AgdaSpace{}%
-\AgdaBound{x}\AgdaSpace{}%
-\AgdaBound{ls}\AgdaSpace{}%
-\AgdaBound{v}\AgdaSpace{}%
 \AgdaBound{v∈ws}\AgdaSpace{}%
 \AgdaBound{v∈wrotes}\AgdaSymbol{)}\<%
 \\
@@ -1281,10 +1272,6 @@ read write
 \AgdaSymbol{=}\AgdaSpace{}%
 \AgdaInductiveConstructor{just}\AgdaSpace{}%
 \AgdaSymbol{(}\AgdaPostulate{ReadWrite}\AgdaSpace{}%
-\AgdaBound{s}\AgdaSpace{}%
-\AgdaBound{x}\AgdaSpace{}%
-\AgdaBound{ls}\AgdaSpace{}%
-\AgdaBound{v}\AgdaSpace{}%
 \AgdaBound{v∈ws}\AgdaSpace{}%
 \AgdaBound{v∈reads}\AgdaSymbol{)}\<%
 \\
@@ -1407,7 +1394,7 @@ read write
 \AgdaSymbol{|}\AgdaSpace{}%
 \AgdaInductiveConstructor{nothing}\AgdaSpace{}%
 \AgdaSymbol{=}%
-\>[1101I]\AgdaKeyword{let}\AgdaSpace{}%
+\>[1088I]\AgdaKeyword{let}\AgdaSpace{}%
 \AgdaBound{sys₁}\AgdaSpace{}%
 \AgdaSymbol{=}\AgdaSpace{}%
 \AgdaPostulate{St.run}\AgdaSpace{}%
@@ -1415,7 +1402,7 @@ read write
 \AgdaBound{s}\AgdaSpace{}%
 \AgdaKeyword{in}\<%
 \\
-\>[.][@{}l@{}]\<[1101I]%
+\>[.][@{}l@{}]\<[1088I]%
 \>[16]\AgdaInductiveConstructor{inj₂}\AgdaSpace{}%
 \AgdaSymbol{((}\AgdaBound{sys₁}\AgdaSpace{}%
 \AgdaOperator{\AgdaInductiveConstructor{,}}\AgdaSpace{}%
@@ -1440,30 +1427,29 @@ read write
 \newcommand{\runR}{%
 \begin{code}%
 \>[0]\AgdaFunction{runR}%
-\>[1126I]\AgdaSymbol{:}\AgdaSpace{}%
+\>[1113I]\AgdaSymbol{:}\AgdaSpace{}%
 \AgdaFunction{Cmd}\AgdaSpace{}%
 \AgdaSymbol{→}\AgdaSpace{}%
 \AgdaSymbol{(}\AgdaFunction{FileSystem}\AgdaSpace{}%
 \AgdaOperator{\AgdaFunction{×}}\AgdaSpace{}%
 \AgdaFunction{Memory}\AgdaSymbol{)}\<%
 \\
-\>[.][@{}l@{}]\<[1126I]%
+\>[.][@{}l@{}]\<[1113I]%
 \>[5]\AgdaSymbol{→}\AgdaSpace{}%
 \AgdaSymbol{(}\AgdaFunction{FileSystem}\AgdaSpace{}%
 \AgdaOperator{\AgdaFunction{×}}\AgdaSpace{}%
 \AgdaFunction{Memory}\AgdaSymbol{)}\<%
-\end{code}}
-\begin{code}[hide]%
+\\
 \>[0]\AgdaFunction{runR}\AgdaSpace{}%
 \AgdaBound{cmd}\AgdaSpace{}%
 \AgdaBound{st}%
-\>[1137I]\AgdaSymbol{=}\AgdaSpace{}%
+\>[1124I]\AgdaSymbol{=}\AgdaSpace{}%
 \AgdaOperator{\AgdaFunction{if}}\AgdaSpace{}%
 \AgdaSymbol{(}\AgdaPostulate{run?}\AgdaSpace{}%
 \AgdaBound{cmd}\AgdaSpace{}%
 \AgdaBound{st}\AgdaSymbol{)}\<%
 \\
-\>[1137I][@{}l@{\AgdaIndent{0}}]%
+\>[1124I][@{}l@{\AgdaIndent{0}}]%
 \>[13]\AgdaOperator{\AgdaFunction{then}}\AgdaSpace{}%
 \AgdaFunction{doRun}\AgdaSpace{}%
 \AgdaBound{st}\AgdaSpace{}%
@@ -1472,7 +1458,7 @@ read write
 %
 \>[13]\AgdaOperator{\AgdaFunction{else}}\AgdaSpace{}%
 \AgdaBound{st}\<%
-\end{code}
+\end{code}}
 
 \begin{code}[hide]%
 \>[0]\AgdaFunction{g₂}\AgdaSpace{}%
@@ -1548,8 +1534,7 @@ read write
 \AgdaFunction{Memory}\AgdaSymbol{)}\AgdaSpace{}%
 \AgdaOperator{\AgdaFunction{×}}\AgdaSpace{}%
 \AgdaPostulate{FileInfo}\<%
-\end{code}}
-\begin{code}[hide]%
+\\
 \>[0]\AgdaFunction{runWError}\AgdaSpace{}%
 \AgdaBound{x}\AgdaSpace{}%
 \AgdaBound{s}\AgdaSpace{}%
@@ -1584,25 +1569,24 @@ read write
 \AgdaOperator{\AgdaInductiveConstructor{,}}\AgdaSpace{}%
 \AgdaBound{ls}\AgdaSymbol{)}\AgdaSpace{}%
 \AgdaBound{x}\<%
-\end{code}
+\end{code}}
 
 \newcommand{\Rexec}{%
 \begin{code}%
 \>[0]\AgdaOperator{\AgdaFunction{rattle\AgdaUnderscore{}unchecked}}%
-\>[1235I]\AgdaSymbol{:}\AgdaSpace{}%
+\>[1222I]\AgdaSymbol{:}\AgdaSpace{}%
 \AgdaPostulate{Build}\AgdaSpace{}%
 \AgdaSymbol{→}\AgdaSpace{}%
 \AgdaSymbol{(}\AgdaFunction{FileSystem}\AgdaSpace{}%
 \AgdaOperator{\AgdaFunction{×}}\AgdaSpace{}%
 \AgdaFunction{Memory}\AgdaSymbol{)}\<%
 \\
-\>[.][@{}l@{}]\<[1235I]%
+\>[.][@{}l@{}]\<[1222I]%
 \>[17]\AgdaSymbol{→}\AgdaSpace{}%
 \AgdaSymbol{(}\AgdaFunction{FileSystem}\AgdaSpace{}%
 \AgdaOperator{\AgdaFunction{×}}\AgdaSpace{}%
 \AgdaFunction{Memory}\AgdaSymbol{)}\<%
-\end{code}}
-\begin{code}[hide]%
+\\
 \>[0]\AgdaOperator{\AgdaFunction{rattle\AgdaUnderscore{}unchecked}}\AgdaSpace{}%
 \AgdaInductiveConstructor{[]}\AgdaSpace{}%
 \AgdaBound{st}\AgdaSpace{}%
@@ -1620,12 +1604,12 @@ read write
 \AgdaSymbol{(}\AgdaFunction{runR}\AgdaSpace{}%
 \AgdaBound{x}\AgdaSpace{}%
 \AgdaBound{st}\AgdaSymbol{)}\<%
-\end{code}
+\end{code}}
 
 \newcommand{\rattle}{%
 \begin{code}%
 \>[0]\AgdaFunction{rattle}%
-\>[1258I]\AgdaSymbol{:}\AgdaSpace{}%
+\>[1245I]\AgdaSymbol{:}\AgdaSpace{}%
 \AgdaSymbol{(}\AgdaBound{br}\AgdaSpace{}%
 \AgdaBound{bc}\AgdaSpace{}%
 \AgdaSymbol{:}\AgdaSpace{}%
@@ -1637,7 +1621,7 @@ read write
 \AgdaOperator{\AgdaFunction{×}}\AgdaSpace{}%
 \AgdaPostulate{FileInfo}\<%
 \\
-\>[.][@{}l@{}]\<[1258I]%
+\>[.][@{}l@{}]\<[1245I]%
 \>[7]\AgdaSymbol{→}\AgdaSpace{}%
 \AgdaPostulate{∃Hazard}\AgdaSpace{}%
 \AgdaBound{bc}\AgdaSpace{}%
@@ -1647,8 +1631,7 @@ read write
 \AgdaFunction{Memory}\AgdaSymbol{)}\AgdaSpace{}%
 \AgdaOperator{\AgdaFunction{×}}\AgdaSpace{}%
 \AgdaPostulate{FileInfo}\<%
-\end{code}}
-\begin{code}[hide]%
+\\
 \>[0]\AgdaFunction{rattle}\AgdaSpace{}%
 \AgdaInductiveConstructor{[]}\AgdaSpace{}%
 \AgdaBound{b₂}\AgdaSpace{}%
@@ -1704,4 +1687,4 @@ read write
 \AgdaSymbol{(}\AgdaBound{st₁}\AgdaSpace{}%
 \AgdaOperator{\AgdaInductiveConstructor{,}}\AgdaSpace{}%
 \AgdaBound{ls₁}\AgdaSymbol{)}\<%
-\end{code}
+\end{code}}
