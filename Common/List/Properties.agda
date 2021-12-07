@@ -4,7 +4,7 @@ module Common.List.Properties where
 open import Agda.Builtin.Equality
 open import Agda.Builtin.Nat
 
-open import Data.List using (List ; _++_ ; [_] ; _∷ʳ_ ; [] ; _∷_ ; reverse)
+open import Data.List using (List ; _++_ ; [_] ; _∷ʳ_ ; [] ; _∷_ ; reverse ; concatMap)
 open import Data.List.Properties using (++-identityʳ ; unfold-reverse ; ++-assoc ; ∷-injective ; ∷-injectiveʳ)
 open import Data.List.Membership.Propositional using (_∈_ ; _∉_)
 open import Data.List.Membership.Propositional.Properties using (∈-insert ; ∈-++⁻ ; ∈-++⁺ˡ ; ∈-++⁺ʳ ; ∈-∃++)
@@ -27,6 +27,12 @@ private
   variable
     ℓ : Level
     A : Set ℓ
+    B : Set ℓ
+
+concatMap-++-commute : ∀ (f : A → List B) xs ys → concatMap f (xs ++ ys) ≡ concatMap f xs ++ concatMap f ys
+concatMap-++-commute f [] ys = refl
+concatMap-++-commute f (x ∷ xs) ys with concatMap-++-commute f xs ys
+... | a = trans (cong (f x ++_) a) (sym (++-assoc (f x) (concatMap f xs) (concatMap f ys)))
 
 l10 : ∀ (v : A) xs ys → (xs ++ ys) ∷ʳ v ≡ xs ++ ys ∷ʳ v
 l10 v [] ys = refl

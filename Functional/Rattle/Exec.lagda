@@ -34,7 +34,7 @@ open import Data.Empty using (⊥)
 open import Relation.Nullary using (yes ; no ; ¬_)
 open import Data.List.Relation.Unary.Any using (tail ; here ; there)
 open import Common.List.Properties using (_before_∈_ ; before-∷)
-open import Functional.Script.Hazard (oracle) using (Hazard ; WriteWrite ; ReadWrite ; Speculative ; filesRead ; filesWrote ; cmdRead ; cmdWrote ; cmdsRun ; FileInfo ; ∈-cmdWrote∷ ; ∈-cmdRead∷ ; ∃Hazard ; ¬SpeculativeHazard ; before?) renaming (save to rec)
+open import Functional.Script.Hazard (oracle) using (Hazard ; WriteWrite ; ReadWrite ; Speculative ; filesRead ; filesWrote ; cmdRead ; cmdWrote ; cmdsRun ; FileInfo ; ∈-cmdWrote∷ ; ∈-cmdRead∷ ; ∃Hazard ; before?) renaming (save to rec)
 open import Data.List.Relation.Unary.AllPairs using (_∷_)
 open import Relation.Binary.PropositionalEquality using (cong ; trans ; sym ; subst ; _≢_)
 open import Data.List.Relation.Unary.All using (All ; lookup)
@@ -129,19 +129,19 @@ required? x (x₁ ∷ b) ls bf | yes x≡x₁ with subset? bf ls
 ∃Speculative s x {b} ls with ∃Speculative1 (x ∷ cmdsRun ls) (rec s x ls) []
 ... | nothing = nothing
 ... | just (x₁ , x₂ , v , bf , x₁∈b , ¬bf , v∈cr , v∈cw)
-  = just (Speculative s x b ls x₁ x₂ v bf x₁∈b ¬bf v∈cr v∈cw)
+  = just (Speculative x₁ x₂ bf x₁∈b ¬bf v∈cr v∈cw)
 
 
 {- is there a read/write or write/write hazard? -}
 ∃WriteWrite : ∀ s x {b} ls → Maybe (Hazard s x b ls)
 ∃WriteWrite s x ls with ∃Intersection (cmdWriteNames x s) (filesWrote ls)
 ... | nothing = nothing
-... | just (v , v∈ws , v∈wrotes) = just (WriteWrite s x ls v v∈ws v∈wrotes)
+... | just (v , v∈ws , v∈wrotes) = just (WriteWrite v∈ws v∈wrotes)
 
 ∃ReadWrite : ∀ s x {b} ls → Maybe (Hazard s x b ls)
 ∃ReadWrite s x ls with ∃Intersection (cmdWriteNames x s) (filesRead ls)
 ... | nothing = nothing
-... | just (v , v∈ws , v∈reads) = just (ReadWrite s x ls v v∈ws v∈reads)
+... | just (v , v∈ws , v∈reads) = just (ReadWrite v∈ws v∈reads)
 
 checkHazard : ∀ s x {b} ls → Maybe (Hazard s x b ls)
 checkHazard s x ls with ∃WriteWrite s x ls

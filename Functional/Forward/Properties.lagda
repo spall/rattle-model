@@ -1,6 +1,5 @@
 
 \begin{code}[hide]
-{-# OPTIONS --allow-unsolved-metas #-}
 open import Functional.State using (Oracle ; FileSystem ; Memory ; Cmd ; extend ; save)
 
 module Functional.Forward.Properties (oracle : Oracle) where
@@ -30,7 +29,7 @@ open import Data.List.Relation.Binary.Disjoint.Propositional using (Disjoint)
 open import Function.Base using (_∘_)
 open import Data.List.Membership.Propositional.Properties using (∈-++⁺ˡ ; ∈-++⁺ʳ ; ∈-++⁻)
 open import Data.List.Properties using (∷-injective)
-open import Functional.Script.Hazard (oracle) using (HazardFree ; :: ; files ; filesRead; Hazard ; ReadWrite ; WriteWrite) renaming (save to rec)
+open import Functional.Script.Hazard (oracle) using (HazardFree ; _∷_ ; files ; filesRead; Hazard ; ReadWrite ; WriteWrite) renaming (save to rec)
 open import Functional.Script.Hazard.Properties (oracle) using (hf-still) renaming (g₂ to ∉toAll)
 open import Data.List.Relation.Unary.Unique.Propositional using (Unique)
 open import Data.List.Relation.Unary.AllPairs using (_∷_)
@@ -133,8 +132,8 @@ helper {sys} (x₁ ∷ ls) ls₁ x dsj ⊆₁ = (λ x₂ → dsj ((proj₁ x₂)
 
 ∃hazard : ∀ {v}{s}{x} ls {b} → v ∈ cmdWriteNames x s → v ∈ files ls → Hazard s x b ls
 ∃hazard ls v∈ws v∈files with ∈-++⁻ (filesRead ls) v∈files
-... | inj₁ ∈₁ = ReadWrite _ _ _ _ v∈ws ∈₁
-... | inj₂ ∈₂ = WriteWrite _ _ _ _ v∈ws ∈₂
+... | inj₁ ∈₁ = ReadWrite v∈ws ∈₁
+... | inj₂ ∈₂ = WriteWrite v∈ws ∈₂
 
 helper3 : ∀ {s₁} {x₁} x → Disjoint (cmdWriteNames x₁ s₁) (cmdReadWriteNames x s₁) → cmdReadWrites x (St.run x₁ s₁) ≡ cmdReadWrites x s₁
 helper3 {s₁} {x₁} x dsj = cong₂ _++_ ≡₁ ≡₂
@@ -152,7 +151,7 @@ helper2 (x ∷ ls) (px All.∷ all₁) with helper2 ls all₁
 
 correct-inner : ∀ {s₁} {s₂} {ls} m b {b₁} → (∀ f₁ → s₁ f₁ ≡ s₂ f₁) → DisjointBuild s₁ b → Unique b → Unique (map proj₁ ls) → Disjoint b (map proj₁ ls) → concatMap (λ x₁ → cmdReadWrites x₁ s₁) (map proj₁ m) ⊆ files ls → IdempotentState cmdReadNames s₁ m → HazardFree s₁ b b₁ ls → (∀ f₁ → proj₁ (fabricate b (s₁ , m)) f₁ ≡ script b s₂ f₁)
 correct-inner m [] ∀₁ _ _ _ _ _ is hf = ∀₁
-correct-inner {s₁} {s₂} {ls} m (x ∷ b) ∀₁ (Cons x dc b dsb) (px ∷ ub) uls dsj ⊆₁ is (:: _ _ .x .b _ ¬hz hf) f₁ with x ∈? map proj₁ m
+correct-inner {s₁} {s₂} {ls} m (x ∷ b) ∀₁ (Cons x dc b dsb) (px ∷ ub) uls dsj ⊆₁ is (¬hz ∷ hf) f₁ with x ∈? map proj₁ m
 ... | no x∉mem = correct-inner (save x (cmdReadNames x s₁) (St.run x s₁) m) b (run-≡ x ∀₁) dsb ub
                  (∉toAll _ (λ x₂ → dsj ((here refl) , x₂)) ∷ uls)
                  (λ x₂ → dsj ((there (proj₁ x₂)) , tail (λ x₃ → lookup px (proj₁ x₂) (sym x₃)) (proj₂ x₂)))
@@ -225,3 +224,11 @@ correct_forward b (dsb , ub , _) hf = correct b [] dsb ub Data.List.Relation.Una
   where g₁ : Disjoint b []
         g₁ ()
 \end{code}
+
+\newcommand{\fabReorder}{%
+\begin{code}
+fabricate_reordered : ∀ {s} b₁ b₂ → PreCond s b₁ b₂ → HazardFree s b₁ b₂ [] → (∀ f₁ → proj₁ (fabricate b₁ (s ,  [])) f₁ ≡ proj₁ (fabricate b₂ (s , [])) f₁)
+fabricate_reordered b₁ b₂ pc hf f₁ = {!!}
+-- with correct_forward b₁ {!!} hf f₁ | correct_forward b₂ {!!} {!!} f₁
+-- ... | ≡₁ | ≡₂ = {!!} 
+\end{code}}
