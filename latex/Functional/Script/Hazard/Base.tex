@@ -392,6 +392,8 @@ this definition is just so long and ugly.
 
 \newcommand{\save}{%
 \begin{code}%
+\>[0]\AgdaComment{-- extends FileInfo with a new entry for the Cmd}\<%
+\\
 \>[0]\AgdaFunction{save}\AgdaSpace{}%
 \AgdaSymbol{:}\AgdaSpace{}%
 \AgdaFunction{FileSystem}\AgdaSpace{}%
@@ -890,6 +892,8 @@ this definition is just so long and ugly.
 
 \newcommand{\cmdWrote}{%
 \begin{code}%
+\>[0]\AgdaComment{-- The FileNames the Cmd wrote according to the FileInfo}\<%
+\\
 \>[0]\AgdaFunction{cmdWrote}\AgdaSpace{}%
 \AgdaSymbol{:}\AgdaSpace{}%
 \AgdaFunction{FileInfo}\AgdaSpace{}%
@@ -1407,6 +1411,8 @@ this definition is just so long and ugly.
 
 \newcommand{\cmdRead}{%
 \begin{code}%
+\>[0]\AgdaComment{-- The FileNames the Cmd read according to the FileInfo}\<%
+\\
 \>[0]\AgdaFunction{cmdRead}\AgdaSpace{}%
 \AgdaSymbol{:}\AgdaSpace{}%
 \AgdaFunction{FileInfo}\AgdaSpace{}%

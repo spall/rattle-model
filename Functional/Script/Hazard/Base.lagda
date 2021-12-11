@@ -93,6 +93,7 @@ FileInfo = List (Cmd × FileNames × FileNames)
 
 \newcommand{\save}{%
 \begin{code}
+-- extends FileInfo with a new entry for the Cmd
 save : FileSystem → Cmd → FileInfo → FileInfo
 save s x fi = (x , (cmdReadNames x s) , (cmdWriteNames x s)) ∷ fi
 \end{code}}
@@ -139,6 +140,7 @@ files ls = (filesRead ls) ++ (filesWrote ls)
 
 \newcommand{\cmdWrote}{%
 \begin{code}
+-- The FileNames the Cmd wrote according to the FileInfo
 cmdWrote : FileInfo → Cmd → List FileName
 \end{code}}
 \begin{code}[hide]
@@ -190,6 +192,7 @@ lemma2 x (x₁ ∷ xs) v∈ with (proj₁ x₁) ≟ x
 
 \newcommand{\cmdRead}{%
 \begin{code}
+-- The FileNames the Cmd read according to the FileInfo
 cmdRead : FileInfo → Cmd → List FileName
 \end{code}}
 \begin{code}[hide]
