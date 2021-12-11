@@ -54,7 +54,7 @@ run? x (s , m) with x ∈? map proj₁ m
 -- store extends the Memory with a new entry
 doRun : State -> Cmd -> State
 doRun (s , m) x = let s₂ = St.run x s in
-                           (s₂ , store x (cmdReadNames x s) s₂ m)
+                   (s₂ , store x (cmdReadNames x s) s₂ m)
 \end{code}}
 
 \newcommand{\runF}{%

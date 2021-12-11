@@ -42,7 +42,7 @@ trace = (map getNames getNames) ∘₂ cmdFiles
 
 \newcommand{\run}{%
 \begin{code}
--- writes according to CmdFunction corresponding to Cmd
+-- writes according to Cmd's CmdFunction
 writes : Cmd → FileSystem → List File
 writes = proj₂ ∘₂ (proj₁ ∘ oracle)
 

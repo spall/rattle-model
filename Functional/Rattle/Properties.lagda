@@ -190,8 +190,8 @@ script≡rattle-unchecked s b dsb = script≡rattle-inner [] b (λ f₁ → refl
 
 \newcommand{\soundness}{%
 \begin{code}
--- TODO : update soundness to be equivalent to script
-soundness : ∀ {s₁} {m₁} {ls} s br bc → DisjointBuild s br → rattle br bc ((s , []) , []) ≡ inj₂ ((s₁ , m₁) , ls) → (∀ f₁ → script br s f₁ ≡ s₁ f₁)
+soundness : ∀ {s₁} {m₁} {ls} s br bc → DisjointBuild s br → rattle br bc ((s , []) , []) ≡ inj₂ ((s₁ , m₁) , ls)
+          → (∀ f₁ → script br s f₁ ≡ s₁ f₁)
 \end{code}}
 \begin{code}[hide]
 soundness s br bc dsb ≡₁ f₁ = trans (script≡rattle-unchecked s br dsb f₁)

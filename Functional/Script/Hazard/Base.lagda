@@ -87,7 +87,6 @@ FileNames = List FileName
 
 \newcommand{\fileinfo}{%
 \begin{code}
--- the files a command read and wrote
 FileInfo : Set
 FileInfo = List (Cmd × FileNames × FileNames)
 \end{code}}

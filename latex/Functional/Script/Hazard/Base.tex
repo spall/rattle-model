@@ -376,8 +376,6 @@ this definition is just so long and ugly.
 
 \newcommand{\fileinfo}{%
 \begin{code}%
-\>[0]\AgdaComment{-- the files a command read and wrote}\<%
-\\
 \>[0]\AgdaFunction{FileInfo}\AgdaSpace{}%
 \AgdaSymbol{:}\AgdaSpace{}%
 \AgdaPrimitiveType{Set}\<%
@@ -411,11 +409,11 @@ this definition is just so long and ugly.
 \AgdaSymbol{=}\AgdaSpace{}%
 \AgdaSymbol{(}\AgdaBound{x}\AgdaSpace{}%
 \AgdaOperator{\AgdaInductiveConstructor{,}}\AgdaSpace{}%
-\AgdaSymbol{(}\AgdaFunction{cmdReadNames}\AgdaSpace{}%
+\AgdaSymbol{(}\AgdaPostulate{cmdReadNames}\AgdaSpace{}%
 \AgdaBound{x}\AgdaSpace{}%
 \AgdaBound{s}\AgdaSymbol{)}\AgdaSpace{}%
 \AgdaOperator{\AgdaInductiveConstructor{,}}\AgdaSpace{}%
-\AgdaSymbol{(}\AgdaFunction{cmdWriteNames}\AgdaSpace{}%
+\AgdaSymbol{(}\AgdaPostulate{cmdWriteNames}\AgdaSpace{}%
 \AgdaBound{x}\AgdaSpace{}%
 \AgdaBound{s}\AgdaSymbol{))}\AgdaSpace{}%
 \AgdaOperator{\AgdaInductiveConstructor{∷}}\AgdaSpace{}%
@@ -1856,7 +1854,7 @@ this definition is just so long and ugly.
 \AgdaSymbol{→}\AgdaSpace{}%
 \AgdaFunction{Cmd}\AgdaSpace{}%
 \AgdaSymbol{→}\AgdaSpace{}%
-\AgdaFunction{Build}\AgdaSpace{}%
+\AgdaPostulate{Build}\AgdaSpace{}%
 \AgdaSymbol{→}\AgdaSpace{}%
 \AgdaFunction{FileInfo}\AgdaSpace{}%
 \AgdaSymbol{→}\AgdaSpace{}%
@@ -1875,7 +1873,7 @@ this definition is just so long and ugly.
 \AgdaSymbol{→}\AgdaSpace{}%
 \AgdaBound{v}\AgdaSpace{}%
 \AgdaOperator{\AgdaFunction{∈}}\AgdaSpace{}%
-\AgdaSymbol{(}\AgdaFunction{cmdWriteNames}\AgdaSpace{}%
+\AgdaSymbol{(}\AgdaPostulate{cmdWriteNames}\AgdaSpace{}%
 \AgdaBound{x}\AgdaSpace{}%
 \AgdaBound{s}\AgdaSymbol{)}\AgdaSpace{}%
 \AgdaSymbol{→}\AgdaSpace{}%
@@ -1902,7 +1900,7 @@ this definition is just so long and ugly.
 \AgdaSymbol{→}\AgdaSpace{}%
 \AgdaBound{v}\AgdaSpace{}%
 \AgdaOperator{\AgdaFunction{∈}}\AgdaSpace{}%
-\AgdaSymbol{(}\AgdaFunction{cmdWriteNames}\AgdaSpace{}%
+\AgdaSymbol{(}\AgdaPostulate{cmdWriteNames}\AgdaSpace{}%
 \AgdaBound{x}\AgdaSpace{}%
 \AgdaBound{s}\AgdaSymbol{)}\AgdaSpace{}%
 \AgdaSymbol{→}\AgdaSpace{}%
@@ -1980,7 +1978,7 @@ this definition is just so long and ugly.
 \begin{code}%
 \>[0]\AgdaFunction{∃Hazard}\AgdaSpace{}%
 \AgdaSymbol{:}\AgdaSpace{}%
-\AgdaFunction{Build}\AgdaSpace{}%
+\AgdaPostulate{Build}\AgdaSpace{}%
 \AgdaSymbol{→}\AgdaSpace{}%
 \AgdaPrimitiveType{Set}\<%
 \\
@@ -2007,9 +2005,9 @@ this definition is just so long and ugly.
 \AgdaSymbol{:}\AgdaSpace{}%
 \AgdaFunction{FileSystem}\AgdaSpace{}%
 \AgdaSymbol{→}\AgdaSpace{}%
-\AgdaFunction{Build}\AgdaSpace{}%
+\AgdaPostulate{Build}\AgdaSpace{}%
 \AgdaSymbol{→}\AgdaSpace{}%
-\AgdaFunction{Build}\AgdaSpace{}%
+\AgdaPostulate{Build}\AgdaSpace{}%
 \AgdaSymbol{→}\AgdaSpace{}%
 \AgdaFunction{FileInfo}\AgdaSpace{}%
 \AgdaSymbol{→}\AgdaSpace{}%
@@ -2048,7 +2046,7 @@ this definition is just so long and ugly.
 \AgdaBound{ls}\AgdaSpace{}%
 \AgdaSymbol{→}\AgdaSpace{}%
 \AgdaDatatype{HazardFree}\AgdaSpace{}%
-\AgdaSymbol{(}\AgdaFunction{run}\AgdaSpace{}%
+\AgdaSymbol{(}\AgdaPostulate{run}\AgdaSpace{}%
 \AgdaBound{x}\AgdaSpace{}%
 \AgdaBound{s}\AgdaSymbol{)}\AgdaSpace{}%
 \AgdaBound{b₁}\AgdaSpace{}%
@@ -2124,7 +2122,7 @@ this definition is just so long and ugly.
 \AgdaBound{ys}\AgdaSpace{}%
 \AgdaKeyword{with}\AgdaSpace{}%
 \AgdaBound{x}\AgdaSpace{}%
-\AgdaOperator{\AgdaFunction{∈?}}\AgdaSpace{}%
+\AgdaOperator{\AgdaPostulate{∈?}}\AgdaSpace{}%
 \AgdaBound{ys}\<%
 \\
 \>[0]\AgdaSymbol{...}\AgdaSpace{}%
@@ -2294,7 +2292,7 @@ this definition is just so long and ugly.
 \AgdaBound{ys}\AgdaSpace{}%
 \AgdaKeyword{with}\AgdaSpace{}%
 \AgdaBound{x}\AgdaSpace{}%
-\AgdaOperator{\AgdaFunction{∈?}}\AgdaSpace{}%
+\AgdaOperator{\AgdaPostulate{∈?}}\AgdaSpace{}%
 \AgdaBound{ys}\<%
 \\
 \>[0]\AgdaSymbol{...}\AgdaSpace{}%
@@ -2503,7 +2501,7 @@ this definition is just so long and ugly.
 \AgdaBound{x₁≡x₂}\AgdaSpace{}%
 \AgdaKeyword{with}\AgdaSpace{}%
 \AgdaBound{x}\AgdaSpace{}%
-\AgdaOperator{\AgdaFunction{∈?}}\AgdaSpace{}%
+\AgdaOperator{\AgdaPostulate{∈?}}\AgdaSpace{}%
 \AgdaBound{b}\<%
 \\
 \>[0]\AgdaSymbol{...}\AgdaSpace{}%
@@ -3468,7 +3466,7 @@ this definition is just so long and ugly.
 \AgdaBound{ls₂}\AgdaSpace{}%
 \AgdaKeyword{with}\AgdaSpace{}%
 \AgdaBound{x}\AgdaSpace{}%
-\AgdaOperator{\AgdaFunction{∈?}}\AgdaSpace{}%
+\AgdaOperator{\AgdaPostulate{∈?}}\AgdaSpace{}%
 \AgdaBound{b₂}\<%
 \\
 %
@@ -3970,7 +3968,7 @@ this definition is just so long and ugly.
 \AgdaBound{ls}\AgdaSpace{}%
 \AgdaKeyword{with}\AgdaSpace{}%
 \AgdaFunction{intersection?2}\AgdaSpace{}%
-\AgdaSymbol{(}\AgdaFunction{cmdWriteNames}\AgdaSpace{}%
+\AgdaSymbol{(}\AgdaPostulate{cmdWriteNames}\AgdaSpace{}%
 \AgdaBound{x}\AgdaSpace{}%
 \AgdaBound{s}\AgdaSymbol{)}\AgdaSpace{}%
 \AgdaSymbol{(}\AgdaFunction{filesRead}\AgdaSpace{}%
@@ -3998,7 +3996,7 @@ this definition is just so long and ugly.
 \AgdaBound{¬x₁}\AgdaSpace{}%
 \AgdaKeyword{with}\AgdaSpace{}%
 \AgdaFunction{intersection?2}\AgdaSpace{}%
-\AgdaSymbol{(}\AgdaFunction{cmdWriteNames}\AgdaSpace{}%
+\AgdaSymbol{(}\AgdaPostulate{cmdWriteNames}\AgdaSpace{}%
 \AgdaBound{x}\AgdaSpace{}%
 \AgdaBound{s}\AgdaSymbol{)}\AgdaSpace{}%
 \AgdaSymbol{(}\AgdaFunction{filesWrote}\AgdaSpace{}%
@@ -4222,7 +4220,7 @@ this definition is just so long and ugly.
 \AgdaBound{¬hz}\AgdaSpace{}%
 \AgdaKeyword{with}\AgdaSpace{}%
 \AgdaFunction{hazardfree?}\AgdaSpace{}%
-\AgdaSymbol{(}\AgdaFunction{run}\AgdaSpace{}%
+\AgdaSymbol{(}\AgdaPostulate{run}\AgdaSpace{}%
 \AgdaBound{x}\AgdaSpace{}%
 \AgdaBound{s}\AgdaSymbol{)}\AgdaSpace{}%
 \AgdaBound{b₁}\AgdaSpace{}%
