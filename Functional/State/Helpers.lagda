@@ -4,7 +4,7 @@ open import Functional.State using (Oracle ; Cmd ; FileSystem ; CmdProof ; CmdFu
 
 module Functional.State.Helpers (oracle : Oracle) where
 
-open import Functional.File using (Files ; FileNames)
+open import Functional.File using (Files ; File ; FileNames)
 open import Data.Product using (map ; proj₁ ; proj₂ ; _×_)
 open import Function using (_∘_ ; _∘₂_)
 open import Data.List as L hiding (map)
@@ -42,8 +42,9 @@ trace = (map getNames getNames) ∘₂ cmdFiles
 
 \newcommand{\run}{%
 \begin{code}
-writes : Cmd → FileSystem → Files
-writes = proj₂ ∘₂ getCmdFunction
+-- writes according to CmdFunction corresponding to Cmd
+writes : Cmd → FileSystem → List File
+writes = proj₂ ∘₂ (proj₁ ∘ oracle)
 
 run : Cmd → FileSystem → FileSystem
 run x s = foldr extend s (writes x s)

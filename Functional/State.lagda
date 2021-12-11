@@ -41,12 +41,13 @@ CmdFunction = FileSystem → List File × List File
 
 \newcommand{\cmdP}{%
 \begin{code}
+-- names of files read according to cmdFunction
 reads : CmdFunction → FileSystem → List FileName
 reads f s = map proj₁ (proj₁ (f s))
 
 CmdProof : CmdFunction → Set
 CmdProof f = ∀ s₁ s₂
-  → (∀ f₁ → f₁ ∈ reads f s₁ → s₁ f₁ ≡ s₂ f₁)
+  → (∀ g₁ → g₁ ∈ reads f s₁ → s₁ g₁ ≡ s₂ g₁)
   → f s₁ ≡ f s₂
 \end{code}}
 

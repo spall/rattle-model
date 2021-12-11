@@ -218,10 +218,10 @@ correct b ls dsb ub uls dsj hf = correct-inner [] b (λ f₁ → refl) dsb ub ul
 
 \newcommand{\correctF}{%
 \begin{code}
-correct_forward : ∀ {s} b → PreCond s b b → HazardFree s b b [] → (∀ f₁ → proj₁ (fabricate b (s , [])) f₁ ≡ script b s f₁)
+correct-fabricate : ∀ {s} b → PreCond s b b → HazardFree s b b [] → (∀ f₁ → proj₁ (fabricate b (s , [])) f₁ ≡ script b s f₁)
 \end{code}}
 \begin{code}[hide]
-correct_forward b (dsb , ub , _) hf = correct b [] dsb ub Data.List.Relation.Unary.AllPairs.[] g₁ hf
+correct-fabricate b (dsb , ub , _) hf = correct b [] dsb ub Data.List.Relation.Unary.AllPairs.[] g₁ hf
   where g₁ : Disjoint b []
         g₁ ()
 \end{code}

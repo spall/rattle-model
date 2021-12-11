@@ -1,6 +1,6 @@
 
 \begin{code}[hide]
-open import Functional.State using (State ; Oracle ; Cmd ; save ; FileSystem ; Memory ; extend)
+open import Functional.State using (State ; Oracle ; Cmd ; FileSystem ; Memory ; extend) renaming (save to store)
 
 module Functional.Forward.Exec (oracle : Oracle) where
 
@@ -44,16 +44,18 @@ get x ((x₁ , fs) ∷ ls) x∈ with x ≟ x₁
 \newcommand{\runHuh}{%
 \begin{code}
 run? : Cmd -> State -> Bool
-run? cmd (sys , mm) with cmd ∈? map proj₁ mm
-... | no cmd∉ = Bool.true
-... | yes cmd∈ = is-nothing (maybeAll {sys} (get cmd mm cmd∈))
+run? x (s , m) with x ∈? map proj₁ m
+... | no x∉ = Bool.true
+... | yes x∈ = is-nothing (maybeAll {s} (get x m x∈))
 \end{code}}
 
-\begin{code}[hide]
+\newcommand{\doRun}{%
+\begin{code}
+-- store extends the Memory with a new entry
 doRun : State -> Cmd -> State
-doRun (sys , mm) cmd = let sys₂ = St.run cmd sys in
-                           (sys₂ , save cmd (cmdReadNames cmd sys) sys₂ mm)
-\end{code}
+doRun (s , m) x = let s₂ = St.run x s in
+                           (s₂ , store x (cmdReadNames x s) s₂ m)
+\end{code}}
 
 \newcommand{\runF}{%
 \begin{code}

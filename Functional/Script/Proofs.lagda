@@ -171,8 +171,7 @@ reordered {s} {ls} xs (x ∷ ys) _ p (uxs , ux ∷ uys , uls , dsj) hf f₁ with
 
 \newcommand{\reordered}{%
 \begin{code}
-reordered≡ : ∀ s br bc → PreCond s br bc → HazardFree s br bc []
-           → (∀ f₁ → script bc s f₁ ≡ script br s f₁)
+reordered≡ : ∀ s br bc → PreCond s br bc → HazardFree s br bc [] → (∀ f₁ → script bc s f₁ ≡ script br s f₁)
 \end{code}}
 \begin{code}[hide]
 reordered≡ s br bc (dsb , ubr , ubc , pm) hf₁ with reordered {s} br (reverse bc) (↭-length br↭reverse-bc) br↭reverse-bc ue (subst (λ x → HazardFree s br x _) (sym (reverse-involutive bc)) hf₁)

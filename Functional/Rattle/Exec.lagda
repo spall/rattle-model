@@ -1,5 +1,5 @@
 \begin{code}[hide]
-open import Functional.State using (State ; Oracle ; Cmd ; FileSystem ; Memory ; save)
+open import Functional.State using (State ; Oracle ; Cmd ; FileSystem ; Memory) renaming (save to store)
 
 module Functional.Rattle.Exec (oracle : Oracle) where
 
@@ -39,9 +39,9 @@ open import Relation.Binary.PropositionalEquality using (cong ; trans ; sym ; su
 open import Data.List.Relation.Unary.All using (All ; lookup)
 open import Data.List.Relation.Binary.Disjoint.Propositional using (Disjoint)
 
-doRun : State -> Cmd -> State
-doRun (sys , mm) cmd = let sys₂ = St.run cmd sys in
-                           (sys₂ , save cmd ((cmdReadNames cmd sys) ++ (cmdWriteNames cmd sys)) sys₂ mm)
+doRunR : State -> Cmd -> State
+doRunR (s , m) x = let s₂ = St.run x s in
+                           (s₂ , store x ((cmdReadNames x s) ++ (cmdWriteNames x s)) s₂ m)
 
 {- check for hazards
 
@@ -141,20 +141,23 @@ required? x (x₁ ∷ b) ls bf | yes x≡x₁ with subset? bf ls
 ∃ReadWrite s x ls with ∃Intersection (cmdWriteNames x s) (filesRead ls)
 ... | nothing = nothing
 ... | just (v , v∈ws , v∈reads) = just (ReadWrite v∈ws v∈reads)
+\end{code}
 
+\newcommand{\checkHazard}{%
+\begin{code}
 checkHazard : ∀ s x {b} ls → Maybe (Hazard s x b ls)
+\end{code}}
+\begin{code}[hide]
 checkHazard s x ls with ∃WriteWrite s x ls
 ... | just hz = just hz
 ... | nothing with ∃Speculative s x ls
 ... | just hz = just hz
 ... | nothing = ∃ReadWrite s x ls
 
-
-doRunWError : ∀ {b} → (((s , mm) , ls) : State × FileInfo) → (x : Cmd) → Hazard s x b ls ⊎ State × FileInfo
+doRunWError : ∀ {b} (((s , m) , ls) : State × FileInfo) → (x : Cmd) → Hazard s x b ls ⊎ State × FileInfo
 doRunWError ((s , mm) , ls) x with checkHazard s x ls
 ... | just hz = inj₁ hz
-... | nothing = let sys₁ = St.run x s in
-                inj₂ ((sys₁ , save x ((cmdReadNames x s) ++ (cmdWriteNames x s)) sys₁ mm) , rec s x ls)
+... | nothing = inj₂ (doRunR (s , mm) x , rec s x ls)
 \end{code}
 
 \newcommand{\runR}{%
@@ -162,7 +165,7 @@ doRunWError ((s , mm) , ls) x with checkHazard s x ls
 runR : Cmd → (FileSystem × Memory)
      → (FileSystem × Memory)
 runR cmd st = if (run? cmd st)
-             then doRun st cmd
+             then doRunR st cmd
              else st
 \end{code}}
 
@@ -178,15 +181,17 @@ runWError : ∀ {b} x s m ls
   → Hazard s x b ls ⊎ (FileSystem × Memory) × FileInfo
 runWError x s m ls with (run? x (s , m))
 ... | false = inj₂ ((s , m) , ls)
-... | true = doRunWError ((s , m) , ls) x
+... | true with checkHazard s x ls
+... | just hz = inj₁ hz
+... | nothing = inj₂ (doRunR (s , m) x , rec s x ls)
 \end{code}}
 
 \newcommand{\Rexec}{%
 \begin{code}
-rattle_unchecked : Build → (FileSystem × Memory)
+rattle-unchecked : Build → (FileSystem × Memory)
                  → (FileSystem × Memory)
-rattle_unchecked [] st = st
-rattle_unchecked (x ∷ b) st = rattle_unchecked b (runR x st)
+rattle-unchecked [] st = st
+rattle-unchecked (x ∷ b) st = rattle-unchecked b (runR x st)
 \end{code}}
 
 \newcommand{\rattle}{%

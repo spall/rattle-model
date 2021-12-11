@@ -33,6 +33,8 @@
 \AgdaKeyword{using}\AgdaSpace{}%
 \AgdaSymbol{(}\AgdaFunction{Files}\AgdaSpace{}%
 \AgdaSymbol{;}\AgdaSpace{}%
+\AgdaFunction{File}\AgdaSpace{}%
+\AgdaSymbol{;}\AgdaSpace{}%
 \AgdaFunction{FileNames}\AgdaSymbol{)}\<%
 \\
 \>[0]\AgdaKeyword{open}\AgdaSpace{}%
@@ -221,19 +223,24 @@
 
 \newcommand{\run}{%
 \begin{code}%
+\>[0]\AgdaComment{-- writes according to CmdFunction corresponding to Cmd}\<%
+\\
 \>[0]\AgdaFunction{writes}\AgdaSpace{}%
 \AgdaSymbol{:}\AgdaSpace{}%
 \AgdaFunction{Cmd}\AgdaSpace{}%
 \AgdaSymbol{→}\AgdaSpace{}%
 \AgdaFunction{FileSystem}\AgdaSpace{}%
 \AgdaSymbol{→}\AgdaSpace{}%
-\AgdaFunction{Files}\<%
+\AgdaDatatype{List}\AgdaSpace{}%
+\AgdaFunction{File}\<%
 \\
 \>[0]\AgdaFunction{writes}\AgdaSpace{}%
 \AgdaSymbol{=}\AgdaSpace{}%
 \AgdaField{proj₂}\AgdaSpace{}%
 \AgdaOperator{\AgdaFunction{∘₂}}\AgdaSpace{}%
-\AgdaFunction{getCmdFunction}\<%
+\AgdaSymbol{(}\AgdaField{proj₁}\AgdaSpace{}%
+\AgdaOperator{\AgdaFunction{∘}}\AgdaSpace{}%
+\AgdaBound{oracle}\AgdaSymbol{)}\<%
 \\
 %
 \\[\AgdaEmptyExtraSkip]%

@@ -197,6 +197,8 @@
 
 \newcommand{\cmdP}{%
 \begin{code}%
+\>[0]\AgdaComment{-- names of files read according to cmdFunction}\<%
+\\
 \>[0]\AgdaFunction{reads}\AgdaSpace{}%
 \AgdaSymbol{:}\AgdaSpace{}%
 \AgdaFunction{CmdFunction}\AgdaSpace{}%
@@ -234,19 +236,19 @@
 \>[0][@{}l@{\AgdaIndent{0}}]%
 \>[2]\AgdaSymbol{→}\AgdaSpace{}%
 \AgdaSymbol{(∀}\AgdaSpace{}%
-\AgdaBound{f₁}\AgdaSpace{}%
+\AgdaBound{g₁}\AgdaSpace{}%
 \AgdaSymbol{→}\AgdaSpace{}%
-\AgdaBound{f₁}\AgdaSpace{}%
+\AgdaBound{g₁}\AgdaSpace{}%
 \AgdaOperator{\AgdaFunction{∈}}\AgdaSpace{}%
 \AgdaFunction{reads}\AgdaSpace{}%
 \AgdaBound{f}\AgdaSpace{}%
 \AgdaBound{s₁}\AgdaSpace{}%
 \AgdaSymbol{→}\AgdaSpace{}%
 \AgdaBound{s₁}\AgdaSpace{}%
-\AgdaBound{f₁}\AgdaSpace{}%
+\AgdaBound{g₁}\AgdaSpace{}%
 \AgdaOperator{\AgdaDatatype{≡}}\AgdaSpace{}%
 \AgdaBound{s₂}\AgdaSpace{}%
-\AgdaBound{f₁}\AgdaSymbol{)}\<%
+\AgdaBound{g₁}\AgdaSymbol{)}\<%
 \\
 %
 \>[2]\AgdaSymbol{→}\AgdaSpace{}%
