@@ -145,7 +145,7 @@ completeness-inner st@(s , mm) ls (x ∷ b₁) b₂ ((Cons .x ds .b₁ dsb) , mp
 
 \newcommand{\completeness}{%
 \begin{code}
-completeness : ∀ s br bc → PreCond s br bc → HazardFree s br bc [] → ∃[ st ](∃[ ls ](rattle br bc ((s , []) , []) ≡ inj₂ (st , ls)))
+completeness : ∀ s br bs → PreCond s br bs → HazardFree s br bs [] → ∃[ st ](∃[ ls ](rattle br bs ((s , []) , []) ≡ inj₂ (st , ls)))
 \end{code}}
 \begin{code}[hide]
 completeness s br bc (dsb , ubr , ubc , _) hf = completeness-inner (s , []) [] br bc (dsb , ([] , ubr , (ubc , (Data.List.Relation.Unary.AllPairs.[] , g₁)))) hf
@@ -177,7 +177,7 @@ script≡rattle-inner {s₁} {s₂} mm (x ∷ b₁) ∀₁ (Cons .x dsj .b₁ ds
 \newcommand{\eqtoscript}{%
 \begin{code}
 ≡toScript : FileSystem → Build → Build → Set
-≡toScript s br bc = ∃[ s₁ ](∃[ m ](∃[ ls ](rattle br bc ((s , []) , []) ≡ inj₂ ((s₁ , m) , ls) × ∀ f₁ → s₁ f₁ ≡ script bc s f₁)))
+≡toScript s br bs = ∃[ s₁ ](∃[ m ](∃[ ls ](rattle br bs ((s , []) , []) ≡ inj₂ ((s₁ , m) , ls) × ∀ f₁ → s₁ f₁ ≡ script bs s f₁)))
 \end{code}}
 
 \newcommand{\lemmasr}{%
@@ -190,7 +190,7 @@ script≡rattle-unchecked s b dsb = script≡rattle-inner [] b (λ f₁ → refl
 
 \newcommand{\soundness}{%
 \begin{code}
-soundness : ∀ {s₁} {m₁} {ls} s br bc → DisjointBuild s br → rattle br bc ((s , []) , []) ≡ inj₂ ((s₁ , m₁) , ls)
+soundness : ∀ {s₁} {m₁} {ls} s br bs → DisjointBuild s br → rattle br bs ((s , []) , []) ≡ inj₂ ((s₁ , m₁) , ls)
           → (∀ f₁ → script br s f₁ ≡ s₁ f₁)
 \end{code}}
 \begin{code}[hide]
@@ -203,18 +203,17 @@ soundness s br bc dsb ≡₁ f₁ = trans (script≡rattle-unchecked s br dsb f�
 \end{code}
 \newcommand{\correct}{%
 \begin{code}
-correct-rattle : ∀ s bc → PreCond s bc bc → ¬ HazardFree s bc bc [] ⊎ ≡toScript s bc bc
+correct-rattle : ∀ s b → PreCond s b b → ¬ HazardFree s b b [] ⊎ ≡toScript s b b
 \end{code}}
 \begin{code}[hide]
-correct-rattle s bc pc with rattle bc bc ((s , []) , []) | inspect (rattle bc bc) ((s , []) , [])
+correct-rattle s b pc with rattle b b ((s , []) , []) | inspect (rattle b b) ((s , []) , [])
 ... | inj₁ hz | [ ≡₁ ] = inj₁ g₁
-  where g₁ : ¬ HazardFree s bc bc []
-        g₁ hf with completeness s bc bc pc hf
+  where g₁ : ¬ HazardFree s b b []
+        g₁ hf with completeness s b b pc hf
         ... | a , fst , ≡₂ = contradiction (trans (sym ≡₁) ≡₂) λ ()
 ... | inj₂ ((s₁ , mm₁) , ls₁) | [ ≡₁ ] = inj₂ (s₁ , mm₁ , ls₁ , refl , ∀≡)
-  where ∀≡ : ∀ f₁ → s₁ f₁ ≡ script bc s f₁
-        ∀≡ f₁ = {!!} -- sym (trans (script≡rattle_unchecked s bc (proj₁ pc) f₁)
-                        --    (cong-app (cong proj₁ (soundness s bc bc ≡₁)) f₁))
+  where ∀≡ : ∀ f₁ → s₁ f₁ ≡ script b s f₁
+        ∀≡ f₁ = sym (soundness s b b (proj₁ pc) ≡₁ f₁)
 \end{code}
 
 
@@ -471,9 +470,9 @@ correct-speculation s br bc pc = {!!}
 \end{code}
 
 \begin{code}[hide]
-semi-correct : ∀ s m ls b₁ b₂ → DisjointBuild s b₁ → MemoryProperty m → UniqueEvidence b₁ b₂ (map proj₁ ls) → b₂ ↭ b₁ → ¬ HazardFree s b₁ b₂ ls ⊎ ¬ HazardFree s b₂ b₂ ls ⊎ ∃[ s₁ ](∃[ m₁ ](∃[ ls₁ ](rattle b₁ b₂ ((s , m) , ls) ≡ inj₂ ((s₁ , m₁) , ls₁) × ∀ f₁ → s₁ f₁ ≡ script b₂ s f₁)))
+semi-correct2 : ∀ s m ls b₁ b₂ → DisjointBuild s b₁ → MemoryProperty m → UniqueEvidence b₁ b₂ (map proj₁ ls) → b₂ ↭ b₁ → ¬ HazardFree s b₁ b₂ ls ⊎ ¬ HazardFree s b₂ b₂ ls ⊎ ∃[ s₁ ](∃[ m₁ ](∃[ ls₁ ](rattle b₁ b₂ ((s , m) , ls) ≡ inj₂ ((s₁ , m₁) , ls₁) × ∀ f₁ → s₁ f₁ ≡ script b₂ s f₁)))
              -- ≡toScript (s , m) ls b₁ b₂ b₂
-semi-correct s mm ls b₁ b₂ dsb mp ue b₂↭b₁ with hazardfree? s b₁ b₂ ls
+semi-correct2 s mm ls b₁ b₂ dsb mp ue b₂↭b₁ with hazardfree? s b₁ b₂ ls
 ... | no hz = inj₁ hz
 ... | yes hf with hazardfree? s b₂ b₂ ls
 ... | no hz = inj₂ (inj₁ hz)
@@ -486,13 +485,13 @@ semi-correct s mm ls b₁ b₂ dsb mp ue b₂↭b₁ with hazardfree? s b₁ b�
 
 \newcommand{\correctP}{%
 \begin{code}
-semi_correct : ∀ s br bc → PreCond s br bc → ¬ HazardFree s br bc [] ⊎ ¬ HazardFree s bc bc [] ⊎ ≡toScript s br bc
-semi_correct s br bc pc with hazardfree? s br bc []
+semi-correct : ∀ s br bs → PreCond s br bs → ¬ HazardFree s br bs [] ⊎ ¬ HazardFree s bs bs [] ⊎ ≡toScript s br bs
+semi-correct s br bs pc with hazardfree? s br bs []
 ... | no hz = inj₁ hz
-... | yes hf₁ with completeness s br bc pc hf₁
+... | yes hf₁ with completeness s br bs pc hf₁
 ... | (s₁ , m₁) , ls , ≡₁ = inj₂ (inj₂ (s₁ , m₁ , ls , ≡₁ , ∀≡))
-  where ∀≡ : ∀ f₁ → s₁ f₁ ≡ script bc s f₁
-        ∀≡ f₁ = sym (trans (reordered≡ s br bc pc hf₁ f₁)
-                           (soundness s br bc (proj₁ pc) ≡₁ f₁))
+  where ∀≡ : ∀ f₁ → s₁ f₁ ≡ script bs s f₁
+        ∀≡ f₁ = sym (trans (reordered≡ s br bs pc hf₁ f₁)
+                           (soundness s br bs (proj₁ pc) ≡₁ f₁))
 \end{code}}
 

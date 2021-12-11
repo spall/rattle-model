@@ -196,10 +196,10 @@ rattle-unchecked (x ∷ b) st = rattle-unchecked b (runR x st)
 
 \newcommand{\rattle}{%
 \begin{code}
-rattle : (br bc : Build) → (FileSystem × Memory) × FileInfo
-       → ∃Hazard bc ⊎ (FileSystem × Memory) × FileInfo
-rattle [] b₂ st = inj₂ st
-rattle (x ∷ b₁) b₂ st@((s , m) , ls) with runWError x s m ls
+rattle : (br bs : Build) → (FileSystem × Memory) × FileInfo
+       → ∃Hazard bs ⊎ (FileSystem × Memory) × FileInfo
+rattle [] bs st = inj₂ st
+rattle (x ∷ b₁) bs st@((s , m) , ls) with runWError x s m ls
 ... | inj₁ hz = inj₁ (proj₁ (proj₁ st) , x , proj₂ st , hz)
-... | inj₂ (st₁ , ls₁) = rattle b₁ b₂ (st₁ , ls₁)
+... | inj₂ (st₁ , ls₁) = rattle b₁ bs (st₁ , ls₁)
 \end{code}}
