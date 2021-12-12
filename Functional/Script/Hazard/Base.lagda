@@ -87,6 +87,7 @@ FileNames = List FileName
 
 \newcommand{\fileinfo}{%
 \begin{code}
+-- FileNames == List FileName
 FileInfo : Set
 FileInfo = List (Cmd × FileNames × FileNames)
 \end{code}}
