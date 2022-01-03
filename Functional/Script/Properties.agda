@@ -73,15 +73,6 @@ exec≡₅ : {sys : FileSystem} (x : Cmd) (xs ys : Build) -> script ys (run x (s
 exec≡₅ x [] ys = refl
 exec≡₅ {sys} x (x₁ ∷ xs) ys = exec≡₅ {run x₁ sys} x xs ys
 
--- build-rws --
-
--- i think i can just use foldr-∷ʳ if i redefine the function using foldr
-{-
-build-rws-∷ʳ : (s : System) (ls : List String) (x : Cmd) (b : Build) -> S.read-writes (S.exec s b) x ++ S.build-rws s b ls ≡ S.build-rws s (b ∷ʳ x) ls
-build-rws-∷ʳ s ls x [] = refl
-build-rws-∷ʳ s ls x (x₁ ∷ b) = build-rws-∷ʳ (run oracle x₁ s) (S.read-writes s x₁ ++ ls) x b
--}
-
 all≡ : (s : FileSystem) (fs : List String) (xs ys zs : Build) -> Disjoint fs (buildWriteNames (script ys s) zs) -> (∀ f₁ → script xs s f₁ ≡ script (ys ++ zs) s f₁) -> All (λ f₁ → script xs s f₁ ≡ script ys s f₁) fs
 all≡ s [] xs ys zs dsj ∀₁ = All.[]
 all≡ s (x ∷ fs) xs ys zs dsj ∀₁ = trans (∀₁ x) (sym (exec-≡f₁ s x ys zs λ x₁ → dsj (here refl , x₁))) All.∷ (all≡ s fs xs ys zs (λ x₁ → dsj (there (proj₁ x₁) , proj₂ x₁)) ∀₁)
@@ -93,12 +84,6 @@ writes≡ s s₁ (x₁ ∷ ys) all₁ with ++⁻ (cmdReadNames x₁ s₁) all₁
 ... | all₂ , all₃ = cong₂ _++_ (cong ((map proj₁) ∘ proj₂) (h₅ s s₁ x₁ all₂))
                                     (writes≡ (run x₁ s) (run x₁ s₁) ys (St.lemma1-sym {s} {s₁} (buildReadNames (run x₁ s₁) ys) x₁ all₂ all₃))
                                     
-{-
--- basically a wrapper around subst but nice for writing lemmas because it keeps code less confusing
-still-disjoint : (s : System) (x : Cmd) (ys : Build) -> Disjoint (cmdWriteNames x s) (buildReadNames (run oracle x s) ys) -> Disjoint (cmdReadNames x s) (buildWriteNames (run oracle x s) ys) -> Disjoint (cmdReadNames x s) (buildWriteNames s ys)
-still-disjoint s x ys dsj₁ dsj₂ = subst (λ x₁ → Disjoint _ x₁) (sym (writes≡ s (run oracle x s) ys (St.lemma5 {s} (reads (run oracle x s) ys) (proj₂ (proj₁ (oracle x) s)) dsj₁))) dsj₂
--}
-
 exec-f₁≡ : ∀ s f₁ x xs ys zs -> (∀ f₂ → script xs s f₂ ≡ script (ys ++ zs) s f₂) -> proj₁ (oracle x) (script xs s) ≡ proj₁ (oracle x) (script ys s) -> All (λ f₂ → script ys s f₂ ≡ run x (script ys s) f₂) (buildReadNames (run x (script ys s)) zs) -> Disjoint (cmdWriteNames x (script ys s)) (buildWriteNames (run x (script ys s)) zs) -> script (xs ∷ʳ x) s f₁ ≡ script (ys ++ x ∷ zs) s f₁
 exec-f₁≡ s f₁ x xs ys zs ∀₁ ≡₀ all₁ dsj with f₁ ∈? cmdWriteNames x (script xs s)
 ... | yes f₁∈ with exec-≡sys (run x (script ys s)) f₁ zs f₁∉
@@ -130,31 +115,3 @@ dsj-≡ s₁ s₂ .(x ∷ b) ∀₁ (Cons x dsj b dsb) = Cons x (λ x₂ → dsj
         v∈reads v∈ = subst (λ x₁ → _ ∈ x₁) (cong (map proj₁ ∘ proj₁) ≡₁) v∈
         v∈writes : ∀ {v} → v ∈ cmdWriteNames x s₂ → v ∈ cmdWriteNames x s₁
         v∈writes v∈ = subst (λ x₁ → _ ∈ x₁) (cong (map proj₁ ∘ proj₂) ≡₁) v∈
-
-{-
-hf-⊥ : {sys : System} {ls : List String} (f₁ : String) (b : Build) -> f₁ ∈ ls -> f₁ ∈ buildWriteNames sys b -> HazardFree sys b ls -> ⊥
-hf-⊥ {sys} f₁ (x ∷ b) f₁∈ls f₁∈writes (HazardFree.Cons _ .x .b dsj hf) with ∈-++⁻ (Cwrites sys x) f₁∈writes
-... | inj₁ ∈₁ = dsj (∈₁ , f₁∈ls)
-... | inj₂ ∈₂ = hf-⊥ f₁ b (∈-++⁺ʳ (Creads sys x ++ Cwrites sys x) f₁∈ls) ∈₂ hf
--}
-
-{- prove exec is equivalent when run in two different systems if ∀ f → f ∉ buildWrites x sys₁ -> sys₁ f ≡ sys₂ f -}
-{-
-exec≡-systems : {sys₁ sys₂ : System} {ls : List String} (b : Build) -> DisjointBuild sys₁ b -> HazardFree sys₁ b ls -> (∀ f₁ → f₁ ∉ writes sys₁ b → sys₁ f₁ ≡ sys₂ f₁) -> ∀ f₁ → exec sys₁ b f₁ ≡ exec sys₂ b f₁
-exec≡-systems [] ds hf ∀₁ f₁ = ∀₁ f₁ λ ()
-exec≡-systems {sys₁} {sys₂} (x ∷ b) (Cons .x dsj .b ds) (HazardFree.Cons _ .x .b x₁ hf) ∀₁ = exec≡-systems b ds hf λ f₁ x₂ → g₁ f₁ x₂
-  where ⊥₁ : {f₂ : String} {ls₁ ls₂ : List String} -> f₂ ∈ ls₁ ++ ls₂ -> f₂ ∉ ls₁ -> f₂ ∉ ls₂ -> ⊥
-        ⊥₁ f₂∈ f₂∉₁ f₂∉₂ with ∈-++⁻ _ f₂∈
-        ... | inj₁ f₂∈₁ = f₂∉₁ f₂∈₁
-        ... | inj₂ f₂∈₂ = f₂∉₂ f₂∈₂
-        g₂ : (f₁ : String) -> f₁ ∈ map proj₁ (proj₁ (proj₁ (oracle x) sys₁)) -> f₁ ∉ writes sys₁ (x ∷ b)
-        g₂ f₁ f₁∈ x₂ with ∈-++⁻ (map proj₁ (proj₂ (proj₁ (oracle x) sys₁))) x₂
-        ... | inj₁ ∈₁ = dsj (f₁∈ , ∈₁)
-        ... | inj₂ ∈₂ = hf-⊥ f₁ b (∈-++⁺ˡ (∈-++⁺ˡ f₁∈)) ∈₂ hf
-        ≡₁ : proj₁ (oracle x) sys₁ ≡ proj₁ (oracle x) sys₂
-        ≡₁ = proj₂ (oracle x) sys₁ sys₂ λ f₁ x₁ → ∀₁ f₁ (g₂ f₁ x₁)
-        g₁ : (f₂ : String) -> f₂ ∉ writes (run oracle x sys₁) b -> run oracle x sys₁ f₂ ≡ run oracle x sys₂ f₂
-        g₁ f₂ f₂∉ with f₂ ∈? map proj₁ (proj₂ (proj₁ (oracle x) sys₁))
-        ... | yes f₂∈ = subst (λ x₁ → foldr St.extend sys₁ (proj₂ (proj₁ (oracle x) sys₁)) f₂ ≡ foldr St.extend sys₂ x₁ f₂) (cong proj₂ ≡₁) (St.lemma4 (proj₂ (proj₁ (oracle x) sys₁)) f₂ f₂∈)
-        ... | no f₂∉₁ = St.lemma2 {oracle} {sys₁} {sys₂} x f₂ ≡₁ (∀₁ f₂ λ x₂ → ⊥₁ x₂ f₂∉₁ f₂∉)
--}

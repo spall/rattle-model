@@ -1,4 +1,3 @@
-{-# OPTIONS --allow-unsolved-metas #-}
 open import Functional.State using (Oracle ; Cmd)
 
 module Functional.Script.Hazard.Properties (oracle : Oracle) where
@@ -34,20 +33,6 @@ open import Data.List.Membership.DecPropositional _≟_ using (_∈?_)
 open import Data.Empty using (⊥)
 open import Data.List.Relation.Binary.Permutation.Propositional using (_↭_)
 
-{- what does memoize do about duplicates? 
-
-  The following property is nice: build is idempotent
-
-    
-  
-  #1 write #2 
-
-  #2 write ()
-
-  we shouldn't care about forward builds with duplicate commands; because builds can't be idempotent 
-
--}
-
 -- need some more evidence. need to know x₂ ¬≡ x
 ¬bf-∷ʳ : ∀ (x : Cmd) x₁ {x₂} b₁ → ¬ x₂ ≡ x → ¬ x₁ before x₂ ∈ b₁ → ¬ x₁ before x₂ ∈ (b₁ ∷ʳ x)
 ¬bf-∷ʳ x x₁ {x₂} b₁ ¬x₂≡x ¬bf (xs , ys , b₁∷ʳx≡xs++x₁∷ys , x₂∈ys) with g₁ (reverse b₁) (reverse ys) (reverse xs) x₂ x x₁ ≡₁ (reverse⁺ x₂∈ys) ¬x₂≡x
@@ -66,10 +51,6 @@ unique→¬≡ : ∀ ls (x₁ : Cmd) {x} → x₁ ∈ ls → Unique (ls ∷ʳ x)
 unique→¬≡ (x ∷ ls) x₁ x₁∈ls (px ∷ u) with x₁ ≟ x
 ... | yes x₁≡x = λ x₁≡x₂ → lookup px (∈-++⁺ʳ ls (here refl)) (trans (sym x₁≡x) x₁≡x₂)
 unique→¬≡ (x ∷ ls) x₁ x₁∈ls (px ∷ u) | no ¬x₁≡x = unique→¬≡ ls x₁ (tail ¬x₁≡x x₁∈ls) u
-
-{-
-¬sh-∷ʳ : ∀ b₁ x {ls} → Unique (b₁ ∷ʳ x) → ¬SpeculativeHazard (b₁ ∷ʳ x) ls → ¬SpeculativeHazard b₁ ls
-¬sh-∷ʳ b₁ x u ¬sh = λ x₁ x₂ x₃ x₄ x₅ x₆ → ¬sh x₁ x₂ x₃ (∈-++⁺ˡ x₄) (¬bf-∷ʳ x x₁ b₁ (unique→¬≡ b₁ x₂ x₄ u) x₅) x₆ -}
 
 hf-∷ʳ-l : ∀ {s} b₁ {b₂} {x} {ls} → HazardFree s (b₁ ∷ʳ x) b₂ ls → HazardFree s b₁ b₂ ls
 hf-∷ʳ-l List.[] hf = []
@@ -194,10 +175,6 @@ lemma4 {s} {x} (x₃ ∷ b₂) {b₁} x∉ys ⊆₁ u (¬hz ∷ hf) x₄ with �
 g₅ : ∀ (x : Cmd) ys → All (λ y → ¬ x ≡ y) ys → x ∉ ys
 g₅ x [] All.[] = λ ()
 g₅ x (x₁ ∷ ys) (¬x≡x₁ All.∷ all₁) x∈x₁∷xs = g₅ x ys all₁ (tail ¬x≡x₁ x∈x₁∷xs)
-
-{- x∈x₁∷xs with x ≟ x₁
-... | yes x≡x₁ = contradiction x≡x₁ ¬x≡x₁
-... | no _ = {!!} -}
 
 
 -- we need to know x doesnt write to anything read by ys a command in ys.
@@ -331,93 +308,3 @@ hf=>disjointWR : ∀ s x xs ys zs ls → ys ⊆ zs → x ∉ zs → HazardFree s
 hf=>disjointWR s x [] ys zs ls ys⊆zs x∉zs hf = hf=>disjointWR1 s x ys zs ls ys⊆zs x∉zs hf
 hf=>disjointWR s x (x₁ ∷ xs) ys zs ls ys⊆zs x∉zs (x₂ ∷ hf)
   = hf=>disjointWR (run x₁ s) x xs ys zs _ ys⊆zs x∉zs hf
-
---------------------------------------- preserves hazards --------------------------------------------------------
-script-rec : ∀ (b : Build) s ls → FileInfo
-script-rec [] s ls = ls
-script-rec (x ∷ b) s ls = script-rec b (run x s) (save s x ls)
-
-¬Speculative : Build → FileInfo → Set
-¬Speculative xs ls = ∀ x₁ x₂ → x₂ before x₁ ∈ cmdsRun ls → ¬ (x₁ before x₂ ∈ xs) → Disjoint (cmdWrote ls x₁) (cmdRead ls x₂)
-
-hf-+∷ʳ-left : ∀ {s} {ls} {ys} xs x → ¬ (Hazard (script xs s) x ys (script-rec xs s ls)) → HazardFree s xs ys ls → HazardFree s (xs ∷ʳ x) ys ls
-hf-+∷ʳ-left [] x ¬hz [] = (¬hz ∷ [])
-hf-+∷ʳ-left (x₁ ∷ xs) x ¬hz₁ (¬hz ∷ hf) = ¬hz ∷ (hf-+∷ʳ-left xs x ¬hz₁ hf)
-
-hf--∷ʳ-left : ∀ {s} {ls} {ys} xs x → HazardFree s (xs ∷ʳ x) ys ls → (HazardFree s xs ys ls × ¬ (Hazard (script xs s) x ys (script-rec xs s ls)))
-hf--∷ʳ-left [] x (¬hz ∷ []) = ([] , ¬hz) 
-hf--∷ʳ-left (x₁ ∷ xs) x (¬hz ∷ hf) = map₁ (¬hz ∷_) (hf--∷ʳ-left xs x hf)
-
-
-hf-remove-extras : ∀ {s} {ls} xs ys → HazardFree s (reverse xs) ys ls → ∃[ zs ](zs ⊆ ys × files (script-rec zs s ls) ⊆ files (script-rec (reverse xs) s ls) × HazardFree s zs ys ls)
-hf-remove-extras [] ys hf = [] , (λ ()) , (λ x → x) , []
-hf-remove-extras {s} {ls} (x ∷ xs) ys hf with x ∈? ys
-... | no x∉ys with hf-remove-extras xs ys hf₁
-  where hf₁ : HazardFree s (reverse xs) ys ls
-        hf₁ = proj₁ (hf--∷ʳ-left (reverse xs) x (subst (λ x₁ → HazardFree s x₁ ys ls)
-                                                (unfold-reverse x xs) hf))
-... | (zs , a1 , a2 , hf₁) = (zs , a1 , (λ x₁ → {!!}) , hf₁)
-hf-remove-extras {s} {ls} (x ∷ xs) ys hf | yes x∈ys with hf-remove-extras xs ys hf₁
-    where hf₁ : HazardFree s (reverse xs) ys ls
-          hf₁ = proj₁ (hf--∷ʳ-left (reverse xs) x (subst (λ x₁ → HazardFree s x₁ ys ls)
-                                                (unfold-reverse x xs) hf))
-... | (zs , zs⊆ys , _ , hf₁) = zs ++ (x ∷ []) , zs++x∷[]⊆ys , {!!} , (hf-+∷ʳ-left zs x ¬hz hf₁)
-  where ¬hz₁ : ¬ (Hazard (script (reverse xs) s) x ys (script-rec (reverse xs) s ls))
-        ¬hz₁ = proj₂ (hf--∷ʳ-left (reverse xs) x (subst (λ x₁ → HazardFree s x₁ ys ls)
-                                                (unfold-reverse x xs) hf))
-        ≡₁ : proj₁ (oracle x) (script (reverse xs) s) ≡ proj₁ (oracle x) (script zs s)
-        ≡₁ = proj₂ (oracle x) (script (reverse xs) s) (script zs s)
-             λ f₁ x₁ → {!!}
-        ¬hz : ¬ (Hazard (script zs s) x ys (script-rec zs s ls))
-        ¬hz (ReadWrite x x₁) = ¬hz₁ (ReadWrite {!!} {!!})
-        ¬hz (WriteWrite x x₁) = ¬hz₁ (WriteWrite {!!} {!!})
-        ¬hz (Speculative x₁ x₂ x x₃ x₄ x₅ x₆)
-          = ¬hz₁ (Speculative {!!} {!!} {!!} {!!} {!!} {!!} {!!})
-        zs++x∷[]⊆ys : zs ++ x ∷ [] ⊆ ys
-        zs++x∷[]⊆ys x₁∈zs++[x] with ∈-++⁻ zs x₁∈zs++[x]
-        ... | inj₁ x₁∈zs = zs⊆ys x₁∈zs
-        ... | inj₂ (here x₁≡x) = subst (λ x₂ → x₂ ∈ ys) (sym x₁≡x) x∈ys
-
-
-{- Need to prove x does same thing when run in both builds. 
-   I'm extremely not sure how to prove this in the current state. 
-   What if I reduce the problem? and remove all of the extra commands from the build run?
--}
-≡-result : ∀ {s} as bs cs ds x → HazardFree s (as ++ x ∷ bs) (cs ++ x ∷ (reverse ds)) [] → proj₁ (oracle x) (script as s) ≡ proj₁ (oracle x) (script cs s)
-≡-result {s} as bs cs [] x hf = {!!}
-≡-result {s} as bs cs (x₁ ∷ ds) x hf = {!!}
-
-{- Either our hazardfree evidence has the same hazard, or there is a speculative hazard?
-  1. we should know but haven't proven that for all cmds in both lists. they will have the same result....
-  2. we should know there isn't a speculative hazard. so we should be able to contradict that away
-  3. since there is a writewrite/readwrite hazard, we know there is a command x₁ that read/wrote to the file. 
-  4. if x₁ is before x in ys, then we produce a contradiction with that ¬ hazard evidence for x.
-  5. if x₁ is after x in ys, then we produce a contradiction using the ¬ hazard evidence for x₁; because that is a speculative hazard.
-
-  of course there are more details to figuring these things out.
--}
-hazard-contradiction : ∀ {s₁} {s} {ls} x zs ys → x ∈ ys → Hazard s₁ x zs ls → HazardFree s ys zs [] → ⊥ 
-hazard-contradiction x zs ys x∈ys (ReadWrite x₁ x₂) hf = {!!}
-hazard-contradiction x zs ys x∈ys (WriteWrite x₁ x₂) hf = {!!}
-
-hazard-contradiction x zs ys x∈ys (Speculative x₁ x₂ x₃ x₄ x₅ x₆ x₇) hf = {!!}
-
-
-preserves-hazardFree : ∀ {s} {s₁} {ls} xs ys zs → xs ⊆ zs → zs ⊆ ys → HazardFree s ys zs [] → HazardFree s₁ xs zs ls
-preserves-hazardFree [] ys zs xs⊆zs zs⊆ys hf = []
-preserves-hazardFree (x ∷ xs) ys zs xs⊆zs zs⊆ys hf
-  = (λ x₁ → {!!}) ∷ (preserves-hazardFree xs ys zs (λ x₁ → xs⊆zs (there x₁)) zs⊆ys hf)
-
-preserves-hazards : ∀ {s} xs ys → xs ⊆ ys → ¬ HazardFree s xs xs [] → ¬ HazardFree s ys xs []
-preserves-hazards xs ys xs⊆ys hz hf = hz {!!}
-
-
-hazardFree-self : ∀ {s} {ls} xs ys → HazardFree s xs ys ls → HazardFree s xs xs ls
-hazardFree-self xs ys hf = {!!}
-  where g₁ : ∀ {s} {ls} xs ys zs → HazardFree s xs ys ls → HazardFree s xs zs ls
-        g₁ [] ys zs [] = []
-        g₁ {s} {ls} (x ∷ xs) ys zs (¬hz ∷ hf) = ¬hz₂ ∷ (g₁ xs ys zs hf)
-          where ¬hz₂ : ¬ (Hazard s x zs ls)
-                ¬hz₂ (ReadWrite x x₁) = ¬hz (ReadWrite x x₁)
-                ¬hz₂ (WriteWrite x x₁) = ¬hz (WriteWrite x x₁)
-                ¬hz₂ (Speculative x₁ x₂ x x₃ x₄ x₅ x₆) = {!!}

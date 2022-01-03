@@ -197,33 +197,21 @@ data HazardFree : FileSystem → Build → Build → FileInfo → Set where
   [] : ∀ {s} {b} {ls} → HazardFree s [] b ls
   _∷_ : ∀ {s} {x} {b₁} {b₂} {ls} → ¬ Hazard s x b₂ ls → HazardFree (run x s) b₁ b₂ (save s x ls) → HazardFree s (x ∷ b₁) b₂ ls
 
-intersection?2 : (xs ys : FileNames) → Dec (∃[ v ](v ∈ xs × v ∈ ys))
-intersection?2 [] ys = false Relation.Nullary.because Relation.Nullary.ofⁿ g₁
+intersection? : (xs ys : FileNames) → Dec (∃[ v ](v ∈ xs × v ∈ ys))
+intersection? [] ys = false Relation.Nullary.because Relation.Nullary.ofⁿ g₁
   where g₁ : ¬ (∃[ v ](v ∈ [] × v ∈ ys))
         g₁ ()
-intersection?2 (x ∷ xs) ys with x ∈? ys
+intersection? (x ∷ xs) ys with x ∈? ys
 ... | yes x∈ys = true Relation.Nullary.because Relation.Nullary.ofʸ g₁
   where g₁ : ∃[ v ](v ∈ x ∷ xs × v ∈ ys)
         g₁ = x , here refl , x∈ys
-... | no x∉ys with intersection?2 xs ys
+... | no x∉ys with intersection? xs ys
 ... | yes (v , v∈xs , v∈ys) = true Relation.Nullary.because Relation.Nullary.ofʸ (v , there v∈xs , v∈ys)
 ... | no ¬p = false Relation.Nullary.because Relation.Nullary.ofⁿ g₁
   where g₁ : ¬ (∃[ v ](v ∈ x ∷ xs × v ∈ ys))
         g₁ (v , v∈x∷xs , v∈ys) with v ≟ x
         ... | yes v≡x = contradiction (subst (λ x₁ → x₁ ∈ ys) v≡x v∈ys) x∉ys
         ... | no ¬v≡x = ¬p (v , (tail ¬v≡x v∈x∷xs) , v∈ys)
-
-intersection? : (xs ys : FileNames) → Dec (Disjoint xs ys)
-intersection? [] ys = true Relation.Nullary.because Relation.Nullary.ofʸ (λ ())
-intersection? (x ∷ xs) ys with x ∈? ys
-... | yes x∈ys = false Relation.Nullary.because Relation.Nullary.ofⁿ λ x₁ → x₁ ((here refl) , x∈ys)
-... | no x∉ys with intersection? xs ys
-... | yes dsj = true Relation.Nullary.because Relation.Nullary.ofʸ λ x₁ → g₁ x₁
-  where g₁ : ∀ {v} → (v ∈ x ∷ xs × v ∈ ys) → ⊥
-        g₁ {v} (v∈x∷xs , v∈ys) with v ≟ x
-        ... | yes v≡x = x∉ys (subst (λ x₁ → x₁ ∈ ys) v≡x v∈ys)
-        ... | no ¬v≡x = dsj (tail ¬v≡x v∈x∷xs , v∈ys)
-... | no ¬dsj = false Relation.Nullary.because Relation.Nullary.ofⁿ λ x₁ → ¬dsj λ x₂ → x₁ (there (proj₁ x₂) , proj₂ x₂)
 
 before? : ∀ (x₁ : Cmd) x b → Dec (x₁ before x ∈ b)
 before? x₁ x [] = false Relation.Nullary.because Relation.Nullary.ofⁿ g₁
@@ -252,7 +240,7 @@ speculativeHazard-x? : ∀ x b₂ ls ls₁ rs → Dec (∃[ x₁ ](∃[ v ](x₁
 speculativeHazard-x? x b₂ [] ls₁ rs = false Relation.Nullary.because Relation.Nullary.ofⁿ g₁
   where g₁ : ∃[ x₁ ](∃[ v ](x₁ ∈ [] × ¬ (x₁ before x ∈ b₂) × v ∈ rs × v ∈ cmdWrote ls₁ x₁)) → ⊥
         g₁ ()
-speculativeHazard-x? x b₂ (x₁ ∷ ls) ls₁ rs with intersection?2 rs (cmdWrote ls₁ x₁)
+speculativeHazard-x? x b₂ (x₁ ∷ ls) ls₁ rs with intersection? rs (cmdWrote ls₁ x₁)
 ... | yes (v , v∈rs , v∈ws) with before? x₁ x b₂
 ... | no ¬bf = true Relation.Nullary.because Relation.Nullary.ofʸ g₁
   where g₁ : ∃[ x₂ ](∃[ v ](x₂ ∈ (x₁ ∷ ls) × ¬ (x₂ before x ∈ b₂) × v ∈ rs × v ∈ cmdWrote ls₁ x₂))
@@ -306,9 +294,9 @@ speculativeHazard-x? x b₂ (x₁ ∷ ls) ls₁ rs | no p₁ with speculativeHaz
                 g₂ (x₁ , x₂ , v , (x₃ ∷ xs , ys , ≡₁ , ∈₁) , rest) = ¬sh (x₁ , x₂ , v , (xs , ys , (∷-injectiveʳ ≡₁) , ∈₁) , rest)
 
 hazard? : ∀ s x b₂ ls → Dec (Hazard s x b₂ ls)
-hazard? s x b₂ ls with intersection?2 (cmdWriteNames x s) (filesRead ls)
+hazard? s x b₂ ls with intersection? (cmdWriteNames x s) (filesRead ls)
 ... | yes (v , ∈₁ , ∈₂) = true Relation.Nullary.because Relation.Nullary.ofʸ (ReadWrite ∈₁ ∈₂)
-... | no ¬x₁ with intersection?2 (cmdWriteNames x s) (filesWrote ls)
+... | no ¬x₁ with intersection? (cmdWriteNames x s) (filesWrote ls)
 ... | yes (v , ∈₁ , ∈₂) = true Relation.Nullary.because Relation.Nullary.ofʸ (WriteWrite ∈₁ ∈₂)
 ... | no ¬x₂ with ¬speculative? b₂ (save s x ls)
 ... | yes (x₁ , x₂ , v , bf , x₂∈b₂ , ¬bf , v∈₁ , v∈₂)
