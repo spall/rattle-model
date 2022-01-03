@@ -1,4 +1,3 @@
-\begin{code}[hide]
 open import Functional.State as St using (Oracle ; FileSystem ; Cmd)
 
 module Functional.Script.Exec (oracle : Oracle) where
@@ -30,16 +29,11 @@ open import Data.Empty using (⊥)
 open import Data.List.Relation.Unary.All using (All ; lookup)
 open import Data.List.Relation.Unary.All.Properties using (++⁻ˡ ; ++⁻ʳ ; ++⁻ )
 open import Function using (_∘_)
-\end{code}
 
-\newcommand{\script}{%
-\begin{code}
 script : Build → FileSystem → FileSystem
 script [] sys = sys
 script (x ∷ b) sys = script b (run x sys)
-\end{code}}
 
-\begin{code}[hide]
 buildReadNames : FileSystem -> Build -> List FileName
 buildReadNames _ [] = []
 buildReadNames sys (x ∷ b) = (cmdReadNames x sys) ++ buildReadNames (run x sys) b
@@ -84,7 +78,6 @@ h₁ {s} f₁ x w (x₁ ∷ xs) ys (x₂ ∷ ls₁) ls₂ f₁∈ dsj x₁∷xs+
 script-≡ : {sys sys₁ : FileSystem} (b : Build) -> (∀ f₁ → sys f₁ ≡ sys₁ f₁) -> (∀ f₁ → script b sys f₁ ≡ script b sys₁ f₁)
 script-≡ [] ∀₁ f₁ = ∀₁ f₁
 script-≡ (x ∷ b) ∀₁ = script-≡ b λ f₁ → run-≡ x ∀₁ f₁
-\end{code}
 
 
 

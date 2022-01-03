@@ -1,4 +1,3 @@
-\begin{code}[hide]
 open import Functional.State using (Oracle ; Cmd ; FileSystem)
 
 module Functional.Script.Hazard.Base (oracle : Oracle) where
@@ -50,56 +49,19 @@ Do not depend on a reference order:
 Does depend on a reference order:
   
   Speculative Write before Read
-
-
----------------------------------------
-
-Goals (what we need):
-
-execWError says there is either a hazard or a state
-
-completeness takes evidence that the build has no hazards and proves that execWerror will return 
-a state and not a hazard.  fundamentally this works by producing a contradiction when execWError
-returns a hazard with the hazardfree evidence. 
-
-What would be ideal is if hazard and hazardfree are set up in such a way that we can just say
-contradiction 'hazard free evidnece' 'hazard evidence' without anymore manipulation
-
-Existing hazardfree defs:
-
-HazardFree is recursive and says the writes of the command at the head of the list are disjoint from the writes/reads that happened previously (exist in some list)
-
-Would be nice to stick with this so i dont have to completely redo a lot of my proofs.  
-
-HazardFreeReordering says 2 builds are permutations of one another. which could jsut be passed as its own argument to a function
-
-Says both of the builds are hazardFree (by above def). 
-And says there is not speculativewrhazard in the first of the 2 builds.  
-
-speculativewrhazard says there are two commands, such that the first command is first in the original build, and the 2nd command writes to something before the first command in the build that is running.
-
-this definition is just so long and ugly.  
-
 -}
+
 FileNames : Set
 FileNames = List FileName
-\end{code}
 
-\newcommand{\fileinfo}{%
-\begin{code}
 -- FileNames == List FileName
 FileInfo : Set
 FileInfo = List (Cmd × FileNames × FileNames)
-\end{code}}
 
-\newcommand{\save}{%
-\begin{code}
 -- extends FileInfo with a new entry for the Cmd
 save : FileSystem → Cmd → FileInfo → FileInfo
 save s x fi = (x , (cmdReadNames x s) , (cmdWriteNames x s)) ∷ fi
-\end{code}}
 
-\begin{code}[hide]
 cmdsRun : FileInfo → List Cmd
 cmdsRun = map proj₁
 
@@ -137,14 +99,9 @@ files ls = (filesRead ls) ++ (filesWrote ls)
 ∈-files-++ xs ys zs v∈files with ∈-++⁻ (filesRead (xs ++ zs)) v∈files
 ... | inj₁ v∈reads = ∈-++⁺ˡ (∈-filesRead-++ xs ys zs v∈reads)
 ... | inj₂ v∈writes = ∈-++⁺ʳ (filesRead (xs ++ ys ++ zs)) (∈-filesWrote-++ xs ys zs v∈writes)
-\end{code}
 
-\newcommand{\cmdWrote}{%
-\begin{code}
 -- The FileNames the Cmd wrote according to the FileInfo
 cmdWrote : FileInfo → Cmd → List FileName
-\end{code}}
-\begin{code}[hide]
 cmdWrote [] p = []
 cmdWrote (x ∷ ls) p with (proj₁ x) ≟ p
 ... | yes x≡p = proj₂ (proj₂ x)
@@ -189,14 +146,9 @@ lemma2 x (x₁ ∷ xs) v∈ with (proj₁ x₁) ≟ x
 ∈-cmdWrote++mid x (x₁ ∷ xs) ys zs (px₁ ∷ u) v∈ with (proj₁ x₁) ≟ x
 ... | yes x₁≡x = v∈
 ... | no ¬x₁≡x = ∈-cmdWrote++mid x xs ys zs u v∈
-\end{code}
 
-\newcommand{\cmdRead}{%
-\begin{code}
 -- The FileNames the Cmd read according to the FileInfo
 cmdRead : FileInfo → Cmd → List FileName
-\end{code}}
-\begin{code}[hide]
 cmdRead [] p = []
 cmdRead (x ∷ ls) p with (proj₁ x) ≟ p
 ... | yes x≡p = proj₁ (proj₂ x)
@@ -232,47 +184,18 @@ lemma1 x (x₁ ∷ xs) v∈ with (proj₁ x₁) ≟ x
 ... | yes x₁≡x = v∈
 ... | no ¬x₁≡x = ∈-cmdRead++mid x xs ys zs u v∈
 
---  ¬speculativehazard def only makes sense with unique FileINfo and build
-\end{code}
-
-\begin{code}[hide]
-{- we have a Speculative hazard if a required command read something a speculative command wrote to. 
- So we need to be able to determine: 
-1. when a command is required : a command is required if its the first command in the list?
-
-2. when a command is speculated
--}
--- (cmdsRun (save x (cmdReadNames x s) (cmdWriteNames x s) ls))
--- (save x (cmdReadNames x s) (cmdWriteNames x s) ls)
--- (save x (cmdReadNames x s) (cmdWriteNames x s) ls)
-
-
-\end{code}
-
-\newcommand{\hazard}{%
-\begin{code}
 data Hazard : FileSystem → Cmd → Build → FileInfo → Set where
   ReadWrite   : ∀ {s} {x} {b} {ls} {v} → v ∈ (cmdWriteNames x s) → v ∈ (filesRead ls) → Hazard s x b ls
   WriteWrite  : ∀ {s} {x} {b} {ls} {v} → v ∈ (cmdWriteNames x s) → v ∈ (filesWrote ls) → Hazard s x b ls
   Speculative : ∀ {s} {x} {b} {ls} {v} x₁ x₂ → x₂ before x₁ ∈ (x ∷ (cmdsRun ls)) → x₂ ∈ b → ¬ x₁ before x₂ ∈ b
                 → v ∈ cmdRead (save s x ls) x₂ → v ∈ cmdWrote (save s x ls) x₁ → Hazard s x b ls
-\end{code}}
 
-\newcommand{\exhaz}{%
-\begin{code}
 ∃Hazard : Build → Set
 ∃Hazard b = ∃[ sys ](∃[ x ](∃[ ls ](Hazard sys x b ls)))
-\end{code}}
 
-\newcommand{\hazardfree}{%
-\begin{code}
 data HazardFree : FileSystem → Build → Build → FileInfo → Set where
   [] : ∀ {s} {b} {ls} → HazardFree s [] b ls
   _∷_ : ∀ {s} {x} {b₁} {b₂} {ls} → ¬ Hazard s x b₂ ls → HazardFree (run x s) b₁ b₂ (save s x ls) → HazardFree s (x ∷ b₁) b₂ ls
-\end{code}}
-
-
-\begin{code}[hide]
 
 intersection?2 : (xs ys : FileNames) → Dec (∃[ v ](v ∈ xs × v ∈ ys))
 intersection?2 [] ys = false Relation.Nullary.because Relation.Nullary.ofⁿ g₁
@@ -408,4 +331,3 @@ hazardfree? s (x ∷ b₁) b₂ ls with hazard? s x b₂ ls
 ... | no ¬hf = false Relation.Nullary.because Relation.Nullary.ofⁿ g₁
   where g₁ : ¬ HazardFree s (x ∷ b₁) b₂ ls
         g₁ (_ ∷ hf) = ¬hf hf
-\end{code}

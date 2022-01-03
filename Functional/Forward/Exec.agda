@@ -1,5 +1,4 @@
 
-\begin{code}[hide]
 open import Functional.State using (State ; Oracle ; Cmd ; FileSystem ; Memory ; extend) renaming (save to store)
 
 module Functional.Forward.Exec (oracle : Oracle) where
@@ -39,49 +38,24 @@ get : (x : Cmd) -> (ls : Memory) -> x ∈ map proj₁ ls -> List (FileName × Ma
 get x ((x₁ , fs) ∷ ls) x∈ with x ≟ x₁
 ... | yes x≡x₁ = fs
 ... | no ¬x≡x₁ = get x ls (tail ¬x≡x₁ x∈)
-\end{code}
 
-\newcommand{\runHuh}{%
-\begin{code}
 run? : Cmd -> State -> Bool
 run? x (s , m) with x ∈? map proj₁ m
 ... | no x∉ = Bool.true
 ... | yes x∈ = is-nothing (maybeAll {s} (get x m x∈))
-\end{code}}
 
-\newcommand{\doRun}{%
-\begin{code}
 -- store extends the Memory with a new entry
 doRun : State -> Cmd -> State
 doRun (s , m) x = let s₂ = St.run x s in
                    (s₂ , store x (cmdReadNames x s) s₂ m)
-\end{code}}
 
-\newcommand{\runF}{%
-\begin{code}
 runF : Cmd → (FileSystem × Memory)
      → (FileSystem × Memory)
 runF cmd st = if (run? cmd st)
                then doRun st cmd
                else st
-\end{code}}
 
-\newcommand{\forward}{%
-\begin{code}
 fabricate : Build → (FileSystem × Memory)
           → (FileSystem × Memory)
 fabricate [] st = st
 fabricate (x ∷ b) st = fabricate b (runF x st)
-\end{code}}
-
-\begin{code}[hide]
-{- Goal: prove if a command is in the memory, and the recorded files and the values of the files in the system are the same as the values in the memory, then
-   running the command is equivalent to not running the command. 
-
- Or similarly/equivalently if a command is in the memory and the recorded files match what is in the system, then the files/values that the oracle says would be the output files, are already in the system. 
-
-What does it mean for the command to be in the memory? The command is in the memory list, so it has
-a corresponding list of files and maybe file contents, which in the case of the forward build, are
-the files and their values read by the ocmmand when it was recorded as being run.  
--}
-\end{code}

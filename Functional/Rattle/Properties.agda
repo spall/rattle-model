@@ -1,4 +1,3 @@
-\begin{code}[hide]
 open import Functional.State using (Oracle ; FileSystem ; Memory ; Cmd ; extend ; State ; save ; reads)
 
 module Functional.Rattle.Properties (oracle : Oracle) where
@@ -92,9 +91,7 @@ runSoundness s m ls st₁ ls₁ b x ≡₁ with run? x (s , m)
 ... | true with checkHazard s x {b} ls
 ... | nothing = cong proj₁ (inj₂-injective ≡₁)
 -- doRunSoundness (s , m) ls b x ≡₁
-\end{code}
 
-\begin{code}[hide]
 soundness-inner : ∀ {st₁} {ls₁} st ls b₁ b₂ → rattle b₁ b₂ (st , ls) ≡ inj₂ (st₁ , ls₁) → rattle-unchecked b₁ st ≡ st₁
 soundness-inner st ls [] b₂ ≡₁ = cong proj₁ (inj₂-injective ≡₁)
 soundness-inner (s , m) ls (x ∷ b₁) b₂  ≡₁ with runWError {b₂} x s m ls | inspect (runWError {b₂} x s m) ls
@@ -103,9 +100,7 @@ soundness-inner (s , m) ls (x ∷ b₁) b₂  ≡₁ with runWError {b₂} x s m
 
 OKBuild : State → FileInfo → Build → Build → Set
 OKBuild (s , mm) ls b₁ b₂ = DisjointBuild s b₁ × MemoryProperty mm × UniqueEvidence b₁ b₂ (map proj₁ ls)
-\end{code}
 
-\begin{code}[hide]
 completeness-inner : ∀ st ls b₁ b₂ → OKBuild st ls b₁ b₂ → HazardFree (proj₁ st) b₁ b₂ ls
              → ∃[ st₁ ](∃[ ls₁ ](rattle b₁ b₂ (st , ls) ≡ inj₂ (st₁ , ls₁)))
 completeness-inner st ls [] _ (dsb , mp , (ub₁ , ub₂ , uls , dsj)) hf = st , ls , refl
@@ -141,19 +136,12 @@ completeness-inner st@(s , mm) ls (x ∷ b₁) b₂ ((Cons .x ds .b₁ dsb) , mp
 ... | nothing = completeness-inner (St.run x s , save x ((cmdReadNames x s) ++ (cmdWriteNames x s)) (St.run x s) mm) (rec s x ls) b₁ b₂ (dsb , (MemoryProperty.Cons x s (λ f₁ x₂ → lemma3 f₁ (proj₂ (proj₁ (oracle x) s)) λ x₃ → ds (x₂ , x₃)) mp) , (ub₁ , ub₂ , (g₂ (map proj₁ ls) (λ x₁ → dsj₁ (here refl , x₁)) ∷ uls) , dsj₂)) hf 
   where dsj₂ : Disjoint b₁ (x ∷ map proj₁ ls)
         dsj₂ = λ x₁ → dsj₁ (there (proj₁ x₁) , tail (λ v≡x → lookup px (proj₁ x₁) (sym v≡x)) (proj₂ x₁))
-\end{code}
 
-\newcommand{\completeness}{%
-\begin{code}
 completeness : ∀ s br bs → PreCond s br bs → HazardFree s br bs [] → ∃[ st ](∃[ ls ](rattle br bs ((s , []) , []) ≡ inj₂ (st , ls)))
-\end{code}}
-\begin{code}[hide]
 completeness s br bc (dsb , ubr , ubc , _) hf = completeness-inner (s , []) [] br bc (dsb , ([] , ubr , (ubc , (Data.List.Relation.Unary.AllPairs.[] , g₁)))) hf
   where g₁ : Disjoint br []
         g₁ ()
-\end{code}
 
-\begin{code}[hide]
 script≡rattle-inner : ∀ {s₁} {s₂} m b₁ → (∀ f₁ → s₁ f₁ ≡ s₂ f₁) → DisjointBuild s₂ b₁ → MemoryProperty m
               → (∀ f₁ → script b₁ s₁ f₁ ≡ proj₁ (rattle-unchecked b₁ (s₂ , m)) f₁)
 script≡rattle-inner mm [] ∀₁ dsb mp = ∀₁ 
@@ -172,40 +160,18 @@ script≡rattle-inner {s₁} {s₂} mm (x ∷ b₁) ∀₁ (Cons .x dsj .b₁ ds
         ∀₃ = noEffect x (λ f₂ → refl) mp x∈ all₁
 
 -- rattle produces a State and the System in that state is equivalent to the one produced by script
-\end{code}
-
-\newcommand{\eqtoscript}{%
-\begin{code}
 ≡toScript : FileSystem → Build → Build → Set
 ≡toScript s br bs = ∃[ s₁ ](∃[ m ](∃[ ls ](rattle br bs ((s , []) , []) ≡ inj₂ ((s₁ , m) , ls) × ∀ f₁ → s₁ f₁ ≡ script bs s f₁)))
-\end{code}}
 
-\newcommand{\lemmasr}{%
-\begin{code}
 script≡rattle-unchecked : ∀ s b → DisjointBuild s b → (∀ f₁ → script b s f₁ ≡ proj₁ (rattle-unchecked b (s , [])) f₁)
-\end{code}}
-\begin{code}[hide]
 script≡rattle-unchecked s b dsb = script≡rattle-inner [] b (λ f₁ → refl) dsb []
-\end{code}
 
-\newcommand{\soundness}{%
-\begin{code}
 soundness : ∀ {s₁} {m₁} {ls} s br bs → DisjointBuild s br → rattle br bs ((s , []) , []) ≡ inj₂ ((s₁ , m₁) , ls)
           → (∀ f₁ → script br s f₁ ≡ s₁ f₁)
-\end{code}}
-\begin{code}[hide]
 soundness s br bc dsb ≡₁ f₁ = trans (script≡rattle-unchecked s br dsb f₁)
                                     (cong-app (,-injectiveˡ (soundness-inner (s , []) [] br bc ≡₁)) f₁)
-\end{code}
-
-\begin{code}[hide]
 -- correctness is if you have any build then either you get the right answer (the one the script gave) or you get an error and there was a hazard.
-\end{code}
-\newcommand{\correct}{%
-\begin{code}
 correct-rattle : ∀ s b → PreCond s b b → ¬ HazardFree s b b [] ⊎ ≡toScript s b b
-\end{code}}
-\begin{code}[hide]
 correct-rattle s b pc with rattle b b ((s , []) , []) | inspect (rattle b b) ((s , []) , [])
 ... | inj₁ hz | [ ≡₁ ] = inj₁ g₁
   where g₁ : ¬ HazardFree s b b []
@@ -214,16 +180,6 @@ correct-rattle s b pc with rattle b b ((s , []) , []) | inspect (rattle b b) ((s
 ... | inj₂ ((s₁ , mm₁) , ls₁) | [ ≡₁ ] = inj₂ (s₁ , mm₁ , ls₁ , refl , ∀≡)
   where ∀≡ : ∀ f₁ → s₁ f₁ ≡ script b s f₁
         ∀≡ f₁ = sym (soundness s b b (proj₁ pc) ≡₁ f₁)
-\end{code}
-
-
-\begin{code}[hide]
--- want to prove if execWError original build produces a hazard then execWError of the reordered build will produce a hazard too.
--- this would also mean if the reordered build doesnt produce a hazard, then the original build doesn't produce a hazard.
--- which means it produces a state.
--- then we use soundness to prove theyre equal to their non hazard versions ; then we use the reordering proof to show they're equivalent??
-
--- for every pair of commands in b₂ (x , y) where x is before y; if x writes to something y reads; then (x , y) in b₁ too.
 
 before=>∈ : ∀ {x₁} {x₂} {xs} → x₁ before x₂ ∈ xs → (x₁ ∈ xs × x₂ ∈ xs)
 before=>∈ (ys , zs , ≡₁ , x₂∈zs) = (subst (λ x → _ ∈ x) (sym ≡₁) (∈-++⁺ʳ ys (here refl)))
@@ -352,12 +308,6 @@ preserves-help2 = {!!}
 preserves-help1 : ∀ {s} {ls} as bs ys x → filesRead (script-rec (reverse ys) s ls) ⊆ filesRead (script-rec as s ls) ++ filesRead (script-rec bs (St.run x (script as s)) [])
 preserves-help1 = {!!}
 
-
-
-
-
-
-
 dsj-helper : ∀ {s} {ls} xs x → Disjoint (files (script-rec xs s ls)) (cmdWriteNames x (script xs s))
 dsj-helper xs x x₁ = {!!}
 
@@ -428,48 +378,16 @@ preservesHazardFree {s} {ls} xs (x ∷ ys) _ p (uxs , ux ∷ uys , uls , dsj) hf
 
 preservesHazards : ∀ s ls b₁ b₂ → b₁ ⊆ b₂ → Unique b₁ → Unique b₂ → ¬ HazardFree s b₁ b₁ ls → ¬ HazardFree s b₂ b₁ ls
 preservesHazards s ls b₁ b₂ ⊆₁ ue ue₁ ¬hf hf = ¬hf {!!} -- (preservesHazardFree s ls b₁ b₂ hf)
-\end{code}
 
-\begin{code}[hide]
 correct2 : ∀ br bc s m ls → OKBuild (s , m) ls br bc → bc ↭ br → ¬ HazardFree s bc bc ls ⊎ ∃[ s₁ ](∃[ m₁ ](∃[ ls₁ ](rattle br bc ((s , m) , ls) ≡ inj₂ ((s₁ , m₁) , ls₁) × ∀ f₁ → s₁ f₁ ≡ script bc s f₁)))
 correct2 b₁ b₂ s mm ls (dsb , mp , ue) p with rattle b₁ b₂ ((s , mm) , ls) | inspect (rattle b₁ b₂) ((s , mm) , ls)
 ... | inj₁ hz | [ ≡₁ ] = {!!}
-
-{- proof plan:
-  we know the reorderd build produced a hazard. this doesnt mean the original build has a hazard.  
-  we could prove this case if we know the incorrect build doesn't corrupt the "inputs" of the build. 
-  then we can run the correct build sequentially... and we would show that all the outputs of the build are still correct; so
-  this says the systems are not exactly equivalent, but are equivalent for the outputs the build was MEANT to write.  
-  for us to do both of these cases; we should change this lemma to say it only produces the same outputs for a certain set of files
--}
 ... | inj₂ (st , _) | [ ≡₁ ] = {!!} -- inj₂ ((st , _) , refl , λ f₁ → sym (trans {!!} {!!}))
 
-{-soundness : execwError b₁ = exec b₁ = script.exec b₁
-                            exec b₂ = script.exec b₂ -}
 
-{- proof plan: 
-  we know the reordered build doesn't produce a hazard.  which via some math should mean the original build doesnt produce a hazard. 
-  1. get evidnce running the original build returns inj₂ 
-  2. apply soundness to both.  
-  3. use reordering proof. to show theyre the same for all files??  Of course we can only show that for two builds which are permutations where there are no extra commands.
-     if we want to support the extra command thing the reodering proof needs to be expanded.
--}
-
-
-{- maybe in the paper we could just prove this for the case where speculation doesnt cause hazards. and explain future work proving the other case?
-  so prove a subset of the correct2 lemma?
--}
-\end{code}
-
-\newcommand{\correctS}{%
-\begin{code}
 correct-speculation : ∀ s br bc → PreCond s br bc → ¬ HazardFree s bc bc [] ⊎ ≡toScript s br bc
-\end{code}}
-\begin{code}[hide]
 correct-speculation s br bc pc = {!!}
-\end{code}
 
-\begin{code}[hide]
 semi-correct2 : ∀ s m ls b₁ b₂ → DisjointBuild s b₁ → MemoryProperty m → UniqueEvidence b₁ b₂ (map proj₁ ls) → b₂ ↭ b₁ → ¬ HazardFree s b₁ b₂ ls ⊎ ¬ HazardFree s b₂ b₂ ls ⊎ ∃[ s₁ ](∃[ m₁ ](∃[ ls₁ ](rattle b₁ b₂ ((s , m) , ls) ≡ inj₂ ((s₁ , m₁) , ls₁) × ∀ f₁ → s₁ f₁ ≡ script b₂ s f₁)))
              -- ≡toScript (s , m) ls b₁ b₂ b₂
 semi-correct2 s mm ls b₁ b₂ dsb mp ue b₂↭b₁ with hazardfree? s b₁ b₂ ls
@@ -480,11 +398,7 @@ semi-correct2 s mm ls b₁ b₂ dsb mp ue b₂↭b₁ with hazardfree? s b₁ b�
 ... | (s₁ , mm₁) , ls₁ , ≡₁ = inj₂ (inj₂ (s₁ , mm₁ , ls₁ , ≡₁ , λ f₁ → {!!}))
 -- sym (trans (reordered b₂ b₁ ls b₂↭b₁ ue {!!} hf f₁) (trans (script≡rattle-inner mm b₁ (λ f₂ → refl) dsb mp f₁) (cong-app (cong proj₁ (soundness-inner (s , mm) ls b₁ b₂ ≡₁)) f₁)))))
 -- 
-\end{code}
 
-
-\newcommand{\correctP}{%
-\begin{code}
 semi-correct : ∀ s br bs → PreCond s br bs → ¬ HazardFree s br bs [] ⊎ ¬ HazardFree s bs bs [] ⊎ ≡toScript s br bs
 semi-correct s br bs pc with hazardfree? s br bs []
 ... | no hz = inj₁ hz
@@ -493,5 +407,4 @@ semi-correct s br bs pc with hazardfree? s br bs []
   where ∀≡ : ∀ f₁ → s₁ f₁ ≡ script bs s f₁
         ∀≡ f₁ = sym (trans (reordered≡ s br bs pc hf₁ f₁)
                            (soundness s br bs (proj₁ pc) ≡₁ f₁))
-\end{code}}
 

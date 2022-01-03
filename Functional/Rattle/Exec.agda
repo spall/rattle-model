@@ -1,4 +1,3 @@
-\begin{code}[hide]
 open import Functional.State using (State ; Oracle ; Cmd ; FileSystem ; Memory) renaming (save to store)
 
 module Functional.Rattle.Exec (oracle : Oracle) where
@@ -141,13 +140,8 @@ required? x (x₁ ∷ b) ls bf | yes x≡x₁ with subset? bf ls
 ∃ReadWrite s x ls with ∃Intersection (cmdWriteNames x s) (filesRead ls)
 ... | nothing = nothing
 ... | just (v , v∈ws , v∈reads) = just (ReadWrite v∈ws v∈reads)
-\end{code}
 
-\newcommand{\checkHazard}{%
-\begin{code}
 checkHazard : ∀ s x {b} ls → Maybe (Hazard s x b ls)
-\end{code}}
-\begin{code}[hide]
 checkHazard s x ls with ∃WriteWrite s x ls
 ... | just hz = just hz
 ... | nothing with ∃Speculative s x ls
@@ -158,25 +152,17 @@ doRunWError : ∀ {b} (((s , m) , ls) : State × FileInfo) → (x : Cmd) → Haz
 doRunWError ((s , mm) , ls) x with checkHazard s x ls
 ... | just hz = inj₁ hz
 ... | nothing = inj₂ (doRunR (s , mm) x , rec s x ls)
-\end{code}
 
-\newcommand{\runR}{%
-\begin{code}
 runR : Cmd → (FileSystem × Memory)
      → (FileSystem × Memory)
 runR cmd st = if (run? cmd st)
              then doRunR st cmd
              else st
-\end{code}}
 
-\begin{code}[hide]
 g₂ : ∀ {x} xs → x ∉ xs → All (λ y → ¬ x ≡ y) xs
 g₂ [] x∉xs = All.[]
 g₂ (x ∷ xs) x∉xs = (λ x₃ → x∉xs (here x₃)) All.∷ (g₂ xs λ x₃ → x∉xs (there x₃))
-\end{code}
 
-\newcommand{\runWError}{%
-\begin{code}
 runWError : ∀ {b} x s m ls
   → Hazard s x b ls ⊎ (FileSystem × Memory) × FileInfo
 runWError x s m ls with (run? x (s , m))
@@ -184,22 +170,15 @@ runWError x s m ls with (run? x (s , m))
 ... | true with checkHazard s x ls
 ... | just hz = inj₁ hz
 ... | nothing = inj₂ (doRunR (s , m) x , rec s x ls)
-\end{code}}
 
-\newcommand{\Rexec}{%
-\begin{code}
 rattle-unchecked : Build → (FileSystem × Memory)
                  → (FileSystem × Memory)
 rattle-unchecked [] st = st
 rattle-unchecked (x ∷ b) st = rattle-unchecked b (runR x st)
-\end{code}}
 
-\newcommand{\rattle}{%
-\begin{code}
 rattle : (br bs : Build) → (FileSystem × Memory) × FileInfo
        → ∃Hazard bs ⊎ (FileSystem × Memory) × FileInfo
 rattle [] bs st = inj₂ st
 rattle (x ∷ b₁) bs st@((s , m) , ls) with runWError x s m ls
 ... | inj₁ hz = inj₁ (proj₁ (proj₁ st) , x , proj₂ st , hz)
 ... | inj₂ (st₁ , ls₁) = rattle b₁ bs (st₁ , ls₁)
-\end{code}}

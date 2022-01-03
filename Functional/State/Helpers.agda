@@ -1,5 +1,4 @@
 
-\begin{code}[hide]
 open import Functional.State using (Oracle ; Cmd ; FileSystem ; CmdProof ; CmdFunction ; extend)
 
 module Functional.State.Helpers (oracle : Oracle) where
@@ -38,14 +37,10 @@ cmdReadWriteNames x s = (cmdReadNames x s) ++ (cmdWriteNames x s)
 
 trace : Cmd → FileSystem → FileNames × FileNames
 trace = (map getNames getNames) ∘₂ cmdFiles
-\end{code}
 
-\newcommand{\run}{%
-\begin{code}
 -- writes according to Cmd's CmdFunction
 writes : Cmd → FileSystem → List File
 writes = proj₂ ∘₂ (proj₁ ∘ oracle)
 
 run : Cmd → FileSystem → FileSystem
 run x s = foldr extend s (writes x s)
-\end{code}}

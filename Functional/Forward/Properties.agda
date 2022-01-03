@@ -1,6 +1,4 @@
 
-\begin{code}[hide]
-{-# OPTIONS --allow-unsolved-metas #-} 
 open import Functional.State using (Oracle ; FileSystem ; Memory ; Cmd ; extend ; save)
 
 module Functional.Forward.Properties (oracle : Oracle) where
@@ -209,27 +207,11 @@ correct-inner {s₁} {s₂} {ls} m (x ∷ b) ∀₁ (Cons x dc b dsb) (px ∷ ub
         ∀₂ f₁ = trans (∀₃ f₁) (StP.lemma2 (proj₂ (oracle x) s₁ s₂ λ f₃ x₂ → ∀₁ f₃) (∀₁ f₁))
         hf₂ : HazardFree s₁ b _ _
         hf₂ = hf-still b [] ((x , cmdReadNames x s₁ , cmdWriteNames x s₁) ∷ []) _ (λ f₂ x₂ → sym (∀₃ f₂)) ub (∉toAll _ (λ x₂ → dsj ((here refl) , x₂)) ∷ uls) (λ x₂ → dsj (there (proj₁ x₂) , tail (λ x₃ → lookup px (proj₁ x₂) (sym x₃)) (proj₂ x₂))) hf
-\end{code}
 
-\begin{code}[hide]
 correct : ∀ {s} b ls → DisjointBuild s b → Unique b → Unique (map proj₁ ls) → Disjoint b (map proj₁ ls) → HazardFree s b b ls → (∀ f₁ → proj₁ (fabricate b (s , _)) f₁ ≡ script b s f₁)
 correct b ls dsb ub uls dsj hf = correct-inner [] b (λ f₁ → refl) dsb ub uls dsj (λ ()) [] hf
-\end{code}
 
-\newcommand{\correctF}{%
-\begin{code}
 correct-fabricate : ∀ {s} b → PreCond s b b → HazardFree s b b [] → (∀ f₁ → proj₁ (fabricate b (s , [])) f₁ ≡ script b s f₁)
-\end{code}}
-\begin{code}[hide]
 correct-fabricate b (dsb , ub , _) hf = correct b [] dsb ub Data.List.Relation.Unary.AllPairs.[] g₁ hf
   where g₁ : Disjoint b []
         g₁ ()
-\end{code}
-
-\newcommand{\fabReorder}{%
-\begin{code}
-fabricate_reordered : ∀ {s} b₁ b₂ → PreCond s b₁ b₂ → HazardFree s b₁ b₂ [] → (∀ f₁ → proj₁ (fabricate b₁ (s ,  [])) f₁ ≡ proj₁ (fabricate b₂ (s , [])) f₁)
-fabricate_reordered b₁ b₂ pc hf f₁ = {!!}
--- with correct_forward b₁ {!!} hf f₁ | correct_forward b₂ {!!} {!!} f₁
--- ... | ≡₁ | ≡₂ = {!!} 
-\end{code}}

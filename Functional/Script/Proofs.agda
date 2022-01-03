@@ -1,5 +1,4 @@
 
-\begin{code}[hide]
 open import Functional.State as St using (Oracle ; Cmd ; extend ; read ; Memory)
 
 module Functional.Script.Proofs (oracle : Oracle) where
@@ -39,10 +38,6 @@ open import Data.Product.Properties using (,-injectiveʳ ; ,-injectiveˡ)
 open import Relation.Nullary.Negation using (contradiction)
 open import Function.Base using (_∘_)
 
-{- If we follow the concept of hazardfree, it doesn't make sense, for 
-  a hazardfree build to contain duplicates because those commands would need to do the
-same thing, which would cause a hazard. + rattle doesn't run duplicates, so ....
-lets just assume builds are unique. make my life easier...-}
 all-drop-mid : ∀ (xs : Build) {ys} {x} {x₁} → All (λ y → ¬ x₁ ≡ y) (xs ++ x ∷ ys) → All (λ y → ¬ x₁ ≡ y) (xs ++ ys)
 all-drop-mid [] all₁ = All.tail all₁
 all-drop-mid (x₂ ∷ xs) all₁ = (All.head all₁) ∷ (all-drop-mid xs (All.tail all₁))
@@ -167,13 +162,8 @@ reordered {s} {ls} xs (x ∷ ys) _ p (uxs , ux ∷ uys , uls , dsj) hf f₁ with
         dsj₃ : Disjoint (cmdWriteNames x (script as _)) (buildReadNames (run x (script as _)) bs)
         dsj₃ = hf=>disjointWR s x as bs (reverse ys) _ bs⊆reverse-ys x∉reverse-ys hf₀
 ... | ∀₂ = subst₂ (λ x₂ x₃ → script x₂ _ f₁ ≡ script x₃ _ f₁) (sym ≡₁) (sym (unfold-reverse x ys)) (∀₂ f₁)
-\end{code}
 
-\newcommand{\reordered}{%
-\begin{code}
 reordered≡ : ∀ s br bc → PreCond s br bc → HazardFree s br bc [] → (∀ f₁ → script bc s f₁ ≡ script br s f₁)
-\end{code}}
-\begin{code}[hide]
 reordered≡ s br bc (dsb , ubr , ubc , pm) hf₁ with reordered {s} br (reverse bc) (↭-length br↭reverse-bc) br↭reverse-bc ue (subst (λ x → HazardFree s br x _) (sym (reverse-involutive bc)) hf₁)
   where br↭reverse-bc : br ↭ reverse bc
         br↭reverse-bc = ↭-trans (↭-sym pm) (↭-reverse bc)
@@ -182,4 +172,3 @@ reordered≡ s br bc (dsb , ubr , ubc , pm) hf₁ with reordered {s} br (reverse
         ue : UniqueEvidence br (reverse bc) []
         ue = ubr , (unique-reverse bc ubc) , [] , g₁
 ... | ∀₁ = λ f₁ → subst (λ x → script x s f₁ ≡ script br s f₁) (reverse-involutive bc) (sym (∀₁ f₁))
-\end{code}
