@@ -179,6 +179,6 @@ rattle-unchecked (x ∷ b) st = rattle-unchecked b (runR x st)
 rattle : (br bs : Build) → (FileSystem × Memory) × FileInfo
        → ∃Hazard bs ⊎ (FileSystem × Memory) × FileInfo
 rattle [] bs st = inj₂ st
-rattle (x ∷ b₁) bs st@((s , m) , ls) with runWError x s m ls
-... | inj₁ hz = inj₁ (proj₁ (proj₁ st) , x , proj₂ st , hz)
+rattle (x ∷ b₁) bs ((s , m) , ls) with runWError x s m ls
+... | inj₁ hz = inj₁ (s , x , ls , hz) -- (proj₁ (proj₁ st) , x , proj₂ st , hz)
 ... | inj₂ (st₁ , ls₁) = rattle b₁ bs (st₁ , ls₁)
