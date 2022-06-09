@@ -3,7 +3,8 @@ open import Functional.State using (Oracle ; FileSystem ; Cmd ; extend)
 
 module Functional.Script.Properties (oracle : Oracle) where
 
--- open import Functional.Script.HazardFree (oracle) using (HazardFree)
+open import Functional.Script.Hazard (oracle) using (HazardFree ; _∷_)
+open import Functional.Script.Hazard.Properties (oracle) using  (hf=>disjoint0)
 open import Agda.Builtin.Equality
 open import Functional.State.Helpers (oracle) using (run ; cmdWriteNames ; cmdReadNames)
 open import Functional.State.Properties (oracle) as St
@@ -115,3 +116,30 @@ dsj-≡ s₁ s₂ .(x ∷ b) ∀₁ (Cons x dsj b dsb) = Cons x (λ x₂ → dsj
         v∈reads v∈ = subst (λ x₁ → _ ∈ x₁) (cong (map proj₁ ∘ proj₁) ≡₁) v∈
         v∈writes : ∀ {v} → v ∈ cmdWriteNames x s₂ → v ∈ cmdWriteNames x s₁
         v∈writes v∈ = subst (λ x₁ → _ ∈ x₁) (cong (map proj₁ ∘ proj₂) ≡₁) v∈
+
+
+still-disjoint : ∀ {b₁} {ls} s₁ s₂ b → HazardFree s₁ b b₁ ls → (∀ f₁ → f₁ ∉ buildWriteNames s₁ b → s₁ f₁ ≡ s₂ f₁) → DisjointBuild s₁ b → DisjointBuild s₂ b
+still-disjoint s₁ s₂ [] hf ∀₁ dsj = Null
+still-disjoint s₁ s₂ (x ∷ b) (¬hz ∷ hf) ∀₁ (Cons .x dsj .b dsb)
+    = Cons x g₀ b (still-disjoint (run x s₁) (run x s₂) b hf (λ f₁ x₃ → g₁ f₁ x₃) dsb)
+      where g₂ : ∀ f₁ → f₁ ∉ cmdWriteNames x s₁ → f₁ ∉ buildWriteNames (run x s₁) b → f₁ ∈ buildWriteNames s₁ (x ∷ b) → ⊥
+            g₂ f₁ f₁∉₁ f₁∉₂ f₁∈ with ∈-++⁻ (cmdWriteNames x s₁) f₁∈
+            ... | inj₁ ∈₁ = contradiction ∈₁ f₁∉₁
+            ... | inj₂ ∈₂ = contradiction ∈₂ f₁∉₂
+            -- this is a common pattern.... would be nice to have had this somewhere to reuse.
+            g₃ : ∀ f₁ → f₁ ∈ cmdReadNames x s₁ → s₁ f₁ ≡ s₂ f₁
+            g₃ f₁ f₁∈ with hf=>disjoint0 s₁ x b _ (¬hz ∷ hf)
+            ... | dsj₂ = ∀₁ f₁ λ x₁ → g₂ f₁ (λ x₂ → dsj (f₁∈ , x₂))
+                          (λ x₂ → dsj₂ (f₁∈ , x₂)) x₁
+        
+            g₁ : ∀ f₁ → f₁ ∉ buildWriteNames (run x s₁) b → run x s₁ f₁ ≡ run x s₂ f₁
+            g₁ f₁ f₁∉ with proj₂ (oracle x) s₁ s₂ (λ f₂ x₁ → g₃ f₂ x₁)
+            ... | ≡₁ with f₁ ∈? cmdWriteNames x s₁
+            ... | yes f₁∈ws = subst (λ x₁ → foldr extend s₁ (proj₂ (proj₁ (oracle x) s₁)) f₁ ≡ foldr extend s₂ x₁ f₁)
+                                    (cong proj₂ ≡₁)
+                                    (lemma4 {s₁} {s₂} (proj₂ (proj₁ (oracle x) s₁)) f₁ f₁∈ws) 
+            ... | no f₁∉ws = lemma2 ≡₁ (∀₁ f₁ λ x₁ → g₂ f₁ f₁∉ws f₁∉ x₁)
+            g₀ : Disjoint (cmdReadNames x s₂) (cmdWriteNames x s₂)
+            g₀ x₁ with proj₂ (oracle x) s₁ s₂ (λ f₂ x₁ → g₃ f₂ x₁)
+            ... | ≡₁ = dsj (subst (λ x₂ → _ ∈ x₂) (cong (map proj₁ ∘ proj₁) (sym ≡₁)) (proj₁ x₁)
+                          , subst (λ x₂ → _ ∈ x₂) (cong (map proj₁ ∘ proj₂) (sym ≡₁)) (proj₂ x₁))

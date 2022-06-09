@@ -227,6 +227,20 @@ hf=>disjoint2 s ls (x₁ ∷ ys) zs x ys⊆zs x∉zs x∈ls (¬hz ∷ hf) with h
         ... | inj₁ ∈cmd = disjoint3 s x₁ zs x ls x∈ls (ys⊆zs (here refl)) x∉zs ¬hz (∈₁ , ∈cmd)
         ... | inj₂ ∈build = dsj₁ ((∈-cmdWrote∷ (x₁ , _) x ls ∈₁ λ x₁≡x → x∉zs (ys⊆zs (here (sym x₁≡x)))) , ∈build)
 
+hf=>disjoint01 : ∀ s x xs ys {ls} → x ∈ map proj₁ ls → HazardFree s xs ys ls → Disjoint (filesRead ls) (buildWriteNames s xs)
+hf=>disjoint01 s x [] ys x∈ hf = λ ()
+hf=>disjoint01 s x (x₁ ∷ xs) ys {ls} x∈ (¬hz ∷ hf) with hf=>disjoint01 (run x₁ s) x xs ys (there x∈) hf
+... | dsj = g₁
+  where g₁ : Disjoint (filesRead ls) (buildWriteNames s (x₁ ∷ xs))
+        g₁ (∈₁ , ∈₂) with ∈-++⁻ (cmdWriteNames x₁ s) ∈₂
+        ... | inj₁ ∈cmd = ¬hz (ReadWrite ∈cmd ∈₁)
+        ... | inj₂ ∈build = dsj (∈-++⁺ʳ _ ∈₁ , ∈build)
+
+hf=>disjoint0 : ∀ s x xs ys {ls} → HazardFree s (x ∷ xs) ys ls → Disjoint (cmdReadNames x s) (buildWriteNames (run x s) xs)
+hf=>disjoint0 s x [] ys hf = λ ()
+hf=>disjoint0 s x xs ys (_ ∷ hf) p with hf=>disjoint01 (run x s) x xs ys (here refl) hf
+... | dsj = dsj (∈-++⁺ˡ (proj₁ p) , (proj₂ p))
+
 hf=>disjoint1 : ∀ s x ys zs ls → ys ⊆ zs → x ∉ zs → HazardFree s (x ∷ ys) (zs ∷ʳ x) ls → Disjoint (cmdWriteNames x s) (buildReadNames (run x s) ys)
 hf=>disjoint1 s x ys zs ls ys⊆zs x∉zs (x₁ ∷ hf) with hf=>disjoint2 (run x s) (save s x ls) ys zs x ys⊆zs x∉zs (here refl) hf
 ... | dsj = λ x₁ → dsj (∈-cmdWrote∷l (x , _) ls (proj₁ x₁) , (proj₂ x₁))

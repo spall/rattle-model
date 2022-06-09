@@ -1,14 +1,14 @@
-
+{-# OPTIONS --allow-unsolved-metas #-}
 open import Functional.State as St using (Oracle ; Cmd ; extend ; read ; Memory)
 
 module Functional.Script.Proofs (oracle : Oracle) where
 
 open import Agda.Builtin.Equality
-open import Functional.State.Helpers (oracle) using (cmdWriteNames ; run ; cmdReadNames ; cmdWrites)
-open import Functional.State.Properties (oracle) using (lemma5 ; lemma3)
+open import Functional.State.Helpers (oracle) using (cmdWriteNames ; run ; cmdReadNames ; cmdWrites ; writes ; cmdReads)
+open import Functional.State.Properties (oracle) using (lemma5 ; lemma3; lemma2 ; lemma4)
 open import Functional.Script.Exec (oracle) using (script ; buildWriteNames ; buildReadNames)
-open import Functional.Script.Hazard (oracle) using (HazardFree ; FileInfo)
-open import Functional.Script.Hazard.Properties (oracle) using (hf-∷ʳ-l ; hf-drop-mid ; hf=>disjoint ; hf=>disjointRW ; hf=>disjointWW ; hf=>disjointWR ; hf-∷ʳ-r)
+open import Functional.Script.Hazard (oracle) using (HazardFree ; FileInfo ; _∷_ ; WriteWrite)
+open import Functional.Script.Hazard.Properties (oracle) using (hf-∷ʳ-l ; hf-drop-mid ; hf=>disjoint ; hf=>disjointRW ; hf=>disjointWW ; hf=>disjointWR ; hf-∷ʳ-r ; hf=>disjoint0)
 open import Data.Sum using (inj₁ ; inj₂)
 open import Data.Maybe using (just)
 open import Data.List using (_∷ʳ_ ; List ; foldr)
@@ -28,7 +28,7 @@ open import Relation.Binary.PropositionalEquality using (subst ; subst₂ ; sym 
 open import Data.List.Relation.Unary.All as All using (All ; _∷_ ; lookup)
 open import Data.List.Relation.Unary.All.Properties as AllP hiding (++⁺)
 open import Relation.Nullary using (¬_)
-open import Functional.Build (oracle) using (Build ; UniqueEvidence ; PreCond)
+open import Functional.Build (oracle) using (Build ; UniqueEvidence ; PreCond ; DisjointBuild ; Cons)
 open import Functional.Script.Properties (oracle) using (exec-f₁≡ ; exec-≡f₁ ; writes≡ ; exec-∷≡ ; exec≡₃)
 open import Data.List.Relation.Binary.Subset.Propositional using (_⊆_)
 open import Data.String.Properties using (_≟_)
@@ -37,6 +37,7 @@ open import Relation.Nullary using (yes ; no)
 open import Data.Product.Properties using (,-injectiveʳ ; ,-injectiveˡ)
 open import Relation.Nullary.Negation using (contradiction)
 open import Function.Base using (_∘_)
+open import Data.Empty using (⊥)
 
 all-drop-mid : ∀ (xs : Build) {ys} {x} {x₁} → All (λ y → ¬ x₁ ≡ y) (xs ++ x ∷ ys) → All (λ y → ¬ x₁ ≡ y) (xs ++ ys)
 all-drop-mid [] all₁ = All.tail all₁
@@ -172,3 +173,32 @@ reordered≡ s br bc (dsb , ubr , ubc , pm) hf₁ with reordered {s} br (reverse
         ue : UniqueEvidence br (reverse bc) []
         ue = ubr , (unique-reverse bc ubc) , [] , g₁
 ... | ∀₁ = λ f₁ → subst (λ x → script x s f₁ ≡ script br s f₁) (reverse-involutive bc) (sym (∀₁ f₁))
+
+
+---------------------------------------------------------------------------------
+
+idempotent-help : ∀ {ls} {b₁} s₁ s₂ b → DisjointBuild s₁ b → HazardFree s₁ b b₁ ls → (∀ f₁ → f₁ ∉ buildWriteNames s₁ b → s₁ f₁ ≡ s₂ f₁) → (∀ f₁ → script b s₁ f₁ ≡ script b s₂ f₁)
+idempotent-help s₁ s₂ [] _ _ ∀₁ f₁ = ∀₁ f₁ ∈₁
+  where ∈₁ : f₁ ∉ buildWriteNames s₁ []
+        ∈₁ ()
+idempotent-help s₁ s₂ (x ∷ b) (Cons x dsj b dsb) (¬hz ∷ hf) ∀₁ = idempotent-help (run x s₁) (run x s₂) b dsb hf (λ f₁ x₁ → g₁ f₁ x₁)
+  where g₂ : ∀ f₁ → f₁ ∉ cmdWriteNames x s₁ → f₁ ∉ buildWriteNames (run x s₁) b → f₁ ∈ buildWriteNames s₁ (x ∷ b) → ⊥
+        g₂ f₁ f₁∉₁ f₁∉₂ f₁∈ with ∈-++⁻ (cmdWriteNames x s₁) f₁∈
+        ... | inj₁ ∈₁ = contradiction ∈₁ f₁∉₁
+        ... | inj₂ ∈₂ = contradiction ∈₂ f₁∉₂
+        -- this is a common pattern.... would be nice to have had this somewhere to reuse.
+        g₃ : ∀ f₁ → f₁ ∈ cmdReadNames x s₁ → s₁ f₁ ≡ s₂ f₁
+        g₃ f₁ f₁∈ with hf=>disjoint0 s₁ x b _ (¬hz ∷ hf)
+        ... |  dsj₂ = ∀₁ f₁ λ x₁ → g₂ f₁ (λ x₂ → dsj (f₁∈ , x₂))
+                    (λ x₂ → dsj₂ (f₁∈ , x₂)) x₁
+        
+        g₁ : ∀ f₁ → f₁ ∉ buildWriteNames (run x s₁) b → run x s₁ f₁ ≡ run x s₂ f₁
+        g₁ f₁ p with proj₂ (oracle x) s₁ s₂ (λ f₂ x₁ → g₃ f₂ x₁)
+        ... | ≡₁ with f₁ ∈? cmdWriteNames x s₁
+        ... | yes f₁∈ws = subst (λ x₁ → foldr extend s₁ (proj₂ (proj₁ (oracle x) s₁)) f₁ ≡ foldr extend s₂ x₁ f₁)
+                                (cong proj₂ ≡₁)
+                                (lemma4 {s₁} {s₂} (proj₂ (proj₁ (oracle x) s₁)) f₁ f₁∈ws) 
+        ... | no f₁∉ws = lemma2 ≡₁ (∀₁ f₁ λ x₁ → g₂ f₁ f₁∉ws p x₁)
+
+script-idempotent : ∀ s b {b₁} {ls} → DisjointBuild s b → HazardFree s b b₁ ls → (∀ f₁ → script b s f₁ ≡ script b (script b s) f₁)
+script-idempotent s b dsb hf = idempotent-help s (script b s) b dsb hf λ f₁ x → sym (helper8 b x)

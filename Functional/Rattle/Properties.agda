@@ -29,12 +29,12 @@ open import Relation.Nullary.Negation using (contradiction)
 open import Data.List.Relation.Unary.Any using (tail ; here ; there)
 open import Data.List.Relation.Unary.Any.Properties using (reverse⁺ ; reverse⁻)
 open import Functional.Rattle.Exec (oracle) using (rattle ; runWError ; runR ; doRunR ; rattle-unchecked ; doRunWError ; checkHazard ; g₂)
-open import Functional.Build (oracle) using (Build ; UniqueEvidence ; PreCond ; DisjointBuild ; Cons)
+open import Functional.Build (oracle) using (Build ; UniqueEvidence ; PreCond ; DisjointBuild ; Cons ; Null)
 open import Data.Sum using (inj₂ ; from-inj₂ ; inj₁ ; _⊎_)
 open import Data.Sum.Properties using (inj₂-injective)
 open import Functional.Script.Exec (oracle) as Script
-open import Functional.Script.Properties (oracle) using (dsj-≡ ; exec-≡f₁ ; writes≡ ; exec-∷≡ ; exec≡₃) 
-open import Functional.Script.Proofs (oracle) using (reordered ; reordered≡ ; unique-reverse ; unique-drop-mid ; helper3 ; helper5)
+open import Functional.Script.Properties (oracle) using (dsj-≡ ; exec-≡f₁ ; writes≡ ; exec-∷≡ ; exec≡₃ ; still-disjoint) 
+open import Functional.Script.Proofs (oracle) using (reordered ; reordered≡ ; unique-reverse ; unique-drop-mid ; helper3 ; helper5 ; script-idempotent ; helper8)
 
 open import Functional.Script.Hazard (oracle) using (Hazard ; HazardFree ; FileInfo ; _∷_ ; ∃Hazard ; [] ; hazardfree? ; ReadWrite ; WriteWrite ; Speculative ; filesRead ; filesWrote ; files ; cmdsRun ; cmdWrote ; ∈-cmdWrote∷ ; ∈-cmdRead∷l ; ∈-filesWrote) renaming (save to rec)
 
@@ -193,4 +193,20 @@ semi-correct s br bs pc with hazardfree? s br bs []
   where ∀≡ : ∀ f₁ → s₁ f₁ ≡ script bs s f₁
         ∀≡ f₁ = sym (trans (reordered≡ s br bs pc hf₁ f₁)
                            (soundness s br bs (proj₁ pc) ≡₁ f₁))
+
+-- memoryproperty m1
+preservesMemoryProperty : ∀ {s} {m} b → DisjointBuild s b → MemoryProperty m → MemoryProperty (proj₂ (rattle-unchecked b (s , m)))
+preservesMemoryProperty [] _ mp = mp
+preservesMemoryProperty {s} {m} (x ∷ b) (Cons .x dsj .b dsb) mp with x ∈? map proj₁ m -- run? x (s , m)
+... | no x∉ = preservesMemoryProperty b dsb (Cons x s (λ f₁ x₁ → lemma3 f₁ (proj₂ (proj₁ (oracle x) s)) λ x₂ → dsj (x₁ , x₂)) mp)
+... | yes x∈ with maybeAll {s} (get x m x∈)
+... | nothing = preservesMemoryProperty b dsb (Cons x s (λ f₁ x₁ → lemma3 f₁ (proj₂ (proj₁ (oracle x) s)) λ x₂ → dsj (x₁ , x₂)) mp)
+... | just all₁ = preservesMemoryProperty b (dsj-≡ (St.run x s) s b (noEffect x (λ f₁ → refl) mp x∈ all₁) dsb) mp
+
+rattle-idempotent : ∀ s b {b₁} → DisjointBuild s b → HazardFree s b b₁ [] → (∀ f₁ → proj₁ (rattle-unchecked b (s , [])) f₁ ≡ proj₁ (rattle-unchecked b (rattle-unchecked b (s , []))) f₁)
+rattle-idempotent s b dsb hf f₁ with rattle-unchecked b (s , []) | inspect (rattle-unchecked b) (s , []) | script≡rattle-unchecked s b dsb 
+... | (s₁ , m₁) | [ ≡₂ ] | ≡₁ = trans (sym (≡₁ f₁)) (trans (script-idempotent s b dsb hf f₁) (script≡rattle-inner {script b s} {s₁} m₁ b ≡₁ (still-disjoint s s₁ b hf (λ f₂ x → trans (sym (helper8 b x)) (≡₁ f₂)) dsb) mp₂ f₁))
+  where mp₂ : MemoryProperty m₁
+        mp₂ = subst (λ x → MemoryProperty x) (cong proj₂ ≡₂) (preservesMemoryProperty b dsb [])
+ 
 
